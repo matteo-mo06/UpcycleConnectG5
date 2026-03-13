@@ -1,72 +1,56 @@
 <template>
   <AdminLayout title="Annonces">
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+    <div class="grid grid-cols-4 gap-5 mb-8">
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4"
-      >
-        <div
-          class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-          :style="{ backgroundColor: stat.color + '1a' }"
-        >
-          <div :style="{ color: stat.color }" v-html="stat.icon" />
+        class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
+          <div :class="stat.iconClass" v-html="stat.icon" />
         </div>
         <div class="min-w-0">
           <p
-            class="text-2xl font-bold text-gray-800 leading-none"
-            style="font-family: var(--font-family-title)"
-          >
-            {{ stat.value.toLocaleString('fr-FR') }}
+            class="text-2xl font-bold text-gray-800 leading-none">
+            {{stat.value}}
           </p>
-          <p class="text-sm text-gray-500 mt-1 truncate">{{ stat.label }}</p>
+          <p class="text-sm text-gray-500 mt-1 truncate">{{stat.label}}</p>
         </div>
       </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2
-          class="text-base font-semibold text-gray-800"
-          style="font-family: var(--font-family-title)"
-        >
-          Dernières annonces ajoutées
-        </h2>
+        <h2 class="text-base font-semibold text-gray-800">Dernières annonces ajoutées</h2>
         <span class="text-xs text-gray-400">Vérifiez la conformité des nouvelles publications</span>
       </div>
       <div class="divide-y divide-gray-50">
         <div
           v-for="listing in recentListings"
           :key="listing.id"
-          class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/60 transition-colors"
-        >
-          <div class="flex-1 min-w-0 mr-4">
-            <div class="flex items-center gap-2 flex-wrap">
-              <p class="font-medium text-gray-800 text-sm truncate">{{ listing.title }}</p>
+          class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/60 transition-colors">
+          <div class="flex-1 mr-4">
+            <div class="flex items-center gap-2">
+              <p class="font-medium text-gray-800 text-sm truncate">{{listing.title}}</p>
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="typeBadge(listing.type)"
-              >
-                {{ listing.type }}
+                :class="typeBadge(listing.type)">
+                {{listing.type}}
               </span>
             </div>
             <p class="text-xs text-gray-500 mt-0.5">
-              Par <span class="font-medium text-gray-700">{{ listing.author }}</span>
-              · {{ listing.category }} · {{ listing.date }}
+              Par <span class="font-medium text-gray-700">{{listing.author}}</span>
+              · {{listing.category}} · {{listing.date}}
             </p>
           </div>
           <div class="flex-shrink-0 flex items-center gap-2">
             <button
               @click="openDetail(listing)"
-              class="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors"
-            >
-              Voir
+              class="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">Voir
             </button>
             <button
               @click="deleteListing(listing)"
-              class="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
+              class="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
               Retirer
             </button>
           </div>
@@ -76,8 +60,8 @@
 
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
 
-      <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
-        <div class="relative flex-1 min-w-48">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+        <div class="relative flex-1">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
           </svg>
@@ -124,7 +108,7 @@
         </select>
 
         <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">
-          {{ filteredListings.length }} résultat{{ filteredListings.length > 1 ? 's' : '' }}
+          {{filteredListings.length}} résultat(s)
         </span>
       </div>
 
@@ -133,16 +117,16 @@
           <thead>
             <tr class="bg-primary">
               <th class="text-left text-white font-medium px-5 py-3">Annonce</th>
-              <th class="text-left text-white font-medium px-5 py-3 hidden sm:table-cell">Type</th>
-              <th class="text-left text-white font-medium px-5 py-3 hidden md:table-cell">Catégorie</th>
+              <th class="text-left text-white font-medium px-5 py-3">Type</th>
+              <th class="text-left text-white font-medium px-5 py-3">Catégorie</th>
               <th class="text-left text-white font-medium px-5 py-3">Statut</th>
-              <th class="text-left text-white font-medium px-5 py-3 hidden lg:table-cell">Date</th>
+              <th class="text-left text-white font-medium px-5 py-3">Date</th>
               <th class="text-right text-white font-medium px-5 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="(listing, i) in paginatedListings"
+              v-for="(listing, i) in filteredListings"
               :key="listing.id"
               :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']"
             >
@@ -157,31 +141,31 @@
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
                   <div class="min-w-0">
-                    <p class="font-medium text-gray-800 truncate max-w-48">{{ listing.title }}</p>
-                    <p class="text-xs text-gray-500 truncate">{{ listing.author }}</p>
+                    <p class="font-medium text-gray-800 truncate max-w-48">{{listing.title}}</p>
+                    <p class="text-xs text-gray-500 truncate">{{listing.author}}</p>
                   </div>
                 </div>
               </td>
 
-              <td class="px-5 py-3 hidden sm:table-cell">
+              <td class="px-5 py-3">
                 <span
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                   :class="typeBadge(listing.type)"
                 >
-                  {{ listing.type }}
+                  {{listing.type}}
                 </span>
               </td>
 
-              <td class="px-5 py-3 text-gray-500 text-xs hidden md:table-cell">{{ listing.category }}</td>
+              <td class="px-5 py-3 text-gray-500 text-xs">{{listing.category}}</td>
 
               <td class="px-5 py-3">
                 <span class="inline-flex items-center gap-1.5 text-xs font-medium">
                   <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="statusDot(listing.status)" />
-                  <span :class="statusText(listing.status)">{{ listing.status }}</span>
+                  <span :class="statusText(listing.status)">{{listing.status}}</span>
                 </span>
               </td>
 
-              <td class="px-5 py-3 text-gray-500 text-xs hidden lg:table-cell">{{ listing.date }}</td>
+              <td class="px-5 py-3 text-gray-500 text-xs">{{listing.date}}</td>
 
               <td class="px-5 py-3">
                 <div class="flex items-center justify-end gap-1">
@@ -224,7 +208,7 @@
               </td>
             </tr>
 
-            <tr v-if="paginatedListings.length === 0">
+            <tr v-if="filteredListings.length === 0">
               <td colspan="6" class="px-5 py-12 text-center text-gray-400 text-sm">
                 Aucune annonce ne correspond à vos filtres.
               </td>
@@ -233,40 +217,8 @@
         </table>
       </div>
 
-      <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-        <span>
-          Affichage {{ (currentPage - 1) * perPage + 1 }}–{{ Math.min(currentPage * perPage, filteredListings.length) }}
-          sur {{ filteredListings.length }} annonces
-        </span>
-        <div class="flex items-center gap-1">
-          <button
-            @click="currentPage--"
-            :disabled="currentPage === 1"
-            class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            ← Préc.
-          </button>
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            @click="currentPage = page"
-            :class="[
-              'px-3 py-1 rounded font-medium',
-              currentPage === page
-                ? 'bg-primary text-white'
-                : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
-            ]"
-          >
-            {{ page }}
-          </button>
-          <button
-            @click="currentPage++"
-            :disabled="currentPage === totalPages"
-            class="px-2.5 py-1 rounded border border-gray-200 hover:bg-gray-50 text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Suiv. →
-          </button>
-        </div>
+      <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
+        {{filteredListings.length}} annonce(s)
       </div>
     </div>
 
@@ -279,18 +231,18 @@
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
           <div class="min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
               <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
-                {{ detailListing.title }}
+                {{detailListing.title}}
               </h3>
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
                 :class="typeBadge(detailListing.type)"
               >
-                {{ detailListing.type }}
+                {{detailListing.type}}
               </span>
             </div>
-            <p class="text-xs text-gray-500 mt-0.5">{{ detailListing.category }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">{{detailListing.category}}</p>
           </div>
           <button
             @click="detailListing = null"
@@ -306,40 +258,40 @@
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Auteur</p>
-              <p class="font-medium text-gray-800">{{ detailListing.author }}</p>
-              <p class="text-xs text-gray-500">{{ detailListing.authorEmail }}</p>
+              <p class="font-medium text-gray-800">{{detailListing.author}}</p>
+              <p class="text-xs text-gray-500">{{detailListing.authorEmail}}</p>
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Statut</p>
               <span class="inline-flex items-center gap-1.5 text-xs font-medium">
                 <span class="w-1.5 h-1.5 rounded-full" :class="statusDot(detailListing.status)" />
-                <span :class="statusText(detailListing.status)">{{ detailListing.status }}</span>
+                <span :class="statusText(detailListing.status)">{{detailListing.status}}</span>
               </span>
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Date de publication</p>
-              <p class="text-gray-700">{{ detailListing.date }}</p>
+              <p class="text-gray-700">{{detailListing.date}}</p>
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Vues</p>
-              <p class="text-gray-700">{{ detailListing.views }} vues</p>
+              <p class="text-gray-700">{{detailListing.views}} vues</p>
             </div>
           </div>
 
           <div>
             <p class="text-xs text-gray-400 mb-1">Description</p>
-            <p class="text-sm text-gray-700 leading-relaxed">{{ detailListing.description }}</p>
+            <p class="text-sm text-gray-700 leading-relaxed">{{detailListing.description}}</p>
           </div>
 
           <div v-if="detailListing.tags && detailListing.tags.length">
             <p class="text-xs text-gray-400 mb-1.5">Tags</p>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex gap-1.5">
               <span
                 v-for="tag in detailListing.tags"
                 :key="tag"
                 class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
               >
-                {{ tag }}
+                {{tag}}
               </span>
             </div>
           </div>
@@ -358,7 +310,7 @@
             <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="detailListing.featured ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-            {{ detailListing.featured ? 'Retirer la mise en avant' : 'Mettre en avant' }}
+            {{detailListing.featured ? 'Retirer la mise en avant' : 'Mettre en avant'}}
           </button>
           <button
             @click="deleteListing(detailListing); detailListing = null"
@@ -374,138 +326,54 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import {ref, computed} from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 
 const listings = ref([
-  {
-    id: 1,
-    title: 'Chaise en bois à restaurer',
-    author: 'Lucie Bernard',
-    authorEmail: 'lucie.b@gmail.com',
-    type: 'Don',
-    category: 'Bois & Mobilier',
-    status: 'Active',
-    featured: true,
-    date: '08/03/2026',
-    views: 142,
-    description: 'Chaise ancienne en bois massif, pieds à consolider. Parfaite pour un projet de relooking.',
-    tags: ['bois', 'chaise', 'vintage', 'restauration'],
-  },
-  {
-    id: 2,
-    title: 'Lot de tissus de récupération',
-    author: 'Camille Dupont',
-    authorEmail: 'camille.dupont@mail.com',
-    type: 'Don',
-    category: 'Textile',
-    status: 'Active',
-    featured: false,
-    date: '07/03/2026',
-    views: 98,
-    description: 'Environ 3 kg de chutes de tissu coton et lin, idéal pour upcycling ou patchwork. À récupérer sur place.',
-    tags: ['tissu', 'textile', 'chutes', 'patchwork'],
-  },
-  {
-    id: 3,
-    title: 'Veste jean taille M',
-    author: 'Sophie Martin',
-    authorEmail: 'sophie.m@mail.com',
-    type: 'Échange',
-    category: 'Textile',
-    status: 'Active',
-    featured: false,
-    date: '06/03/2026',
-    views: 87,
-    description: 'Veste en jean légèrement usée, recherche échange contre vêtement taille M.',
-    tags: ['jean', 'veste', 'échange', 'mode'],
-  },
-  {
-    id: 4,
-    title: 'Recherche palette bois',
-    author: 'Thomas Salarié',
-    authorEmail: 'thomas.s@upcycle.fr',
-    type: 'Recherche',
-    category: 'Bois & Mobilier',
-    status: 'Active',
-    featured: false,
-    date: '05/03/2026',
-    views: 34,
-    description: 'Recherche 2-3 palettes en bon état pour projet de mobilier extérieur.',
-    tags: ['palette', 'bois', 'mobilier'],
-  },
-  {
-    id: 5,
-    title: 'Lot composants électroniques',
-    author: 'Marc Artisan',
-    authorEmail: 'marc.artisan@pro.fr',
-    type: 'Vente',
-    category: 'Électronique',
-    status: 'Active',
-    featured: false,
-    date: '04/03/2026',
-    views: 210,
-    description: 'Résistances, condensateurs, LED et autres composants issus de démontage. Lot de 500+ pièces. 15 €.',
-    tags: ['électronique', 'composants', 'DIY'],
-  },
-  {
-    id: 6,
-    title: 'Cadres photo divers',
-    author: 'Camille Dupont',
-    authorEmail: 'camille.dupont@mail.com',
-    type: 'Don',
-    category: 'Divers',
-    status: 'Expirée',
-    featured: false,
-    date: '10/02/2026',
-    views: 56,
-    description: 'Lot de cadres photo en bois et plastique, différentes tailles, à décorer ou transformer.',
-    tags: ['cadre', 'photo', 'décoration'],
-  },
-  {
-    id: 7,
-    title: 'Cartons d\'emballage épais',
-    author: 'Sophie Martin',
-    authorEmail: 'sophie.m@mail.com',
-    type: 'Don',
-    category: 'Papier',
-    status: 'Active',
-    featured: false,
-    date: '03/02/2026',
-    views: 62,
-    description: 'Grands cartons doubles épaisseurs récupérés de déménagement, parfaits pour les enfants ou l\'isolation.',
-    tags: ['carton', 'emballage', 'papier'],
-  },
+  {id: 1, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 2, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 3, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 4, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 5, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 6, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 7, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 8, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 9, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
+  {id: 10, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
 ])
 
 const recentListings = computed(() => listings.value.slice(0, 3))
 
-const stats = computed(() => [
+const stats = [
   {
     label: 'Total annonces',
-    value: listings.value.length,
-    color: '#c46d68',
-    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
-  },
+    value: 10,
+    bgClass: 'bg-red-100',
+    iconClass: 'text-red-500',
+    icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
+ },
   {
     label: 'Actives',
-    value: listings.value.filter(l => l.status === 'Active').length,
-    color: '#8dc734',
-    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-  },
+    value: 10,
+    bgClass: 'bg-green-100',
+    iconClass: 'text-green-600',
+    icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+ },
   {
     label: 'Mises en avant',
-    value: listings.value.filter(l => l.featured).length,
-    color: '#f59e0b',
-    icon: `<svg viewBox="0 0 24 24" fill="currentColor" style="width:24px;height:24px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
-  },
+    value: 0,
+    bgClass: 'bg-amber-100',
+    iconClass: 'text-amber-500',
+    icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+ },
   {
     label: 'Signalées',
-    value: 5,
-    color: '#ef4444',
-    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" style="width:24px;height:24px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>`,
-  },
-])
+    value: 1,
+    bgClass: 'bg-red-100',
+    iconClass: 'text-red-400',
+    icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>`,
+ },
+]
 
 const search = ref('')
 const filterType = ref('')
@@ -520,20 +388,10 @@ const filteredListings = computed(() => {
     if (filterCategory.value && l.category !== filterCategory.value) return false
     if (filterStatus.value && l.status !== filterStatus.value) return false
     return true
-  })
+ })
   return [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
 })
 
-const perPage = 5
-const currentPage = ref(1)
-const totalPages = computed(() => Math.ceil(filteredListings.value.length / perPage))
-
-const paginatedListings = computed(() => {
-  const start = (currentPage.value - 1) * perPage
-  return filteredListings.value.slice(start, start + perPage)
-})
-
-watch(filteredListings, () => { currentPage.value = 1 })
 
 const detailListing = ref(null)
 
@@ -542,8 +400,7 @@ function openDetail(listing) {
 }
 
 function toggleFeatured(listing) {
-  const target = listings.value.find(l => l.id === listing.id)
-  if (target) target.featured = !target.featured
+  listings.value.find(l => l.id === listing.id).featured ^= true
 }
 
 function deleteListing(listing) {
@@ -558,7 +415,7 @@ function typeBadge(type) {
     'Vente': 'bg-blue-100 text-blue-700',
     'Échange': 'bg-purple-100 text-purple-700',
     'Recherche': 'bg-amber-100 text-amber-700',
-  }
+ }
   return map[type] ?? 'bg-gray-100 text-gray-600'
 }
 
@@ -567,7 +424,7 @@ function statusDot(status) {
     'Active': 'bg-green-500',
     'Expirée': 'bg-gray-400',
     'Supprimée': 'bg-red-400',
-  }
+ }
   return map[status] ?? 'bg-gray-300'
 }
 
@@ -576,7 +433,7 @@ function statusText(status) {
     'Active': 'text-green-700',
     'Expirée': 'text-gray-500',
     'Supprimée': 'text-red-600',
-  }
+ }
   return map[status] ?? 'text-gray-500'
 }
 </script>
