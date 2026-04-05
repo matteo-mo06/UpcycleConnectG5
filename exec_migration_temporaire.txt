@@ -1,0 +1,22 @@
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/001_init.up.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/001_init.down.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/002_valeurTest.up.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/002_valeurTest.down.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/003_professional_request.up.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/003_professional_request.down.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/004_announcements_events.up.sql
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" mysql -u root -p upcycle < db/migrations/004_announcements_events.down.sql
+
+
+premier admin:
+INSERT INTO USER_ROLE (id_user, id_role)
+VALUES ('l'uuid genere dans la requete de register', '11111111-1111-1111-1111-000000000001');
+
+INSERT INTO USER_ROLE (id_user, id_role)
+VALUES ('7e1e3c9c-8c2c-46b0-9742-fed85b07a5fc', '11111111-1111-1111-1111-000000000001');
+
+pour le token, cliquer sur la collection dans postman, aller sur authorization, mettre bearer token et mettre le token généré par l'authentification si le compte a le role admin (pour tester les routes admin)
+
+	
+
+migrate -database "mysql://root:root@tcp(localhost:3306)/upcycle" -path db/migrations up
