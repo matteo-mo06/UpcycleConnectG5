@@ -10,7 +10,7 @@ ALTER TABLE EVENT
     DROP COLUMN description_event,
     DROP COLUMN date_event,
     DROP COLUMN location_event,
-    DROP COLUMN capacity,d
+    DROP COLUMN capacity,
     DROP COLUMN price_cents;
 
 DROP TABLE IF EXISTS CATEGORY;
