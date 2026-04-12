@@ -248,6 +248,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"message": "login successful",
 		"token":   token,
-		"user":    user.ToResponse(),
+		"user":    user.ToLoginResponse(roles),
 	})
 }
