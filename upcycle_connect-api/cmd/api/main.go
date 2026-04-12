@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"upcycle_connect-api/internal/config"
+	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/router"
 
 	"github.com/joho/godotenv"
@@ -18,5 +19,5 @@ func main() {
 	router.InitRoutes()
 
 	fmt.Println("Listening at http://localhost:8084")
-	http.ListenAndServe(":8084", nil)
+	http.ListenAndServe(":8084", middleware.CORS(http.DefaultServeMux))
 }

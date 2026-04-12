@@ -19,6 +19,16 @@ type UserResponse struct {
 	Premium         int    `json:"premium"`
 }
 
+type LoginUserResponse struct {
+	Id_user         string   `json:"id"`
+	Email           string   `json:"email"`
+	First_name      string   `json:"first_name"`
+	Last_name       string   `json:"last_name"`
+	Upcycling_score int      `json:"upcycling_score"`
+	Premium         int      `json:"premium"`
+	Roles           []string `json:"roles"`
+}
+
 func (u User) ToResponse() UserResponse {
 	return UserResponse{
 		Id_user:         u.Id_user,
@@ -27,5 +37,17 @@ func (u User) ToResponse() UserResponse {
 		Last_name:       u.Last_name,
 		Upcycling_score: u.Upcycling_score,
 		Premium:         u.Premium,
+	}
+}
+
+func (u User) ToLoginResponse(roles []string) LoginUserResponse {
+	return LoginUserResponse{
+		Id_user:         u.Id_user,
+		Email:           u.Email,
+		First_name:      u.First_name,
+		Last_name:       u.Last_name,
+		Upcycling_score: u.Upcycling_score,
+		Premium:         u.Premium,
+		Roles:           roles,
 	}
 }
