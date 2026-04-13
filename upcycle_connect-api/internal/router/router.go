@@ -26,6 +26,7 @@ func InitRoutes() {
 	http.Handle("GET /admin/users", admin(handlers.GetUsers))
 	http.Handle("GET /admin/user/{id}", admin(handlers.GetUserById))
 	http.Handle("PUT /admin/user/{id}", admin(handlers.UpdateUser))
+	http.Handle("PATCH /admin/user/{id}/status", admin(handlers.UpdateUserStatus))
 	http.Handle("DELETE /admin/user/{id}", admin(handlers.DeleteUser))
 
 	http.Handle("GET /admin/roles", admin(handlers.GetRoles))

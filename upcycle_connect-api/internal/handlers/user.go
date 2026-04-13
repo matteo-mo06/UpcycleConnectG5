@@ -14,6 +14,43 @@ import (
 	"upcycle_connect-api/internal/utils"
 )
 
+func UpdateUserStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := r.PathValue("id")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing user id"})
+		return
+	}
+
+	var body struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	allowed := map[string]bool{"active": true, "suspended": true, "blacklisted": true}
+	if !allowed[body.Status] {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "status invalide (active | suspended | blacklisted)"})
+		return
+	}
+
+	if err := db.UpdateUserStatus(id, body.Status); err != nil {
+		fmt.Println("UpdateUserStatus error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update status"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "statut mis à jour"})
+}
+
 func GetUserById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -47,7 +84,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	firstName := r.URL.Query().Get("first_name")
 	lastName := r.URL.Query().Get("last_name")
 
-	users, err := db.GetAllUsersByNameOrFirstName(firstName, lastName)
+	users, err := db.GetAllUsersWithRoles(firstName, lastName)
 	if err != nil {
 		fmt.Println("GetUsers error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -55,13 +92,12 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responses := make([]models.UserResponse, len(users))
-	for i, u := range users {
-		responses[i] = u.ToResponse()
+	if users == nil {
+		users = []models.UserListItem{}
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(responses)
+	_ = json.NewEncoder(w).Encode(users)
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
