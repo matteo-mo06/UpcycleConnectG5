@@ -1,3 +1,3 @@
 ALTER TABLE USER
-  DROP COLUMN created_at,
-  DROP COLUMN status;
+    DROP COLUMN created_at,
+    DROP COLUMN status;
