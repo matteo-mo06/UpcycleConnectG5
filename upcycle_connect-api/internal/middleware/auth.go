@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 
 	"upcycle_connect-api/internal/config"
@@ -28,8 +29,9 @@ func CORS(next http.Handler) http.Handler {
 type contextKey string
 
 const (
-	ContextUserID contextKey = "user_id"
-	ContextRoles  contextKey = "roles"
+	ContextUserID      contextKey = "user_id"
+	ContextRoles       contextKey = "roles"
+	ContextPermissions contextKey = "permissions"
 )
 
 func RequireAuth(next http.Handler) http.Handler {
@@ -53,22 +55,41 @@ func RequireAuth(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), ContextUserID, claims.UserID)
 		ctx = context.WithValue(ctx, ContextRoles, claims.Roles)
+		ctx = context.WithValue(ctx, ContextPermissions, claims.Permissions)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
+// RequireAdmin vérifie que l'utilisateur a le rôle admin.
+// Utilisé comme garde-fou global sur toutes les routes /admin/*.
 func RequireAdmin(next http.Handler) http.Handler {
 	return RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		roles, _ := r.Context().Value(ContextRoles).([]string)
 
-		for _, role := range roles {
-			if role == config.AdminRoleName {
-				next.ServeHTTP(w, r)
-				return
-			}
+		if slices.Contains(roles, config.RoleAdmin) {
+			next.ServeHTTP(w, r)
+			return
 		}
 
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès réservé aux administrateurs"})
 	}))
+}
+
+// RequirePermission vérifie qu'une permission précise est présente dans le token.
+// Utilisé pour les routes accessibles à plusieurs rôles selon leurs permissions.
+func RequirePermission(permission string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			perms, _ := r.Context().Value(ContextPermissions).([]string)
+
+			if slices.Contains(perms, permission) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "permission insuffisante"})
+		}))
+	}
 }

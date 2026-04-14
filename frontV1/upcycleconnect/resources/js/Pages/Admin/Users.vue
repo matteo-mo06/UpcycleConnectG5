@@ -192,8 +192,7 @@
 
                             <td class="px-5 py-3">
                                 <span
-                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                                    :class="typeBadge(user.type)"
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"
                                 >
                                     {{ user.type }}
                                 </span>
@@ -530,16 +529,6 @@ async function rejectRequest(id) {
     } catch (e) {
         alert("Erreur lors du refus");
     }
-}
-
-function typeBadge(type) {
-    const map = {
-        Particulier: "bg-blue-100 text-blue-700",
-        Artisan: "bg-secondary/20 text-secondary-dark",
-        Salarié: "bg-purple-100 text-purple-700",
-        Administrateur: "bg-primary/15 text-primary-dark",
-    };
-    return map[type] ?? "bg-gray-100 text-gray-600";
 }
 
 function statusBadge(status) {

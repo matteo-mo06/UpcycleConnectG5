@@ -10,8 +10,15 @@ import (
 
 var JWTSecret = os.Getenv("JWT_SECRET")
 
-const AdminRoleName = "admin"
-const ArtisanRoleName = "artisan"
+// Rôles — source de vérité unique pour toute l'application
+const RoleAdmin   = "admin"
+const RoleArtisan = "artisan"
+const RoleSalarie = "salarie"
+const RoleUser    = "user"
+
+// Rétrocompatibilité avec l'existant
+const AdminRoleName   = RoleAdmin
+const ArtisanRoleName = RoleArtisan
 
 var Conn *sql.DB
 

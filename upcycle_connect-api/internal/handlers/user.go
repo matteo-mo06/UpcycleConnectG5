@@ -272,7 +272,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		roles = []string{}
 	}
 
-	token, err := utils.GenerateToken(user.Id_user, roles)
+	permissions, _ := db.GetUserPermissions(user.Id_user)
+	if permissions == nil {
+		permissions = []string{}
+	}
+
+	token, err := utils.GenerateToken(user.Id_user, roles, permissions)
 	if err != nil {
 		fmt.Println("Login GenerateToken error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -284,6 +289,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"message": "login successful",
 		"token":   token,
-		"user":    user.ToLoginResponse(roles),
+		"user":    user.ToLoginResponse(roles, permissions),
 	})
 }

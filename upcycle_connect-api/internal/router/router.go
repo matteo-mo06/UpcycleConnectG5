@@ -15,6 +15,10 @@ func auth(h http.HandlerFunc) http.Handler {
 	return middleware.RequireAuth(h)
 }
 
+func perm(permission string, h http.HandlerFunc) http.Handler {
+	return middleware.RequirePermission(permission)(h)
+}
+
 func InitRoutes() {
 	http.HandleFunc("GET /", handlers.HealthCheck)
 
@@ -33,6 +37,11 @@ func InitRoutes() {
 	http.Handle("GET /admin/user/{id}/roles", admin(handlers.GetUserRoles))
 	http.Handle("POST /admin/user/{id}/roles", admin(handlers.AddRoleToUser))
 	http.Handle("DELETE /admin/user/{id}/roles/{role_id}", admin(handlers.RemoveRoleFromUser))
+
+	http.Handle("GET /admin/permissions", admin(handlers.GetPermissions))
+	http.Handle("GET /admin/role/{id}/permissions", admin(handlers.GetRolePermissions))
+	http.Handle("POST /admin/role/{id}/permissions", admin(handlers.AddRolePermission))
+	http.Handle("DELETE /admin/role/{id}/permissions/{permission_id}", admin(handlers.RemoveRolePermission))
 
 	http.Handle("GET /admin/professional-requests", admin(handlers.GetProfessionalRequests))
 	http.Handle("PUT /admin/professional-requests/{id}/validate", admin(handlers.ValidateProfessionalRequest))

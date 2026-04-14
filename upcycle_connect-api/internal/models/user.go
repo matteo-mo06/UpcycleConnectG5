@@ -47,6 +47,7 @@ type LoginUserResponse struct {
 	Status          string   `json:"status"`
 	Created_at      string   `json:"created_at"`
 	Roles           []string `json:"roles"`
+	Permissions     []string `json:"permissions"`
 }
 
 func (u User) ToResponse() UserResponse {
@@ -62,7 +63,7 @@ func (u User) ToResponse() UserResponse {
 	}
 }
 
-func (u User) ToLoginResponse(roles []string) LoginUserResponse {
+func (u User) ToLoginResponse(roles []string, permissions []string) LoginUserResponse {
 	return LoginUserResponse{
 		Id_user:         u.Id_user,
 		Email:           u.Email,
@@ -73,5 +74,6 @@ func (u User) ToLoginResponse(roles []string) LoginUserResponse {
 		Status:          u.Status,
 		Created_at:      u.Created_at,
 		Roles:           roles,
+		Permissions:     permissions,
 	}
 }
