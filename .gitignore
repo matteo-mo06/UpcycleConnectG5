@@ -1,20 +1,12 @@
 upcycle_connect-api/.env
-
-# Go build artifacts
 upcycle_connect-api/tmp/
-
-# Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Laravel
-frontV1/upcycleconnect/vendor/
-frontV1/upcycleconnect/.env
-frontV1/upcycleconnect/storage/*.key
-frontV1/upcycleconnect/public/hot
-frontV1/upcycleconnect/public/storage
-
-# Claude
+frontend/upcycleconnect/vendor/
+frontend/upcycleconnect/.env
+frontend/upcycleconnect/storage/*.key
+frontend/upcycleconnect/public/hot
+frontend/upcycleconnect/public/storage
 .claude
