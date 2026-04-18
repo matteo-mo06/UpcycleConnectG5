@@ -217,7 +217,7 @@ async function submitLogin() {
   loginLoading.value = true
   try {
     await auth.login(loginForm.value.email, loginForm.value.password)
-    router.push('/admin/dashboard')
+    router.push('/')
   } catch (e) {
     loginError.value = e.response?.data?.error ?? 'Email ou mot de passe incorrect'
   } finally {
