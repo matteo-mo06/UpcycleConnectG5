@@ -221,6 +221,16 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role, err := db.GetRoleByName("user")
+	if err != nil {
+		fmt.Println("CreateUser GetRoleByName error:", err)
+	} else {
+		err = db.AddUserRole(user.Id_user, role.Id_role)
+		if err != nil {
+			fmt.Println("CreateUser AddUserRole error:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"message": "user created successfully",
