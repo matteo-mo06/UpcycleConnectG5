@@ -1,0 +1,3 @@
+ALTER TABLE ANNOUNCEMENT
+  ADD COLUMN type_announcement      VARCHAR(20) NOT NULL DEFAULT 'don',
+  ADD COLUMN condition_announcement VARCHAR(20) NULL;
