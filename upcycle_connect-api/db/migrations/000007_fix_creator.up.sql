@@ -1,0 +1,28 @@
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE EVENT
+    ADD COLUMN id_creator CHAR(36) NULL,
+    ADD CONSTRAINT fk_event_creator
+        FOREIGN KEY (id_creator) REFERENCES USER(id_user);
+
+DROP TABLE USER_EVENT;
+
+ALTER TABLE PROJECT
+    ADD COLUMN id_creator CHAR(36) NULL,
+    ADD CONSTRAINT fk_project_creator
+        FOREIGN KEY (id_creator) REFERENCES USER(id_user);
+
+DROP TABLE USER_PROJECT_CREATE;
+
+ALTER TABLE FORMATION
+    ADD COLUMN id_creator   CHAR(36) NULL,
+    ADD COLUMN id_formateur CHAR(36) NULL,
+    ADD CONSTRAINT fk_formation_creator
+        FOREIGN KEY (id_creator) REFERENCES USER(id_user),
+    ADD CONSTRAINT fk_formation_formateur
+        FOREIGN KEY (id_formateur) REFERENCES USER(id_user);
+
+DROP TABLE USER_FORMATION_CREATE;
+DROP TABLE USER_FORMATION_FORMATER;
+
+SET FOREIGN_KEY_CHECKS = 1;

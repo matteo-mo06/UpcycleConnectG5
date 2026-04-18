@@ -6,17 +6,21 @@ import (
 )
 
 func GetAllAnnouncements(idCategory string, request int) ([]models.Announcement, error) {
-	query := `SELECT id_announcement, id_category, title_announcement, address_annoucement, city, postal,
-	                 description_annoucement, availability_date, price, request, state_annoucement
-	          FROM ANNOUNCEMENT WHERE 1=1`
+	query := `SELECT a.id_announcement, a.id_category, a.title_announcement, a.address_annoucement, a.city, a.postal,
+	                 a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement,
+	                 COALESCE(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), '')
+	          FROM ANNOUNCEMENT a
+	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+	          LEFT JOIN USER u ON u.id_user = ua.id_user
+	          WHERE 1=1`
 	var args []any
 
 	if idCategory != "" {
-		query += " AND id_category = ?"
+		query += " AND a.id_category = ?"
 		args = append(args, idCategory)
 	}
 	if request >= 0 {
-		query += " AND request = ?"
+		query += " AND a.request = ?"
 		args = append(args, request)
 	}
 
@@ -41,6 +45,7 @@ func GetAllAnnouncements(idCategory string, request int) ([]models.Announcement,
 			&a.Price,
 			&a.Request,
 			&a.State_annoucement,
+			&a.AuthorName,
 		)
 		if err != nil {
 			return nil, err
@@ -48,6 +53,20 @@ func GetAllAnnouncements(idCategory string, request int) ([]models.Announcement,
 		list = append(list, a)
 	}
 	return list, nil
+}
+
+func GetAnnouncementStats() (models.AnnouncementStats, error) {
+	var s models.AnnouncementStats
+	err := config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT").Scan(&s.Total)
+	if err != nil {
+		return s, err
+	}
+	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE state_annoucement = 'Active' OR state_annoucement IS NULL").Scan(&s.Active)
+	if err != nil {
+		return s, err
+	}
+	err = config.Conn.QueryRow("SELECT COUNT(DISTINCT id_announcement) FROM REPORT WHERE id_announcement IS NOT NULL AND status = 'pending'").Scan(&s.Reported)
+	return s, err
 }
 
 func GetAnnouncementById(id string) (models.Announcement, error) {
@@ -135,7 +154,7 @@ func UpdateAnnouncement(a models.Announcement) error {
 }
 
 func DeleteAnnouncement(id string) error {
-	_, err := config.Conn.Exec("DELETE FROM REPORT_ANNOUCEMENT WHERE id_announcement = ?", id)
+	_, err := config.Conn.Exec("DELETE FROM REPORT WHERE id_announcement = ?", id)
 	if err != nil {
 		return err
 	}

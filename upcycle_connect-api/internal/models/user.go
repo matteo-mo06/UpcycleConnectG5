@@ -23,7 +23,6 @@ type UserResponse struct {
 	Created_at      string `json:"created_at"`
 }
 
-// UserListItem est utilisé pour la liste admin : inclut les rôles
 type UserListItem struct {
 	Id_user         string   `json:"id"`
 	Email           string   `json:"email"`
@@ -36,7 +35,6 @@ type UserListItem struct {
 	Roles           []string `json:"roles"`
 }
 
-// LoginUserResponse est utilisé uniquement pour la réponse du login
 type LoginUserResponse struct {
 	Id_user         string   `json:"id"`
 	Email           string   `json:"email"`

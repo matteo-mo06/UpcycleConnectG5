@@ -8,4 +8,7 @@ type Event struct {
 	Location_event    *string `json:"location"`
 	Capacity          *int    `json:"capacity"`
 	Price_cents       int     `json:"price_cents"`
+	Id_creator        *string `json:"id_creator"`
+	CreatorName       *string `json:"creator_name"`
+	InscriptionCount  int     `json:"inscription_count"`
 }

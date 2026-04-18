@@ -13,6 +13,21 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
+func GetAnnouncementStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	stats, err := db.GetAnnouncementStats()
+	if err != nil {
+		fmt.Println("GetAnnouncementStats error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch announcement stats"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(stats)
+}
+
 func GetAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

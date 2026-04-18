@@ -89,12 +89,7 @@
           class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600"
         >
           <option value="">Toutes les catégories</option>
-          <option>Textile</option>
-          <option>Bois & Mobilier</option>
-          <option>Électronique</option>
-          <option>Métal</option>
-          <option>Papier</option>
-          <option>Divers</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
         </select>
 
         <select
@@ -259,7 +254,6 @@
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Auteur</p>
               <p class="font-medium text-gray-800">{{detailListing.author}}</p>
-              <p class="text-xs text-gray-500">{{detailListing.authorEmail}}</p>
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-0.5">Statut</p>
@@ -326,54 +320,79 @@
 </template>
 
 <script setup>
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import api from '@/api.js'
 
-const listings = ref([
-  {id: 1, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 2, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 3, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 4, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 5, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 6, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 7, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 8, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 9, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-  {id: 10, title: 'Annonce test', author: 'Utilisateur', authorEmail: 'user@test.fr', type: 'Don', category: 'Divers', status: 'Active', featured: false, date: '01/01/2025', views: 10, description: 'Description de l\'annonce test.', tags: ['test']},
-])
+const listings = ref([])
+const categories = ref([])
+
+onMounted(async () => {
+  try {
+    const [{ data: announcementsData }, { data: catsData }, { data: announcementStats }] = await Promise.all([
+      api.get('/admin/announcements'),
+      api.get('/admin/categories'),
+      api.get('/admin/announcements/stats'),
+    ])
+    categories.value = catsData ?? []
+    const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
+    listings.value = announcementsData.map(a => ({
+      id: a.id,
+      title: a.title,
+      author: a.author_name || '—',
+      type: a.request === 1 ? 'Recherche' : 'Offre',
+      category: catMap[a.id_category] ?? '—',
+      status: a.state ?? 'Active',
+      featured: false,
+      date: a.availability_date?.slice(0, 10) ?? '—',
+      views: 0,
+      description: a.description ?? '—',
+      tags: [],
+    }))
+    stats.value.forEach(s => {
+      if (announcementStats[s.key] !== undefined) s.value = announcementStats[s.key]
+    })
+  } catch (e) {
+    console.error('Listings fetch error:', e)
+  }
+})
 
 const recentListings = computed(() => listings.value.slice(0, 3))
 
-const stats = [
+const stats = ref([
   {
+    key: 'total',
     label: 'Total annonces',
-    value: 10,
+    value: '—',
     bgClass: 'bg-red-100',
     iconClass: 'text-red-500',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
- },
+  },
   {
+    key: 'active',
     label: 'Actives',
-    value: 10,
+    value: '—',
     bgClass: 'bg-green-100',
     iconClass: 'text-green-600',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
- },
+  },
   {
+    key: 'featured',
     label: 'Mises en avant',
-    value: 0,
+    value: '—',
     bgClass: 'bg-amber-100',
     iconClass: 'text-amber-500',
     icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
- },
+  },
   {
+    key: 'reported',
     label: 'Signalées',
-    value: 1,
+    value: '—',
     bgClass: 'bg-red-100',
     iconClass: 'text-red-400',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>`,
- },
-]
+  },
+])
 
 const search = ref('')
 const filterType = ref('')
@@ -403,10 +422,15 @@ function toggleFeatured(listing) {
   listings.value.find(l => l.id === listing.id).featured ^= true
 }
 
-function deleteListing(listing) {
+async function deleteListing(listing) {
   if (!confirm(`Supprimer l'annonce "${listing.title}" ?`)) return
-  listings.value = listings.value.filter(l => l.id !== listing.id)
-  if (detailListing.value?.id === listing.id) detailListing.value = null
+  try {
+    await api.delete(`/admin/announcement/${listing.id}`)
+    listings.value = listings.value.filter(l => l.id !== listing.id)
+    if (detailListing.value?.id === listing.id) detailListing.value = null
+  } catch (e) {
+    console.error('Delete listing error:', e)
+  }
 }
 
 function typeBadge(type) {

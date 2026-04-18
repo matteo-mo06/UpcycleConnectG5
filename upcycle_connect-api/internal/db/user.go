@@ -72,7 +72,6 @@ func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.U
 	return users, nil
 }
 
-// GetAllUsersWithRoles retourne les utilisateurs avec leurs rôles — utilisé par l'admin
 func GetAllUsersWithRoles(firstName string, lastName string) ([]models.UserListItem, error) {
 	query := `
 		SELECT
@@ -163,7 +162,6 @@ func UpdateUser(user models.User) error {
 	return err
 }
 
-// UpdateUserStatus permet de suspendre ou blacklister un utilisateur
 func UpdateUserStatus(id string, status string) error {
 	_, err := config.Conn.Exec(`
 		UPDATE USER SET status = ? WHERE id_user = ?`,
@@ -173,24 +171,30 @@ func UpdateUserStatus(id string, status string) error {
 }
 
 func DeleteUser(id string) error {
+	nullifies := []string{
+		"UPDATE EVENT     SET id_creator   = NULL WHERE id_creator   = ?",
+		"UPDATE PROJECT   SET id_creator   = NULL WHERE id_creator   = ?",
+		"UPDATE FORMATION SET id_creator   = NULL WHERE id_creator   = ?",
+		"UPDATE FORMATION SET id_formateur = NULL WHERE id_formateur = ?",
+	}
+	for _, q := range nullifies {
+		if _, err := config.Conn.Exec(q, id); err != nil {
+			return err
+		}
+	}
+
 	tables := []string{
 		"PROFESSIONAL_REQUEST",
 		"DOCUMENT",
-		"REPORT_ANNOUCEMENT",
-		"REPORT_TOPIC",
-		"REPORT_POST",
+		"REPORT",
 		"USER_ROLE",
 		"USER_ANNOUNCEMENT",
 		"USER_ADVICE",
 		"USER_TOPIC",
-		"USER_PROJECT_CREATE",
 		"USER_PROJECT_INSCRIPTION",
 		"USER_PROJECT_UPDOWN",
-		"USER_FORMATION_FORMATER",
-		"USER_FORMATION_CREATE",
 		"USER_FORMATION_INSCRIPTION",
 		"USER_FORMATION_INSCRIPTION_PAYEMENT",
-		"USER_EVENT",
 		"USER_EVENT_INSCRIPTION",
 		"USER_TICKET",
 		"USER_NOTIFICATION",
@@ -199,8 +203,7 @@ func DeleteUser(id string) error {
 	}
 
 	for _, table := range tables {
-		_, err := config.Conn.Exec("DELETE FROM "+table+" WHERE id_user = ?", id)
-		if err != nil {
+		if _, err := config.Conn.Exec("DELETE FROM "+table+" WHERE id_user = ?", id); err != nil {
 			return err
 		}
 	}

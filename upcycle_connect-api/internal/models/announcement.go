@@ -12,4 +12,11 @@ type Announcement struct {
 	Price                   int    `json:"price"`
 	Request                 int    `json:"request"`
 	State_annoucement       string `json:"state"`
+	AuthorName              string `json:"author_name"`
+}
+
+type AnnouncementStats struct {
+	Total    int `json:"total"`
+	Active   int `json:"active"`
+	Reported int `json:"reported"`
 }

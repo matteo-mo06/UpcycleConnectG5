@@ -60,8 +60,6 @@ func RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// RequireAdmin vérifie que l'utilisateur a le rôle admin.
-// Utilisé comme garde-fou global sur toutes les routes /admin/*.
 func RequireAdmin(next http.Handler) http.Handler {
 	return RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		roles, _ := r.Context().Value(ContextRoles).([]string)
@@ -76,8 +74,6 @@ func RequireAdmin(next http.Handler) http.Handler {
 	}))
 }
 
-// RequirePermission vérifie qu'une permission précise est présente dans le token.
-// Utilisé pour les routes accessibles à plusieurs rôles selon leurs permissions.
 func RequirePermission(permission string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -27,6 +27,8 @@ func InitRoutes() {
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
 
+	http.Handle("GET /admin/stats", admin(handlers.GetStats))
+
 	http.Handle("GET /admin/users", admin(handlers.GetUsers))
 	http.Handle("GET /admin/user/{id}", admin(handlers.GetUserById))
 	http.Handle("PUT /admin/user/{id}", admin(handlers.UpdateUser))
@@ -53,6 +55,7 @@ func InitRoutes() {
 	http.Handle("PUT /admin/category/{id}", admin(handlers.UpdateCategory))
 	http.Handle("DELETE /admin/category/{id}", admin(handlers.DeleteCategory))
 
+	http.Handle("GET /admin/announcements/stats", admin(handlers.GetAnnouncementStats))
 	http.Handle("GET /admin/announcements", admin(handlers.GetAnnouncements))
 	http.Handle("GET /admin/announcement/{id}", admin(handlers.GetAnnouncementById))
 	http.Handle("POST /admin/announcements", admin(handlers.CreateAnnouncement))

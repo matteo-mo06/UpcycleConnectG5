@@ -18,53 +18,6 @@
       </div>
     </div>
 
-    <div v-if="pendingEvents.length > 0" class="bg-amber-50 border border-amber-200 rounded-xl mb-6 overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-amber-200 flex items-center gap-2">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" class="w-4 h-4 text-amber-600">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <h2 class="text-sm font-semibold text-amber-800">
-          {{pendingEvents.length}} événement(s) en attente de validation
-        </h2>
-      </div>
-      <div class="divide-y divide-amber-100">
-        <div
-          v-for="event in pendingEvents"
-          :key="event.id"
-          class="px-5 py-4 flex items-start gap-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-2">
-              <p class="font-medium text-gray-800 text-sm">{{event.title}}</p>
-              <span
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="categoryBadge(event.category)">
-                {{event.category}}
-              </span>
-            </div>
-            <p class="text-xs text-gray-500 mt-0.5">
-              Par <span class="font-medium text-gray-700">{{event.organizer}}</span>
-              · {{event.location}} · {{event.time}}
-            </p>
-            <p class="text-xs text-gray-600 mt-1.5 italic line-clamp-2">"{{event.description}}"</p>
-          </div>
-
-          <div class="flex-shrink-0 flex gap-2">
-            <button
-              @click="approveEvent(event.id)"
-              class="px-3 py-1.5 text-xs font-medium bg-secondary text-white rounded-lg hover:bg-secondary-dark transition-colors">
-              Valider
-            </button>
-            <button
-              @click="rejectEvent(event.id)"
-              class="px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Refuser
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
 
       <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -84,10 +37,7 @@
           v-model="filterCategory"
           class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
           <option value="">Toutes les catégories</option>
-          <option>Atelier</option>
-          <option>Conférence</option>
-          <option>Animation</option>
-          <option>Formation</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
         </select>
 
         <select
@@ -160,16 +110,6 @@
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                  </button>
-
-                  <button
-                    v-if="event.status === 'À venir' || event.status === 'En cours'"
-                    @click="cancelEvent(event)"
-                    title="Annuler l'événement"
-                    class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                     </svg>
                   </button>
 
@@ -260,12 +200,6 @@
 
         <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
           <button
-            v-if="detailEvent.status === 'À venir' || detailEvent.status === 'En cours'"
-            @click="cancelEvent(detailEvent); detailEvent = null"
-            class="px-3 py-1.5 text-sm font-medium text-amber-600 border border-amber-200 rounded-lg hover:bg-amber-50 transition-colors">
-            Annuler l'événement
-          </button>
-          <button
             @click="deleteEvent(detailEvent); detailEvent = null"
             class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
             Supprimer
@@ -278,63 +212,77 @@
 </template>
 
 <script setup>
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import api from '@/api.js'
 
-const pendingEvents = ref([
-  {id: 101, title: 'Événement test en attente', category: 'Catégorie', organizer: 'Organisateur', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, description: 'Description de l\'événement en attente de validation.'},
-  {id: 102, title: 'Événement test en attente', category: 'Catégorie', organizer: 'Organisateur', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, description: 'Description de l\'événement en attente de validation.'},
-])
+const events = ref([])
+const categories = ref([])
 
-function approveEvent(id) {
-  const idx = pendingEvents.value.findIndex(e => e.id === id)
-  const event = pendingEvents.value[idx]
-  events.value.unshift({...event, status: 'À venir', registered: 0})
-  pendingEvents.value.splice(idx, 1)
+function computeStatus(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr) > new Date() ? 'À venir' : 'Passé'
 }
 
-function rejectEvent(id) {
-  pendingEvents.value = pendingEvents.value.filter(e => e.id !== id)
+function mapEvent(e) {
+  return {
+    id: e.id,
+    title: e.title,
+    organizer: e.creator_name ?? '—',
+    category: '—',
+    location: e.location ?? '—',
+    date: e.date?.slice(0, 10) ?? '—',
+    time: e.date?.slice(11, 16) ?? '—',
+    capacity: e.capacity ?? 0,
+    registered: e.inscription_count ?? 0,
+    status: computeStatus(e.date),
+    description: e.description ?? '—',
+  }
 }
 
-const events = ref([
-  {id: 1, title: 'Événement test', organizer: 'Organisateur', category: 'Catégorie', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, registered: 10, status: 'À venir', description: 'Description de l\'événement test.'},
-  {id: 2, title: 'Événement test', organizer: 'Organisateur', category: 'Catégorie', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, registered: 10, status: 'À venir', description: 'Description de l\'événement test.'},
-  {id: 3, title: 'Événement test', organizer: 'Organisateur', category: 'Catégorie', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, registered: 10, status: 'À venir', description: 'Description de l\'événement test.'},
-  {id: 4, title: 'Événement test', organizer: 'Organisateur', category: 'Catégorie', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, registered: 10, status: 'À venir', description: 'Description de l\'événement test.'},
-  {id: 5, title: 'Événement test', organizer: 'Organisateur', category: 'Catégorie', location: 'Salle', date: '01/01/2025', time: '10h00', capacity: 20, registered: 10, status: 'À venir', description: 'Description de l\'événement test.'},
-])
+onMounted(async () => {
+  try {
+    const [{ data: eventsData }, { data: catsData }] = await Promise.all([
+      api.get('/admin/events'),
+      api.get('/admin/categories'),
+    ])
+    events.value = eventsData.map(mapEvent)
+    categories.value = catsData ?? []
+  } catch (e) {
+    console.error('Events fetch error:', e)
+  }
+})
 
-const stats = [
+const stats = computed(() => [
   {
     label: 'Total événements',
-    value: 5,
+    value: events.value.length,
     bgClass: 'bg-red-100',
     iconClass: 'text-red-500',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
- },
+  },
   {
     label: 'À venir',
-    value: 5,
+    value: events.value.filter(e => e.status === 'À venir').length,
     bgClass: 'bg-green-100',
     iconClass: 'text-green-600',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
- },
+  },
   {
-    label: 'En attente de validation',
-    value: 2,
+    label: 'Passés',
+    value: events.value.filter(e => e.status === 'Passé').length,
     bgClass: 'bg-amber-100',
     iconClass: 'text-amber-500',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
- },
+  },
   {
-    label: 'Annulés',
-    value: 0,
-    bgClass: 'bg-red-100',
-    iconClass: 'text-red-400',
+    label: 'Sans date',
+    value: events.value.filter(e => e.status === '—').length,
+    bgClass: 'bg-gray-100',
+    iconClass: 'text-gray-400',
     icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>`,
- },
-]
+  },
+])
 
 const search = ref('')
 const filterCategory = ref('')
@@ -356,15 +304,15 @@ function openDetail(event) {
   detailEvent.value = event
 }
 
-function cancelEvent(event) {
-  if (!confirm(`Annuler l'événement "${event.title}" ?`)) return
-  events.value.find(e => e.id === event.id).status = 'Annulé'
-}
-
-function deleteEvent(event) {
+async function deleteEvent(event) {
   if (!confirm(`Supprimer définitivement "${event.title}" ?`)) return
-  events.value = events.value.filter(e => e.id !== event.id)
-  if (detailEvent.value?.id === event.id) detailEvent.value = null
+  try {
+    await api.delete(`/admin/event/${event.id}`)
+    events.value = events.value.filter(e => e.id !== event.id)
+    if (detailEvent.value?.id === event.id) detailEvent.value = null
+  } catch (e) {
+    console.error('deleteEvent error:', e)
+  }
 }
 
 function categoryBadge(category) {

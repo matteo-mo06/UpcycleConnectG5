@@ -5,7 +5,6 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
-// GetAllPermissions retourne toutes les permissions — utilisé par l'admin
 func GetAllPermissions() ([]models.Permission, error) {
 	rows, err := config.Conn.Query(`
 		SELECT id, name, domain, created_at
@@ -27,7 +26,6 @@ func GetAllPermissions() ([]models.Permission, error) {
 	return perms, nil
 }
 
-// GetPermissionsByRole retourne les permissions d'un rôle donné
 func GetPermissionsByRole(roleID string) ([]models.Permission, error) {
 	rows, err := config.Conn.Query(`
 		SELECT p.id, p.name, p.domain, p.created_at
@@ -51,7 +49,6 @@ func GetPermissionsByRole(roleID string) ([]models.Permission, error) {
 	return perms, nil
 }
 
-// GetUserPermissions retourne les noms de toutes les permissions d'un user (via ses rôles)
 func GetUserPermissions(userID string) ([]string, error) {
 	rows, err := config.Conn.Query(`
 		SELECT DISTINCT p.name
@@ -76,7 +73,6 @@ func GetUserPermissions(userID string) ([]string, error) {
 	return perms, nil
 }
 
-// AddRolePermission assigne une permission à un rôle
 func AddRolePermission(roleID, permissionID string) error {
 	_, err := config.Conn.Exec(`
 		INSERT IGNORE INTO ROLE_PERMISSION (id, role_id, permission_id)
@@ -86,7 +82,6 @@ func AddRolePermission(roleID, permissionID string) error {
 	return err
 }
 
-// RemoveRolePermission retire une permission d'un rôle
 func RemoveRolePermission(roleID, permissionID string) error {
 	_, err := config.Conn.Exec(`
 		DELETE FROM ROLE_PERMISSION

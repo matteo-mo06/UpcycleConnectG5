@@ -3,9 +3,9 @@ package models
 type ProfessionalRequest struct {
 	Id_request  string  `json:"id"`
 	Id_user     string  `json:"user_id"`
-	Status      string  `json:"status"` // pending | approved | rejected
+	Status      string  `json:"status"`
 	CreatedAt   string  `json:"created_at"`
-	ProcessedAt *string `json:"processed_at"` // NULL tant que non traitée donc je mets une adresse pour avoir la possibilité du NULL en bdd
+	ProcessedAt *string `json:"processed_at"`
 }
 
 type ProfessionalRequestDetail struct {

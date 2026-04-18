@@ -82,10 +82,7 @@
                 class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
                 <option value="">Tous les types</option>
-                <option value="Particulier">Particulier</option>
-                <option value="Artisan">Artisan</option>
-                <option value="Salarié">Salarié</option>
-                <option value="Administrateur">Administrateur</option>
+                <option v-for="role in roles" :key="role.value" :value="role.label">{{ role.label }}</option>
             </select>
             <select
                 v-model="filterStatus"
