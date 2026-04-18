@@ -20,10 +20,23 @@ func perm(permission string, h http.HandlerFunc) http.Handler {
 }
 
 func InitRoutes() {
-	http.HandleFunc("GET /", handlers.HealthCheck)
+	http.HandleFunc("GET /{$}", handlers.HealthCheck)
 
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
+
+	http.Handle("GET /user/me", auth(handlers.GetMe))
+	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
+	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
+	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
+
+	http.Handle("POST /upload", auth(handlers.UploadFile))
+
+	http.HandleFunc("GET /announcements", handlers.GetPublicAnnouncements)
+	http.HandleFunc("GET /announcements/{id}", handlers.GetPublicAnnouncementById)
+	http.Handle("POST /announcements", auth(handlers.CreateUserAnnouncement))
+	http.Handle("GET /announcements/{id}/documents", auth(handlers.GetAnnouncementDocuments))
+	http.Handle("DELETE /announcements/{id}", perm("manage_announcements", handlers.DeleteAnnouncementWithPermission))
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
 

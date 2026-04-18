@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/middleware"
@@ -15,6 +16,13 @@ func main() {
 	godotenv.Load()
 
 	config.Conn = config.NewDB()
+
+	uploadsDir := os.Getenv("UPLOADS_DIR")
+	if uploadsDir == "" {
+		uploadsDir = "./uploads"
+	}
+	os.MkdirAll(uploadsDir, 0755)
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
 
 	router.InitRoutes()
 

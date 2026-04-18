@@ -10,9 +10,54 @@ import (
 	"github.com/google/uuid"
 
 	"upcycle_connect-api/internal/db"
+	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
 	"upcycle_connect-api/internal/utils"
 )
+
+func GetMe(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	user, err := db.GetUserById(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "user not found"})
+			return
+		}
+		fmt.Println("GetMe error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to get user"})
+		return
+	}
+
+	roles, _ := db.GetUserRoleNames(userID)
+	if roles == nil {
+		roles = []string{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(user.ToLoginResponse(roles, []string{}))
+}
+
+func GetMyStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	stats, err := db.GetUserStats(userID)
+	if err != nil {
+		fmt.Println("GetMyStats error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to get stats"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(stats)
+}
 
 func UpdateUserStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

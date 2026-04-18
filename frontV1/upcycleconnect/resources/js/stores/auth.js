@@ -37,5 +37,9 @@ export const useAuthStore = defineStore("auth", () => {
         }
     }
 
-    return { token, user, isLoggedIn, isAdmin, login, logout, init }
+    function hasPermission(permission) {
+        return user.value?.permissions?.includes(permission) ?? false
+    }
+
+    return { token, user, isLoggedIn, isAdmin, hasPermission, login, logout, init }
 });

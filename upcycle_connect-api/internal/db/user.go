@@ -212,6 +212,34 @@ func DeleteUser(id string) error {
 	return err
 }
 
+func GetUserStats(userID string) (models.UserStats, error) {
+	var s models.UserStats
+
+	err := config.Conn.QueryRow("SELECT upcycling_score FROM USER WHERE id_user = ?", userID).Scan(&s.UpcyclingScore)
+	if err != nil {
+		return s, err
+	}
+	err = config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM ANNOUNCEMENT a
+		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		WHERE ua.id_user = ? AND a.state_annoucement = 'Active' AND a.request = 0`, userID).Scan(&s.ActiveAnnouncements)
+	if err != nil {
+		return s, err
+	}
+	err = config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM ANNOUNCEMENT a
+		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		WHERE ua.id_user = ? AND a.request = 1`, userID).Scan(&s.PendingDeposits)
+	if err != nil {
+		return s, err
+	}
+	err = config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM USER_EVENT_INSCRIPTION uei
+		JOIN EVENT e ON e.id_event = uei.id_event
+		WHERE uei.id_user = ? AND e.date_event > NOW()`, userID).Scan(&s.UpcomingEvents)
+	return s, err
+}
+
 func GetUserByEmail(email string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
