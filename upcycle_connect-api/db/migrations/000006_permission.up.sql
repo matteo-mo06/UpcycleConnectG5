@@ -62,7 +62,7 @@ INSERT INTO PERMISSION (id, name, domain) VALUES
     ('2d3e4f5a-6b7c-4d8e-9f0a-0b1c2d3e4f5a', 'manage_advice',                'conseils');
 
 INSERT INTO ROLE_PERMISSION (id, role_id, permission_id)
-SELECT UUID(), '11111111-1111-1111-1111-000000000001', id FROM PERMISSION;
+SELECT UUID(), '77e2bd9a-a1af-44f7-8f0e-edfb97f9c0ab', id FROM PERMISSION;
 
 INSERT INTO ROLE_PERMISSION (id, role_id, permission_id)
 SELECT UUID(), '11111111-1111-1111-1111-000000000002', id
