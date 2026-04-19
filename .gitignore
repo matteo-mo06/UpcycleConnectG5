@@ -9,4 +9,3 @@ frontend/upcycleconnect/.env
 frontend/upcycleconnect/storage/*.key
 frontend/upcycleconnect/public/hot
 frontend/upcycleconnect/public/storage
-.claude
