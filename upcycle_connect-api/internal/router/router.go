@@ -21,6 +21,7 @@ func perm(permission string, h http.HandlerFunc) http.Handler {
 
 func InitRoutes() {
 	http.HandleFunc("GET /{$}", handlers.HealthCheck)
+	http.Handle("GET /sse", auth(handlers.SSEHandler))
 
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
@@ -28,6 +29,7 @@ func InitRoutes() {
 	http.Handle("GET /user/me", auth(handlers.GetMe))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
+	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
 	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
 
 	http.Handle("POST /upload", auth(handlers.UploadFile))
@@ -36,7 +38,15 @@ func InitRoutes() {
 	http.HandleFunc("GET /announcements/{id}", handlers.GetPublicAnnouncementById)
 	http.Handle("POST /announcements", auth(handlers.CreateUserAnnouncement))
 	http.Handle("GET /announcements/{id}/documents", auth(handlers.GetAnnouncementDocuments))
+	http.Handle("POST /announcements/{id}/claim", auth(handlers.ClaimAnnouncement))
 	http.Handle("DELETE /announcements/{id}", perm("manage_announcements", handlers.DeleteAnnouncementWithPermission))
+
+	http.Handle("GET /user/deposit-requests", auth(handlers.GetMyDepositRequests))
+	http.Handle("POST /announcements/{id}/deposit-request", auth(handlers.CreateDepositRequest))
+	http.Handle("DELETE /announcements/{id}/deposit-request", auth(handlers.CancelDepositRequest))
+	http.Handle("POST /deposit-requests/{id}/validate", perm("validate_deposit", handlers.ValidateDepositRequest))
+	http.Handle("POST /deposit-requests/{id}/reject", perm("validate_deposit", handlers.RejectDepositRequest))
+	http.Handle("GET /deposit-requests/pending", perm("validate_deposit", handlers.GetPendingDepositRequests))
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
 

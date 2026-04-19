@@ -81,8 +81,32 @@
               <span class="text-xs text-gray-500">{{ a.author_name || 'Inconnu' }}</span>
             </div>
             <div class="flex items-center gap-2">
+              <span
+                v-if="activeTab === 'mine' && a.state !== 'Active'"
+                class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium"
+              >{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
+
               <button
-                v-if="canDelete()"
+                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 0"
+                @click.stop="requestDeposit(a)"
+                class="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Déposer l'objet dans un casier"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+              </button>
+              <span
+                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 1 && !a.locker_number"
+                class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium"
+              >Dépôt demandé</span>
+              <span
+                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.locker_number"
+                class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium"
+              >Casier N° {{ a.locker_number }}</span>
+
+              <button
+                v-if="canDelete(a)"
                 @click.stop="confirmDelete(a)"
                 class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Supprimer"
@@ -91,6 +115,15 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
               </button>
+
+              <button
+                v-if="activeTab === 'all' && a.author_name !== fullName(auth.user)"
+                @click.stop="claimAnnouncement(a)"
+                class="px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary-dark transition-colors"
+              >
+                {{ a.type === 'vente' ? 'Acheter' : 'Je le veux' }}
+              </button>
+
               <button @click="openDetail(a)" class="px-3 py-1 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dark transition-colors">
                 Voir
               </button>
@@ -102,10 +135,9 @@
 
     <CreateAnnouncementModal v-model="showDepot" @created="onCreated" />
 
-    <!-- Detail modal -->
     <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
       <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selected.title }}</h3>
           <button @click="closeDetail" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
@@ -113,7 +145,6 @@
           </button>
         </div>
 
-        <!-- Photos -->
         <div v-if="selectedPhotos.length" class="relative bg-gray-100">
           <img :src="selectedPhotos[photoIndex]" class="w-full h-56 object-cover" :alt="selected.title" />
           <template v-if="selectedPhotos.length > 1">
@@ -132,7 +163,7 @@
           </template>
         </div>
 
-        <div class="px-6 py-5 space-y-3 text-sm text-gray-700">
+        <div class="px-6 py-5 space-y-3 text-sm text-gray-700 overflow-y-auto">
           <div class="flex gap-2">
             <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold text-white', selected.type === 'vente' ? 'bg-primary' : 'bg-secondary']">{{ selected.type === 'vente' ? 'Vente' : 'Don' }}</span>
             <span v-if="selected.condition" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{{ conditionLabel(selected.condition) }}</span>
@@ -144,11 +175,15 @@
             <div><span class="font-medium text-gray-700">Disponible :</span> {{ formatDate(selected.availability_date) }}</div>
             <div><span class="font-medium text-gray-700">Par :</span> {{ selected.author_name || 'Inconnu' }}</div>
           </div>
+          <div v-if="activeTab === 'acquisitions' && selected.access_code" class="pt-2 border-t border-gray-100 space-y-2">
+            <p class="text-xs text-gray-500"><span class="font-medium text-gray-700">Casier :</span> N° {{ selected.locker_number }}</p>
+            <p class="text-xs text-gray-400">Scannez ce code pour ouvrir le casier</p>
+            <svg ref="barcodeEl" class="mx-auto" />
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Delete confirm modal -->
     <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -167,13 +202,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
+import { formatDate, conditionLabel, fullName } from '@/utils.js'
+import JsBarcode from 'jsbarcode'
 
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const announcements = ref([])
 const loading = ref(true)
 const search = ref('')
@@ -183,11 +223,14 @@ const selectedPhotos = ref([])
 const photoIndex = ref(0)
 const toDelete = ref(null)
 const deleting = ref(false)
-const activeTab = ref('all')
+
+const validTabs = ['all', 'mine', 'acquisitions']
+const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'all')
 
 const tabs = [
   { label: 'Toutes', value: 'all' },
   { label: 'Mes annonces', value: 'mine' },
+  { label: 'Mes acquisitions', value: 'acquisitions' },
 ]
 
 let debounceTimer = null
@@ -199,6 +242,7 @@ function debouncedFetch() {
 function switchTab(tab) {
   activeTab.value = tab
   search.value = ''
+  router.replace({ query: { tab } })
   fetchAnnouncements()
 }
 
@@ -207,6 +251,9 @@ async function fetchAnnouncements() {
   try {
     if (activeTab.value === 'mine') {
       const { data } = await api.get('/user/announcements')
+      announcements.value = data
+    } else if (activeTab.value === 'acquisitions') {
+      const { data } = await api.get('/user/acquisitions')
       announcements.value = data
     } else {
       const params = {}
@@ -238,7 +285,8 @@ function closeDetail() {
   photoIndex.value = 0
 }
 
-function canDelete() {
+function canDelete(a) {
+  if (a?.state !== 'Active') return false
   if (activeTab.value === 'mine') return true
   return auth.hasPermission('manage_announcements')
 }
@@ -265,19 +313,40 @@ async function deleteAnnouncement() {
   }
 }
 
+async function claimAnnouncement(a) {
+  try {
+    await api.post(`/announcements/${a.id}/claim`)
+    announcements.value = announcements.value.filter(x => x.id !== a.id)
+  } catch (e) {
+    alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')
+  }
+}
+
+async function requestDeposit(a) {
+  try {
+    await api.post(`/announcements/${a.id}/deposit-request`)
+    a.request = 1
+  } catch (e) {
+    alert(e.response?.data ?? 'Erreur lors de la demande de dépôt.')
+  }
+}
+
+const barcodeEl = ref(null)
+
+watch(() => selected.value?.access_code, (code) => {
+  if (!code) return
+  nextTick(() => {
+    if (barcodeEl.value) {
+      JsBarcode(barcodeEl.value, code, { format: 'CODE128', width: 2, height: 50, displayValue: true, fontSize: 12 })
+    }
+  })
+})
+
 function onCreated() {
   if (activeTab.value === 'mine') fetchAnnouncements()
   else fetchAnnouncements()
 }
 
-function conditionLabel(v) {
-  return { neuf: 'Neuf', bon_etat: 'Bon état', use: 'Usé' }[v] ?? v
-}
-
-function formatDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-}
 
 onMounted(fetchAnnouncements)
 </script>

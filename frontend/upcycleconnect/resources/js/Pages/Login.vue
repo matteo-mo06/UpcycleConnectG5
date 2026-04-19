@@ -3,7 +3,6 @@
 
     <div class="bg-white rounded-2xl shadow-md w-full max-w-sm px-8 py-10">
 
-      <!-- Logo + titre -->
       <div class="flex flex-col items-center mb-7">
         <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
           <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
@@ -18,7 +17,6 @@
         </p>
       </div>
 
-      <!-- Tabs -->
       <div class="flex bg-[#f0ebe4] rounded-xl p-1 mb-6">
         <button
           @click="tab = 'login'"
@@ -42,7 +40,6 @@
         </button>
       </div>
 
-      <!-- Formulaire Connexion -->
       <form v-if="tab === 'login'" @submit.prevent="submitLogin" class="space-y-4">
 
         <div>
@@ -109,7 +106,6 @@
 
       </form>
 
-      <!-- Formulaire Inscription -->
       <form v-if="tab === 'register'" @submit.prevent="submitRegister" class="space-y-4">
 
         <div class="grid grid-cols-2 gap-3">
@@ -183,7 +179,6 @@
 
       </form>
 
-      <!-- Mentions légales -->
       <p class="text-xs text-center text-gray-400 mt-6 leading-relaxed">
         En continuant, vous acceptez nos
         <a href="#" class="underline hover:text-gray-600">conditions d'utilisation</a>
@@ -206,7 +201,6 @@ const router = useRouter()
 
 const tab = ref('login')
 
-// --- Connexion ---
 const loginForm    = ref({ email: '', password: '' })
 const loginError   = ref('')
 const loginLoading = ref(false)
@@ -225,7 +219,6 @@ async function submitLogin() {
   }
 }
 
-// --- Inscription ---
 const registerForm    = ref({ first_name: '', last_name: '', email: '', password: '' })
 const registerError   = ref('')
 const registerSuccess = ref('')

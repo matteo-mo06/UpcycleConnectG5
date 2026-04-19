@@ -16,6 +16,8 @@ type Announcement struct {
 	TypeAnnouncement        string  `json:"type"`
 	ConditionAnnouncement   string  `json:"condition"`
 	FirstPhoto              string  `json:"first_photo"`
+	AccessCode              string  `json:"access_code"`
+	LockerNumber            int     `json:"locker_number"`
 }
 
 type CreateAnnouncementRequest struct {

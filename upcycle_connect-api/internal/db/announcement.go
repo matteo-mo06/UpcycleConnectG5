@@ -123,6 +123,17 @@ func GetUserAnnouncements(userID string) ([]models.Announcement, error) {
 		}
 		list = append(list, a)
 	}
+
+	for i := range list {
+		var num sql.NullInt64
+		_ = config.Conn.QueryRow(`
+			SELECT l.locker_number FROM ANNOUNCEMENT_LOCKER al
+			JOIN LOCKER l ON l.id_locker = al.id_locker
+			WHERE al.id_announcement = ?`, list[i].Id_announcement,
+		).Scan(&num)
+		list[i].LockerNumber = int(num.Int64)
+	}
+
 	return list, nil
 }
 
@@ -196,6 +207,49 @@ func CreateUserAnnouncement(a models.Announcement, userID string, photoURLs []st
 	return nil
 }
 
+func ClaimAnnouncement(announcementID, userID string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE ANNOUNCEMENT SET id_buyer = ?, state_annoucement = 'Vendu' WHERE id_announcement = ? AND id_buyer IS NULL",
+		userID, announcementID,
+	)
+	return err
+}
+
+func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
+	rows, err := config.Conn.Query(announcementSelect+`FROM ANNOUNCEMENT a
+		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		LEFT JOIN USER u ON u.id_user = ua.id_user
+		WHERE a.id_buyer = ?
+		ORDER BY a.availability_date DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Announcement
+	for rows.Next() {
+		a, err := scanAnnouncement(rows)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, a)
+	}
+
+	for i := range list {
+		var code sql.NullString
+		var num sql.NullInt64
+		_ = config.Conn.QueryRow(`
+			SELECT l.access_code, l.locker_number FROM ANNOUNCEMENT_LOCKER al
+			JOIN LOCKER l ON l.id_locker = al.id_locker
+			WHERE al.id_announcement = ?`, list[i].Id_announcement,
+		).Scan(&code, &num)
+		list[i].AccessCode = code.String
+		list[i].LockerNumber = int(num.Int64)
+	}
+
+	return list, nil
+}
+
 func UpdateAnnouncement(a models.Announcement) error {
 	_, err := config.Conn.Exec(`
 		UPDATE ANNOUNCEMENT SET
@@ -211,6 +265,15 @@ func UpdateAnnouncement(a models.Announcement) error {
 		a.Id_announcement,
 	)
 	return err
+}
+
+func GetAnnouncementOwnerID(announcementID string) (string, error) {
+	var userID string
+	err := config.Conn.QueryRow(
+		"SELECT id_user FROM USER_ANNOUNCEMENT WHERE id_announcement = ?",
+		announcementID,
+	).Scan(&userID)
+	return userID, err
 }
 
 func DeleteAnnouncement(id string) error {

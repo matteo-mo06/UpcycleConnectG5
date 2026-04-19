@@ -95,6 +95,7 @@
 import { ref, onMounted } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import api from '@/api.js'
+import { roleLabel, fullName } from '@/utils.js'
 
 const stats = ref([
   {
@@ -134,11 +135,6 @@ const stats = ref([
 const recentUsers = ref([])
 const upcomingEvents = ref([])
 
-const ROLE_LABELS = { admin: 'Administrateur', artisan: 'Artisan', salarie: 'Salarié', user: 'Particulier' }
-
-function formatRoleName(name) {
-  return ROLE_LABELS[name] ?? (name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Particulier')
-}
 
 onMounted(async () => {
   try {
@@ -153,9 +149,9 @@ onMounted(async () => {
     })
 
     recentUsers.value = usersData.slice(0, 5).map(u => ({
-      name: `${u.first_name} ${u.last_name}`.trim(),
+      name: fullName(u),
       email: u.email,
-      type: formatRoleName(u.roles?.[0] ?? ''),
+      type: roleLabel(u.roles?.[0] ?? ''),
       date: u.created_at?.slice(0, 10) ?? '—',
     }))
 

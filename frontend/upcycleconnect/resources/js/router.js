@@ -4,6 +4,7 @@ import Login    from './Pages/Login.vue'
 import Home     from './Pages/Home.vue'
 import Accueil  from './Pages/User/Accueil.vue'
 import Annonces from './Pages/User/Annonces.vue'
+import Depot    from './Pages/User/Depot.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
 import Users     from './Pages/Admin/Users.vue'
 import Roles     from './Pages/Admin/Roles.vue'
@@ -19,6 +20,7 @@ const router = createRouter({
 
     { path: '/accueil',  component: Accueil,  meta: { requiresAuth: true } },
     { path: '/annonces', component: Annonces, meta: { requiresAuth: true } },
+    { path: '/depot',    component: Depot,    meta: { requiresAuth: true } },
 
     { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
     { path: '/admin/users',     component: Users,     meta: { requiresAdmin: true } },

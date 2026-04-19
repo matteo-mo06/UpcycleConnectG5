@@ -80,8 +80,6 @@
           <option value="">Tous les types</option>
           <option>Don</option>
           <option>Vente</option>
-          <option>Échange</option>
-          <option>Recherche</option>
         </select>
 
         <select
@@ -266,10 +264,6 @@
               <p class="text-xs text-gray-400 mb-0.5">Date de publication</p>
               <p class="text-gray-700">{{detailListing.date}}</p>
             </div>
-            <div>
-              <p class="text-xs text-gray-400 mb-0.5">Vues</p>
-              <p class="text-gray-700">{{detailListing.views}} vues</p>
-            </div>
           </div>
 
           <div>
@@ -340,12 +334,11 @@ onMounted(async () => {
       id: a.id,
       title: a.title,
       author: a.author_name || '—',
-      type: a.request === 1 ? 'Recherche' : 'Offre',
+      type: a.type === 'vente' ? 'Vente' : 'Don',
       category: catMap[a.id_category] ?? '—',
       status: a.state ?? 'Active',
       featured: false,
       date: a.availability_date?.slice(0, 10) ?? '—',
-      views: 0,
       description: a.description ?? '—',
       tags: [],
     }))
@@ -437,9 +430,7 @@ function typeBadge(type) {
   const map = {
     'Don': 'bg-green-100 text-green-700',
     'Vente': 'bg-blue-100 text-blue-700',
-    'Échange': 'bg-purple-100 text-purple-700',
-    'Recherche': 'bg-amber-100 text-amber-700',
- }
+  }
   return map[type] ?? 'bg-gray-100 text-gray-600'
 }
 

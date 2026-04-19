@@ -7,9 +7,9 @@ import (
 
 func GetAllPermissions() ([]models.Permission, error) {
 	rows, err := config.Conn.Query(`
-		SELECT id, name, domain, created_at
+		SELECT id_permission, name_permission, domain, created_at
 		FROM PERMISSION
-		ORDER BY domain, name`)
+		ORDER BY domain, name_permission`)
 	if err != nil {
 		return nil, err
 	}
@@ -28,11 +28,11 @@ func GetAllPermissions() ([]models.Permission, error) {
 
 func GetPermissionsByRole(roleID string) ([]models.Permission, error) {
 	rows, err := config.Conn.Query(`
-		SELECT p.id, p.name, p.domain, p.created_at
+		SELECT p.id_permission, p.name_permission, p.domain, p.created_at
 		FROM PERMISSION p
-		INNER JOIN ROLE_PERMISSION rp ON rp.permission_id = p.id
+		INNER JOIN ROLE_PERMISSION rp ON rp.permission_id = p.id_permission
 		WHERE rp.role_id = ?
-		ORDER BY p.domain, p.name`, roleID)
+		ORDER BY p.domain, p.name_permission`, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +51,12 @@ func GetPermissionsByRole(roleID string) ([]models.Permission, error) {
 
 func GetUserPermissions(userID string) ([]string, error) {
 	rows, err := config.Conn.Query(`
-		SELECT DISTINCT p.name
+		SELECT DISTINCT p.name_permission
 		FROM PERMISSION p
-		INNER JOIN ROLE_PERMISSION rp ON rp.permission_id = p.id
+		INNER JOIN ROLE_PERMISSION rp ON rp.permission_id = p.id_permission
 		INNER JOIN USER_ROLE ur       ON ur.id_role = rp.role_id
 		WHERE ur.id_user = ?
-		ORDER BY p.name`, userID)
+		ORDER BY p.name_permission`, userID)
 	if err != nil {
 		return nil, err
 	}

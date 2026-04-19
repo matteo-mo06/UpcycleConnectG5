@@ -354,6 +354,45 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"message": "announcement updated successfully", "announcement": a})
 }
 
+func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	owner, err := db.IsAnnouncementOwner(id, userID)
+	if err != nil {
+		http.Error(w, "erreur serveur", http.StatusInternalServerError)
+		return
+	}
+	if owner {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous ne pouvez pas acquérir votre propre annonce"})
+		return
+	}
+
+	if err := db.ClaimAnnouncement(id, userID); err != nil {
+		fmt.Println("ClaimAnnouncement error:", err)
+		http.Error(w, "erreur serveur", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetMyAcquisitions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	list, err := db.GetUserAcquisitions(userID)
+	if err != nil {
+		fmt.Println("GetMyAcquisitions error:", err)
+		http.Error(w, "erreur serveur", http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []models.Announcement{}
+	}
+	_ = json.NewEncoder(w).Encode(list)
+}
+
 func DeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

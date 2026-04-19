@@ -71,6 +71,7 @@
 import { computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+import { initials as getInitials, primaryRole as getPrimaryRole } from '@/utils.js'
 
 defineEmits(['openDepot'])
 
@@ -78,19 +79,8 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-const initials = computed(() => {
-  const f = auth.user?.first_name?.[0] ?? ''
-  const l = auth.user?.last_name?.[0] ?? ''
-  return (f + l).toUpperCase() || 'U'
-})
-
-const primaryRole = computed(() => {
-  const roles = auth.user?.roles ?? []
-  if (roles.includes('admin')) return 'Administrateur'
-  if (roles.includes('artisan')) return 'Artisan'
-  if (roles.includes('salarie')) return 'Salarié'
-  return 'Particulier'
-})
+const initials = computed(() => getInitials(auth.user))
+const primaryRole = computed(() => getPrimaryRole(auth.user?.roles ?? []))
 
 function isActive(href) {
   return route.path.startsWith(href)
@@ -114,7 +104,7 @@ const navItems = [
   },
   {
     label: "Dépôt d'objet",
-    modal: true,
+    href: '/depot',
     icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
   },
   {

@@ -229,7 +229,8 @@ func GetUserStats(userID string) (models.UserStats, error) {
 	err = config.Conn.QueryRow(`
 		SELECT COUNT(*) FROM ANNOUNCEMENT a
 		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
-		WHERE ua.id_user = ? AND a.request = 1`, userID).Scan(&s.PendingDeposits)
+		LEFT JOIN ANNOUNCEMENT_LOCKER al ON al.id_announcement = a.id_announcement
+		WHERE ua.id_user = ? AND a.request = 1 AND al.id_locker IS NULL`, userID).Scan(&s.PendingDeposits)
 	if err != nil {
 		return s, err
 	}

@@ -363,6 +363,7 @@
 import { ref, computed, onMounted } from "vue";
 import api from "@/api.js";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
+import { roleLabel, fullName } from "@/utils.js";
 
 const search = ref("");
 const filterType = ref("");
@@ -413,7 +414,7 @@ onMounted(async () => {
         users.value = usersData.map((u) => ({
             id: u.id,
             email: u.email,
-            name: `${u.first_name} ${u.last_name}`.trim(),
+            name: fullName(u),
             type: roleToType(u.roles),
             status: statusToLabel(u.status),
             date: u.created_at?.slice(0, 10) ?? "—",
@@ -421,7 +422,7 @@ onMounted(async () => {
 
         proRequests.value = (reqsData ?? []).map((r) => ({
             id: r.id,
-            name: `${r.first_name} ${r.last_name}`.trim(),
+            name: fullName(r),
             email: r.email,
             requestDate: r.created_at?.slice(0, 10) ?? "—",
             reason: "—",
@@ -435,13 +436,7 @@ onMounted(async () => {
 });
 
 function formatRoleName(name) {
-    const labels = {
-        admin: "Administrateur",
-        artisan: "Artisan",
-        salarie: "Salarié",
-        user: "Particulier",
-    };
-    return labels[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
+    return roleLabel(name)
 }
 
 function roleToType(userRoles) {
