@@ -26,6 +26,8 @@ const router = createRouter({
     { path: '/admin/listings',  component: Listings,  meta: { requiresAdmin: true } },
     { path: '/admin/events',    component: Events,    meta: { requiresAdmin: true } },
     { path: '/admin/reports',   component: Reports,   meta: { requiresAdmin: true } },
+
+    { path: '/:pathMatch(.*)*', redirect: '/accueil' },
   ],
 })
 
