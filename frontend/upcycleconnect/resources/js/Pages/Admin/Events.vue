@@ -34,13 +34,6 @@
         </div>
 
         <select
-          v-model="filterCategory"
-          class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
-          <option value="">Toutes les catégories</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
-        </select>
-
-        <select
           v-model="filterStatus"
           class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
           <option value="">Tous les statuts</option>
@@ -60,7 +53,6 @@
           <thead>
             <tr class="bg-primary">
               <th class="text-left text-white font-medium px-5 py-3">Événement</th>
-              <th class="text-left text-white font-medium px-5 py-3">Catégorie</th>
               <th class="text-left text-white font-medium px-5 py-3">Date & lieu</th>
               <th class="text-left text-white font-medium px-5 py-3">Inscrits</th>
               <th class="text-left text-white font-medium px-5 py-3">Statut</th>
@@ -75,14 +67,6 @@
               <td class="px-5 py-3">
                 <p class="font-medium text-gray-800 truncate max-w-52">{{event.title}}</p>
                 <p class="text-xs text-gray-500 truncate">{{event.organizer}}</p>
-              </td>
-
-              <td class="px-5 py-3">
-                <span
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  :class="categoryBadge(event.category)">
-                  {{event.category}}
-                </span>
               </td>
 
               <td class="px-5 py-3">
@@ -126,7 +110,7 @@
             </tr>
 
             <tr v-if="filteredEvents.length === 0">
-              <td colspan="6" class="px-5 py-12 text-center text-gray-400 text-sm">
+              <td colspan="5" class="px-5 py-12 text-center text-gray-400 text-sm">
                 Aucun événement ne correspond à vos filtres.
               </td>
             </tr>
@@ -151,11 +135,6 @@
               <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                 {{detailEvent.title}}
               </h3>
-              <span
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                :class="categoryBadge(detailEvent.category)">
-                {{detailEvent.category}}
-              </span>
             </div>
             <p class="text-xs text-gray-500 mt-0.5">Organisé par {{detailEvent.organizer}}</p>
           </div>
@@ -217,7 +196,6 @@ import AdminLayout from '@/Layouts/AdminLayout.vue'
 import api from '@/api.js'
 
 const events = ref([])
-const categories = ref([])
 
 function computeStatus(dateStr) {
   if (!dateStr) return '—'
@@ -229,7 +207,6 @@ function mapEvent(e) {
     id: e.id,
     title: e.title,
     organizer: e.creator_name ?? '—',
-    category: '—',
     location: e.location ?? '—',
     date: e.date?.slice(0, 10) ?? '—',
     time: e.date?.slice(11, 16) ?? '—',
@@ -242,12 +219,8 @@ function mapEvent(e) {
 
 onMounted(async () => {
   try {
-    const [{ data: eventsData }, { data: catsData }] = await Promise.all([
-      api.get('/admin/events'),
-      api.get('/admin/categories'),
-    ])
-    events.value = eventsData.map(mapEvent)
-    categories.value = catsData ?? []
+    const { data } = await api.get('/admin/events')
+    events.value = data.map(mapEvent)
   } catch (e) {
     console.error('Events fetch error:', e)
   }
@@ -285,17 +258,15 @@ const stats = computed(() => [
 ])
 
 const search = ref('')
-const filterCategory = ref('')
 const filterStatus = ref('')
 
 const filteredEvents = computed(() => {
   return events.value.filter(e => {
     const q = search.value.toLowerCase()
     if (q && !e.title.toLowerCase().includes(q) && !e.organizer.toLowerCase().includes(q)) return false
-    if (filterCategory.value && e.category !== filterCategory.value) return false
     if (filterStatus.value && e.status !== filterStatus.value) return false
     return true
- })
+  })
 })
 
 const detailEvent = ref(null)
@@ -313,16 +284,6 @@ async function deleteEvent(event) {
   } catch (e) {
     console.error('deleteEvent error:', e)
   }
-}
-
-function categoryBadge(category) {
-  const map = {
-    'Atelier': 'bg-blue-100 text-blue-700',
-    'Conférence': 'bg-purple-100 text-purple-700',
-    'Animation': 'bg-green-100 text-green-700',
-    'Formation': 'bg-amber-100 text-amber-700',
- }
-  return map[category] ?? 'bg-gray-100 text-gray-600'
 }
 
 function statusDot(status) {

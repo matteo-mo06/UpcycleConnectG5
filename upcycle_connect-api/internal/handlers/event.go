@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"upcycle_connect-api/internal/db"
+	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
 )
 
@@ -163,4 +164,99 @@ func DeleteEvent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "event deleted successfully"})
+}
+
+func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	events, err := db.GetPublicEventsForUser(userID)
+	if err != nil {
+		fmt.Println("GetPublicEventsForUser error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch events"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(events)
+}
+
+func GetUserEvents(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	events, err := db.GetUserRegisteredEvents(userID)
+	if err != nil {
+		fmt.Println("GetUserEvents error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch user events"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(events)
+}
+
+func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing event id"})
+		return
+	}
+
+	_, err := db.GetEventById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "event not found"})
+			return
+		}
+		fmt.Println("RegisterForEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find event"})
+		return
+	}
+
+	err = db.RegisterUserForEvent(userID, id)
+	if err != nil {
+		fmt.Println("RegisterForEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to register for event"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "registered successfully"})
+}
+
+func UnregisterFromEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing event id"})
+		return
+	}
+
+	err := db.UnregisterUserFromEvent(userID, id)
+	if err != nil {
+		fmt.Println("UnregisterFromEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to unregister from event"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "unregistered successfully"})
 }

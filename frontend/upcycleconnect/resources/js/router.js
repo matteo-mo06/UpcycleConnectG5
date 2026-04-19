@@ -1,33 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
-import Login    from './Pages/Login.vue'
-import Home     from './Pages/Home.vue'
-import Accueil  from './Pages/User/Accueil.vue'
+import Login from './Pages/Login.vue'
+import Home from './Pages/Home.vue'
+import Accueil from './Pages/User/Accueil.vue'
 import Annonces from './Pages/User/Annonces.vue'
 import Depot    from './Pages/User/Depot.vue'
+import UserEvents from './Pages/User/Events.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
-import Users     from './Pages/Admin/Users.vue'
-import Roles     from './Pages/Admin/Roles.vue'
-import Listings  from './Pages/Admin/Listings.vue'
-import Events    from './Pages/Admin/Events.vue'
-import Reports   from './Pages/Admin/Reports.vue'
+import Users from './Pages/Admin/Users.vue'
+import Roles from './Pages/Admin/Roles.vue'
+import Listings from './Pages/Admin/Listings.vue'
+import Events from './Pages/Admin/Events.vue'
+import Reports from './Pages/Admin/Reports.vue'
+import CGU from './Pages/CGU.vue'
+import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/',      component: Home  },
+    { path: '/', component: Home },
     { path: '/login', component: Login },
 
-    { path: '/accueil',  component: Accueil,  meta: { requiresAuth: true } },
+    { path: '/cgu', component: CGU },
+    { path: '/politique-confidentialite', component: PolitiqueConfidentialite },
+
+    { path: '/accueil', component: Accueil, meta: { requiresAuth: true } },
     { path: '/annonces', component: Annonces, meta: { requiresAuth: true } },
-    { path: '/depot',    component: Depot,    meta: { requiresAuth: true } },
+    { path: '/depot',      component: Depot,      meta: { requiresAuth: true } },
+    { path: '/evenements', component: UserEvents, meta: { requiresAuth: true } },
 
     { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
-    { path: '/admin/users',     component: Users,     meta: { requiresAdmin: true } },
-    { path: '/admin/roles',     component: Roles,     meta: { requiresAdmin: true } },
-    { path: '/admin/listings',  component: Listings,  meta: { requiresAdmin: true } },
-    { path: '/admin/events',    component: Events,    meta: { requiresAdmin: true } },
-    { path: '/admin/reports',   component: Reports,   meta: { requiresAdmin: true } },
+    { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
+    { path: '/admin/roles', component: Roles, meta: { requiresAdmin: true } },
+    { path: '/admin/listings', component: Listings, meta: { requiresAdmin: true } },
+    { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
+    { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
 
     { path: '/:pathMatch(.*)*', redirect: '/accueil' },
   ],
