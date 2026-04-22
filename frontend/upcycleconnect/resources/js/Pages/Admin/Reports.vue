@@ -170,7 +170,7 @@
       <div v-if="histoLoading" class="py-8 text-center text-sm text-gray-400">Chargement…</div>
 
       <div v-else-if="histoUsers.length === 0" class="py-8 text-center text-sm text-gray-400">
-        Aucun utilisateur avec un historique de signalements ou sanctions.
+        Aucun utilisateur trouvé.
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -179,6 +179,7 @@
             <tr class="bg-gray-50 border-b border-gray-100">
               <th class="text-left text-gray-500 font-medium px-5 py-3">Utilisateur</th>
               <th class="text-left text-gray-500 font-medium px-5 py-3">Email</th>
+              <th class="text-left text-gray-500 font-medium px-5 py-3">Statut</th>
               <th class="text-center text-gray-500 font-medium px-5 py-3">Signalements reçus</th>
               <th class="text-center text-gray-500 font-medium px-5 py-3">Sanctions</th>
               <th class="px-5 py-3" />
@@ -192,6 +193,11 @@
               @click="openHistoModal(u)">
               <td class="px-5 py-3 font-medium text-gray-800">{{ u.name }}</td>
               <td class="px-5 py-3 text-gray-500 text-xs">{{ u.email }}</td>
+              <td class="px-5 py-3">
+                <span :class="['inline-flex px-2 py-0.5 rounded-full text-xs font-medium', userStatusBadge(u.status)]">
+                  {{ userStatusLabel(u.status) }}
+                </span>
+              </td>
               <td class="px-5 py-3 text-center">
                 <span :class="['inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold', u.report_count > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400']">
                   {{ u.report_count }}
@@ -354,8 +360,13 @@
 
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ histoUser.name }}</h3>
-            <p class="text-xs text-gray-500">{{ histoUser.email }}</p>
+            <div class="flex items-center gap-2">
+              <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ histoUser.name }}</h3>
+              <span :class="['inline-flex px-2 py-0.5 rounded-full text-xs font-medium', userStatusBadge(histoUser.status)]">
+                {{ userStatusLabel(histoUser.status) }}
+              </span>
+            </div>
+            <p class="text-xs text-gray-500 mt-0.5">{{ histoUser.email }}</p>
           </div>
           <button @click="histoUser = null" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -372,10 +383,10 @@
             <div v-else class="space-y-1.5">
               <div v-for="s in histoUser.sanctions" :key="s.id_sanction"
                 class="flex items-start gap-3 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
-                <span :class="['font-medium px-2 py-0.5 rounded-full text-xs', sanctionBadge(s.type)]">
+                <span :class="['flex-shrink-0 font-medium px-2 py-0.5 rounded-full text-xs', sanctionBadge(s.type)]">
                   {{ sanctionLabels[s.type] ?? s.type }}
                 </span>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <p class="text-gray-700">{{ s.reason || '—' }}</p>
                   <p class="text-gray-400 mt-0.5">{{ s.created_at?.slice(0, 10) }} · par {{ s.admin_name }}</p>
                 </div>
@@ -417,6 +428,12 @@
               <button @click="openSanctionForUser('ban')"
                 class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
                 Bannir
+              </button>
+              <button
+                v-if="histoUser.status === 'suspended' || histoUser.status === 'blacklisted'"
+                @click="liftSanction"
+                class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                Lever la sanction
               </button>
             </div>
 
@@ -577,11 +594,23 @@ async function openHistoModal(u) {
       id: u.id_user,
       name: u.name,
       email: u.email,
+      status: data.status ?? 'active',
       sanctions: data.sanctions ?? [],
       reportsReceived: data.reports_received ?? [],
     }
   } catch {
     alert('Erreur lors du chargement de l\'historique.')
+  }
+}
+
+async function liftSanction() {
+  try {
+    await api.patch(`/admin/user/${histoUser.value.id}/status`, { status: 'active' })
+    histoUser.value.status = 'active'
+    const idx = histoUsers.value.findIndex(u => u.id_user === histoUser.value.id)
+    if (idx !== -1) histoUsers.value[idx].status = 'active'
+  } catch (e) {
+    alert(e.response?.data?.error ?? 'Erreur lors de la levée de sanction.')
   }
 }
 
@@ -676,6 +705,15 @@ async function submitSanction() {
   } finally {
     sanctionLoading.value = false
   }
+}
+
+function userStatusBadge(status) {
+  const map = { active: 'bg-green-100 text-green-700', suspended: 'bg-orange-100 text-orange-700', blacklisted: 'bg-red-100 text-red-700' }
+  return map[status] ?? 'bg-gray-100 text-gray-500'
+}
+
+function userStatusLabel(status) {
+  return { active: 'Actif', suspended: 'Suspendu', blacklisted: 'Banni' }[status] ?? status
 }
 
 function typeBadge(type) {

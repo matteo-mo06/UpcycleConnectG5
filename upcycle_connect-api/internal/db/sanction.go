@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,24 @@ func CreateSanction(idUser, idAdmin, idReport, sanctionType, reason string, dura
 		uuid.New().String(), idUser, idAdmin, idReportVal, sanctionType, reason, durationDays, expiresAt,
 	)
 	return err
+}
+
+func IsSuspensionExpired(userId string) (bool, error) {
+	var expiresAt sql.NullTime
+	err := config.Conn.QueryRow(
+		`SELECT expires_at FROM USER_SANCTIONS WHERE id_user = ? AND type = 'suspension' ORDER BY created_at DESC LIMIT 1`,
+		userId,
+	).Scan(&expiresAt)
+	if err == sql.ErrNoRows {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if !expiresAt.Valid {
+		return false, nil
+	}
+	return time.Now().After(expiresAt.Time), nil
 }
 
 func GetUserSanctions(userId string) ([]models.Sanction, error) {
@@ -57,6 +76,7 @@ func GetUserHistorySummary(search string) ([]models.UserHistorySummary, error) {
 		SELECT u.id_user,
 		       TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS name,
 		       u.email,
+		       u.status,
 		       COUNT(DISTINCT r.id_report) AS report_count,
 		       COUNT(DISTINCT s.id_sanction) AS sanction_count
 		FROM USER u
@@ -68,8 +88,7 @@ func GetUserHistorySummary(search string) ([]models.UserHistorySummary, error) {
 		query += " AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)"
 		args = append(args, "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
-	query += " GROUP BY u.id_user, u.first_name, u.last_name, u.email"
-	query += " HAVING report_count > 0 OR sanction_count > 0"
+	query += " GROUP BY u.id_user, u.first_name, u.last_name, u.email, u.status"
 	query += " ORDER BY report_count DESC, sanction_count DESC"
 
 	rows, err := config.Conn.Query(query, args...)
@@ -81,7 +100,7 @@ func GetUserHistorySummary(search string) ([]models.UserHistorySummary, error) {
 	var list []models.UserHistorySummary
 	for rows.Next() {
 		var u models.UserHistorySummary
-		if err := rows.Scan(&u.IdUser, &u.Name, &u.Email, &u.ReportCount, &u.SanctionCount); err != nil {
+		if err := rows.Scan(&u.IdUser, &u.Name, &u.Email, &u.Status, &u.ReportCount, &u.SanctionCount); err != nil {
 			return nil, err
 		}
 		list = append(list, u)
@@ -91,6 +110,9 @@ func GetUserHistorySummary(search string) ([]models.UserHistorySummary, error) {
 
 func GetUserHistory(userId string) (models.UserHistory, error) {
 	var h models.UserHistory
+	if err := config.Conn.QueryRow(`SELECT status FROM USER WHERE id_user = ?`, userId).Scan(&h.Status); err != nil {
+		return h, err
+	}
 	sanctions, err := GetUserSanctions(userId)
 	if err != nil {
 		return h, err

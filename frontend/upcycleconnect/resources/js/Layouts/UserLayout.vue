@@ -64,11 +64,22 @@
       </main>
     </div>
 
+    <div
+      v-if="toast"
+      class="fixed bottom-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm"
+      :class="toast.type === 'warning' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-800 border border-red-200'"
+    >
+      <svg class="w-5 h-5 flex-shrink-0 mt-0.5" :class="toast.type === 'warning' ? 'text-amber-500' : 'text-red-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <span>{{ toast.message }}</span>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { initials as getInitials, primaryRole as getPrimaryRole } from '@/utils.js'
@@ -90,6 +101,64 @@ function handleLogout() {
   auth.logout()
   router.push('/login')
 }
+
+const toast = ref(null)
+let toastTimer = null
+let sseAbort = null
+
+function showToast(message, type = 'warning') {
+  clearTimeout(toastTimer)
+  toast.value = { message, type }
+  toastTimer = setTimeout(() => { toast.value = null }, 6000)
+}
+
+async function connectSSE() {
+  const token = sessionStorage.getItem('token')
+  if (!token) return
+
+  sseAbort = new AbortController()
+
+  try {
+    const response = await fetch('http://localhost:8084/sse', {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: sseAbort.signal,
+    })
+
+    if (!response.ok || !response.body) {
+      setTimeout(connectSSE, 5000)
+      return
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const lines = decoder.decode(value).split('\n')
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try {
+          const data = JSON.parse(line.slice(6))
+          if (data.type === 'sanction') {
+            showToast(data.message, data.sanction_type === 'warning' ? 'warning' : 'error')
+          }
+        } catch {}
+      }
+    }
+  } catch (e) {
+    if (e?.name === 'AbortError') return
+  }
+
+  setTimeout(connectSSE, 5000)
+}
+
+onMounted(connectSSE)
+onUnmounted(() => {
+  sseAbort?.abort()
+  clearTimeout(toastTimer)
+})
 
 const navItems = [
   {

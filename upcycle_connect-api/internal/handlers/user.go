@@ -322,6 +322,26 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.Status == "blacklisted" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "compte banni"})
+		return
+	}
+
+	if user.Status == "suspended" {
+		expired, err := db.IsSuspensionExpired(user.Id_user)
+		if err != nil {
+			fmt.Println("Login IsSuspensionExpired error:", err)
+		}
+		if expired {
+			_ = db.UpdateUserStatus(user.Id_user, "active")
+		} else {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "compte suspendu"})
+			return
+		}
+	}
+
 	roles, _ := db.GetUserRoleNames(user.Id_user)
 	if roles == nil {
 		roles = []string{}

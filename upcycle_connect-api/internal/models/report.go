@@ -37,11 +37,13 @@ type UserHistorySummary struct {
 	IdUser        string `json:"id_user"`
 	Name          string `json:"name"`
 	Email         string `json:"email"`
+	Status        string `json:"status"`
 	ReportCount   int    `json:"report_count"`
 	SanctionCount int    `json:"sanction_count"`
 }
 
 type UserHistory struct {
+	Status          string     `json:"status"`
 	Sanctions       []Sanction `json:"sanctions"`
 	ReportsReceived []Report   `json:"reports_received"`
 }

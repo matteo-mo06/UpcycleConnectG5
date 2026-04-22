@@ -75,7 +75,7 @@ func GetPublicAnnouncements(search, idCategory string) ([]models.Announcement, e
 	query := announcementSelect + `FROM ANNOUNCEMENT a
 	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 	          LEFT JOIN USER u ON u.id_user = ua.id_user
-	          WHERE a.state_annoucement = 'Active' AND a.request = 0`
+	          WHERE a.state_annoucement = 'Active' AND a.request = 0 AND a.deleted_at IS NULL`
 	var args []any
 
 	if search != "" {
