@@ -13,23 +13,24 @@ import (
 
 const announcementSelect = `SELECT a.id_announcement, a.id_category, a.title_announcement, a.address_annoucement, a.city, a.postal,
 	a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement,
-	u.first_name, u.last_name, a.type_announcement, a.condition_announcement,
+	u.id_user, u.first_name, u.last_name, a.type_announcement, a.condition_announcement,
 	(SELECT d.link FROM DOCUMENT d WHERE d.category = a.id_announcement ORDER BY d.id_document LIMIT 1) AS first_photo `
 
 func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement, error) {
 	var a models.Announcement
-	var idCat, firstName, lastName, typ, cond, firstPhoto sql.NullString
+	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto sql.NullString
 	err := row.Scan(
 		&a.Id_announcement, &idCat, &a.Title_announcement,
 		&a.Address_annoucement, &a.City, &a.Postal,
 		&a.Description_annoucement, &a.Availability_date, &a.Price,
 		&a.Request, &a.State_annoucement,
-		&firstName, &lastName, &typ, &cond, &firstPhoto,
+		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto,
 	)
 	if err != nil {
 		return a, err
 	}
 	a.Id_category = idCat.String
+	a.AuthorId = authorId.String
 	a.AuthorName = strings.TrimSpace(firstName.String + " " + lastName.String)
 	a.TypeAnnouncement = typ.String
 	a.ConditionAnnouncement = cond.String

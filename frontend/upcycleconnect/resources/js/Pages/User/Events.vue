@@ -8,7 +8,6 @@
       <p class="text-sm text-gray-500 mt-1">Découvrez et inscrivez-vous aux événements disponibles</p>
     </div>
 
-    <!-- Calendrier des événements inscrits -->
     <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
       <h2 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">
         Mes événements
@@ -16,7 +15,6 @@
       <FullCalendar :options="calendarOptions" />
     </div>
 
-    <!-- Liste de tous les événements -->
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
         <div class="relative flex-1">
@@ -74,6 +72,16 @@
 
           <div class="flex-shrink-0 flex items-center gap-2">
             <button
+              v-if="canDelete(event)"
+              @click.stop="confirmDelete(event)"
+              class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Supprimer"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+            <button
               @click="openDetail(event)"
               class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -104,7 +112,6 @@
       </div>
     </div>
 
-    <!-- Modal de détail -->
     <div
       v-if="detailEvent"
       class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -177,6 +184,20 @@
       </div>
     </div>
 
+    <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h3 class="font-semibold text-gray-800 mb-2">Supprimer l'événement ?</h3>
+        <p class="text-sm text-gray-500 mb-5">« {{ toDelete.title }} » sera définitivement supprimé.</p>
+        <div class="flex gap-3">
+          <button @click="toDelete = null" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
+          <button @click="deleteEvent" :disabled="deleting" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+            {{ deleting ? 'Suppression…' : 'Supprimer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </UserLayout>
 </template>
 
@@ -188,11 +209,15 @@ import interactionPlugin from '@fullcalendar/interaction'
 import frLocale from '@fullcalendar/core/locales/fr'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import api from '@/api.js'
+import { useAuthStore } from '@/stores/auth.js'
 
+const auth = useAuthStore()
 const events = ref([])
 const search = ref('')
 const filterStatus = ref('')
 const detailEvent = ref(null)
+const toDelete = ref(null)
+const deleting = ref(false)
 
 const MONTHS_SHORT = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc']
 
@@ -202,6 +227,7 @@ function mapEvent(e) {
   return {
     id: e.id,
     title: e.title,
+    creatorId: e.id_creator ?? null,
     organizer: e.creator_name ?? '—',
     location: e.location ?? '—',
     date: e.date?.slice(0, 10) ?? '—',
@@ -258,6 +284,34 @@ const filteredEvents = computed(() => {
 
 function isFull(event) {
   return event.capacity > 0 && event.registered >= event.capacity
+}
+
+function canDelete(event) {
+  if (event.creatorId === auth.user?.id) return true
+  return auth.isAdmin
+}
+
+function confirmDelete(event) {
+  toDelete.value = event
+}
+
+async function deleteEvent() {
+  if (!toDelete.value) return
+  deleting.value = true
+  try {
+    const isOwner = toDelete.value.creatorId === auth.user?.id
+    if (isOwner) {
+      await api.delete(`/user/event/${toDelete.value.id}`)
+    } else {
+      await api.delete(`/admin/event/${toDelete.value.id}`)
+    }
+    events.value = events.value.filter(e => e.id !== toDelete.value.id)
+    toDelete.value = null
+  } catch (e) {
+    alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
+  } finally {
+    deleting.value = false
+  }
 }
 
 function openDetail(event) {

@@ -12,6 +12,7 @@ type Announcement struct {
 	Price                   float64 `json:"price"`
 	Request                 int     `json:"request"`
 	State_annoucement       string  `json:"state"`
+	AuthorId                string  `json:"author_id"`
 	AuthorName              string  `json:"author_name"`
 	TypeAnnouncement        string  `json:"type"`
 	ConditionAnnouncement   string  `json:"condition"`

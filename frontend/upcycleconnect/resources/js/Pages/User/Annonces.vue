@@ -124,6 +124,14 @@
                 {{ a.type === 'vente' ? 'Acheter' : 'Je le veux' }}
               </button>
 
+              <button
+                v-if="activeTab === 'all' && a.author_name !== fullName(auth.user)"
+                @click.stop="openReport(a)"
+                class="px-3 py-1 border border-gray-200 text-gray-500 text-xs font-medium rounded-lg hover:border-red-300 hover:text-red-500 transition-colors"
+              >
+                Signaler
+              </button>
+
               <button @click="openDetail(a)" class="px-3 py-1 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dark transition-colors">
                 Voir
               </button>
@@ -134,6 +142,7 @@
     </div>
 
     <CreateAnnouncementModal v-model="showDepot" @created="onCreated" />
+    <ReportModal v-model="showReport" contentType="announcement" :contentId="reportTarget?.id" :contentTitle="reportTarget?.title ?? ''" />
 
     <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
       <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
@@ -175,6 +184,10 @@
             <div><span class="font-medium text-gray-700">Disponible :</span> {{ formatDate(selected.availability_date) }}</div>
             <div><span class="font-medium text-gray-700">Par :</span> {{ selected.author_name || 'Inconnu' }}</div>
           </div>
+          <div v-if="activeTab === 'all' && selected.author_name !== fullName(auth.user)" class="pt-2 flex justify-end">
+            <button @click="openReport(selected)" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Signaler ce contenu</button>
+          </div>
+
           <div v-if="activeTab === 'acquisitions' && selected.access_code" class="pt-2 border-t border-gray-100 space-y-2">
             <p class="text-xs text-gray-500"><span class="font-medium text-gray-700">Casier :</span> N° {{ selected.locker_number }}</p>
             <p class="text-xs text-gray-400">Scannez ce code pour ouvrir le casier</p>
@@ -206,6 +219,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
+import ReportModal from '@/Components/ReportModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 import { formatDate, conditionLabel, fullName } from '@/utils.js'
@@ -223,6 +237,8 @@ const selectedPhotos = ref([])
 const photoIndex = ref(0)
 const toDelete = ref(null)
 const deleting = ref(false)
+const reportTarget = ref(null)
+const showReport = ref(false)
 
 const validTabs = ['all', 'mine', 'acquisitions']
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'all')
@@ -287,8 +303,8 @@ function closeDetail() {
 
 function canDelete(a) {
   if (a?.state !== 'Active') return false
-  if (activeTab.value === 'mine') return true
-  return auth.hasPermission('manage_announcements')
+  if (a.author_id === auth.user?.id) return true
+  return auth.isAdmin || auth.hasPermission('manage_announcements')
 }
 
 function confirmDelete(a) {
@@ -299,8 +315,11 @@ async function deleteAnnouncement() {
   if (!toDelete.value) return
   deleting.value = true
   try {
-    if (activeTab.value === 'mine') {
+    const isOwner = toDelete.value.author_id === auth.user?.id
+    if (isOwner) {
       await api.delete(`/user/announcement/${toDelete.value.id}`)
+    } else if (auth.isAdmin) {
+      await api.delete(`/admin/announcement/${toDelete.value.id}`)
     } else {
       await api.delete(`/announcements/${toDelete.value.id}`)
     }
@@ -320,6 +339,11 @@ async function claimAnnouncement(a) {
   } catch (e) {
     alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')
   }
+}
+
+function openReport(a) {
+  reportTarget.value = { id: a.id, title: a.title }
+  showReport.value = true
 }
 
 async function requestDeposit(a) {

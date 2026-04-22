@@ -166,6 +166,41 @@ func DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "event deleted successfully"})
 }
 
+func DeleteMyEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	event, err := db.GetEventById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "event not found"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find event"})
+		return
+	}
+
+	if event.Id_creator == nil || *event.Id_creator != userID {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cet événement"})
+		return
+	}
+
+	if err := db.DeleteEvent(id); err != nil {
+		fmt.Println("DeleteMyEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to delete event"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement supprimé"})
+}
+
 func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

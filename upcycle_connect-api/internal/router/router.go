@@ -87,8 +87,19 @@ func InitRoutes() {
 
 	http.Handle("GET /events", auth(handlers.GetPublicEventsForUser))
 	http.Handle("GET /user/events", auth(handlers.GetUserEvents))
+	http.Handle("DELETE /user/event/{id}", auth(handlers.DeleteMyEvent))
 	http.Handle("POST /user/event/{id}/register", auth(handlers.RegisterForEvent))
 	http.Handle("DELETE /user/event/{id}/unregister", auth(handlers.UnregisterFromEvent))
+
+	http.Handle("POST /reports", auth(handlers.SubmitReport))
+
+	http.Handle("GET /admin/reports", admin(handlers.GetAdminReports))
+	http.Handle("GET /admin/reports/stats", admin(handlers.GetAdminReportStats))
+	http.Handle("GET /admin/reports/users", admin(handlers.GetUsersHistorySummary))
+	http.Handle("PATCH /admin/report/{id}", admin(handlers.UpdateAdminReport))
+	http.Handle("DELETE /admin/report/{id}/content", admin(handlers.SoftDeleteReportContent))
+	http.Handle("POST /admin/user/{id}/sanctions", admin(handlers.CreateSanction))
+	http.Handle("GET /admin/user/{id}/history", admin(handlers.GetUserHistory))
 
 	http.Handle("GET /admin/events", admin(handlers.GetEvents))
 	http.Handle("GET /admin/event/{id}", admin(handlers.GetEventById))

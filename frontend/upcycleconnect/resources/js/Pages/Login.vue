@@ -283,7 +283,7 @@ async function submitLogin() {
   loginLoading.value = true
   try {
     await auth.login(loginForm.value.email, loginForm.value.password)
-    router.push('/')
+    router.push('/accueil')
   } catch (e) {
     loginError.value = e.response?.data?.error ?? 'Email ou mot de passe incorrect'
   } finally {
@@ -291,7 +291,6 @@ async function submitLogin() {
   }
 }
 
-// --- Inscription ---
 const registerForm    = ref({ first_name: '', last_name: '', email: '', password: '', password_confirm: '' })
 const registerError   = ref('')
 const registerSuccess = ref('')

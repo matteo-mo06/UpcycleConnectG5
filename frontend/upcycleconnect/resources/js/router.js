@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import Login from './Pages/Login.vue'
-import Home from './Pages/Home.vue'
 import Accueil from './Pages/User/Accueil.vue'
 import Annonces from './Pages/User/Annonces.vue'
 import Depot    from './Pages/User/Depot.vue'
@@ -18,7 +17,7 @@ import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: Home },
+    { path: '/', redirect: '/accueil' },
     { path: '/login', component: Login },
 
     { path: '/cgu', component: CGU },
