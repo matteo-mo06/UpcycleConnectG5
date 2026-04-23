@@ -5,6 +5,11 @@ import Accueil from './Pages/User/Accueil.vue'
 import Annonces from './Pages/User/Annonces.vue'
 import Depot    from './Pages/User/Depot.vue'
 import UserEvents from './Pages/User/Events.vue'
+import Projets from './Pages/User/Projets.vue'
+import Forum from './Pages/User/Forum.vue'
+import Formations from './Pages/User/Formations.vue'
+import Conseils from './Pages/User/Conseils.vue'
+import Parametres from './Pages/User/Parametres.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
 import Users from './Pages/Admin/Users.vue'
 import Roles from './Pages/Admin/Roles.vue'
@@ -23,10 +28,15 @@ const router = createRouter({
         { path: '/cgu', component: CGU },
         { path: '/politique-confidentialite', component: PolitiqueConfidentialite },
 
-        { path: '/accueil', component: Accueil, meta: { requiresAuth: true } },
-        { path: '/annonces', component: Annonces, meta: { requiresAuth: true } },
-        { path: '/depot',      component: Depot,      meta: { requiresAuth: true } },
-        { path: '/evenements', component: UserEvents, meta: { requiresAuth: true } },
+        { path: '/accueil',     component: Accueil,     meta: { requiresAuth: true } },
+        { path: '/annonces',    component: Annonces,    meta: { requiresAuth: true } },
+        { path: '/depot',       component: Depot,       meta: { requiresAuth: true } },
+        { path: '/evenements',  component: UserEvents,  meta: { requiresAuth: true } },
+        { path: '/projets',     component: Projets,     meta: { requiresAuth: true } },
+        { path: '/forum',       component: Forum,       meta: { requiresAuth: true } },
+        { path: '/formations',  component: Formations,  meta: { requiresAuth: true } },
+        { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
+        { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
