@@ -15,35 +15,35 @@ import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', redirect: '/accueil' },
-    { path: '/login', component: Login },
+    history: createWebHistory(),
+    routes: [
+        { path: '/', redirect: '/accueil' },
+        { path: '/login', component: Login },
 
-    { path: '/cgu', component: CGU },
-    { path: '/politique-confidentialite', component: PolitiqueConfidentialite },
+        { path: '/cgu', component: CGU },
+        { path: '/politique-confidentialite', component: PolitiqueConfidentialite },
 
-    { path: '/accueil', component: Accueil, meta: { requiresAuth: true } },
-    { path: '/annonces', component: Annonces, meta: { requiresAuth: true } },
-    { path: '/depot',      component: Depot,      meta: { requiresAuth: true } },
-    { path: '/evenements', component: UserEvents, meta: { requiresAuth: true } },
+        { path: '/accueil', component: Accueil, meta: { requiresAuth: true } },
+        { path: '/annonces', component: Annonces, meta: { requiresAuth: true } },
+        { path: '/depot',      component: Depot,      meta: { requiresAuth: true } },
+        { path: '/evenements', component: UserEvents, meta: { requiresAuth: true } },
 
-    { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
-    { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
-    { path: '/admin/roles', component: Roles, meta: { requiresAdmin: true } },
-    { path: '/admin/listings', component: Listings, meta: { requiresAdmin: true } },
-    { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
-    { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
+        { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
+        { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
+        { path: '/admin/roles', component: Roles, meta: { requiresAdmin: true } },
+        { path: '/admin/listings', component: Listings, meta: { requiresAdmin: true } },
+        { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
+        { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
 
-    { path: '/:pathMatch(.*)*', redirect: '/accueil' },
-  ],
+        { path: '/:pathMatch(.*)*', redirect: '/accueil' },
+    ],
 })
 
 router.beforeEach((to) => {
-  const auth = useAuthStore()
+    const auth = useAuthStore()
 
-  if (to.meta.requiresAdmin && !auth.isAdmin) return '/login'
-  if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
+    if (to.meta.requiresAdmin && !auth.isAdmin) return '/login'
+    if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
 })
 
 export default router

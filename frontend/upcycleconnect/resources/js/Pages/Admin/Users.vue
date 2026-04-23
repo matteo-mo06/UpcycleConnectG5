@@ -303,6 +303,27 @@
             </div>
         </div>
 
+        <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">Supprimer le compte ?</h3>
+                <p class="text-sm text-gray-500 mb-5">Le compte de <span class="font-medium text-gray-700">{{ toDelete.name }}</span> sera définitivement supprimé.</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="toDelete = null"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150">
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmDeleteUser"
+                        :disabled="deleting"
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150 disabled:opacity-60">
+                        {{ deleting ? 'Suppression…' : 'Supprimer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div
             v-if="rightsModal.open"
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -374,6 +395,8 @@ const users = ref([]);
 const loading = ref(false);
 const error = ref("");
 const roleDisplayMap = ref({});
+const toDelete = ref(null);
+const deleting = ref(false);
 
 const filteredUsers = computed(() => {
     return users.value.filter((u) => {
@@ -495,13 +518,21 @@ async function toggleBlacklist(user) {
     }
 }
 
-async function deleteUser(user) {
-    if (!confirm(`Supprimer ${user.name} ?`)) return;
+function deleteUser(user) {
+    toDelete.value = user;
+}
+
+async function confirmDeleteUser() {
+    if (!toDelete.value) return;
+    deleting.value = true;
     try {
-        await api.delete(`/admin/user/${user.id}`);
-        users.value = users.value.filter((u) => u.id !== user.id);
+        await api.delete(`/admin/user/${toDelete.value.id}`);
+        users.value = users.value.filter((u) => u.id !== toDelete.value.id);
+        toDelete.value = null;
     } catch (e) {
         alert("Erreur lors de la suppression");
+    } finally {
+        deleting.value = false;
     }
 }
 

@@ -36,14 +36,14 @@ func InitRoutes() {
 
 	http.HandleFunc("GET /announcements", handlers.GetPublicAnnouncements)
 	http.HandleFunc("GET /announcements/{id}", handlers.GetPublicAnnouncementById)
-	http.Handle("POST /announcements", auth(handlers.CreateUserAnnouncement))
+	http.Handle("POST /announcements", perm("create_announcement", handlers.CreateUserAnnouncement))
 	http.Handle("GET /announcements/{id}/documents", auth(handlers.GetAnnouncementDocuments))
-	http.Handle("POST /announcements/{id}/claim", auth(handlers.ClaimAnnouncement))
+	http.Handle("POST /announcements/{id}/claim", perm("buy_announcement", handlers.ClaimAnnouncement))
 	http.Handle("DELETE /announcements/{id}", perm("manage_announcements", handlers.DeleteAnnouncementWithPermission))
 
 	http.Handle("GET /user/deposit-requests", auth(handlers.GetMyDepositRequests))
-	http.Handle("POST /announcements/{id}/deposit-request", auth(handlers.CreateDepositRequest))
-	http.Handle("DELETE /announcements/{id}/deposit-request", auth(handlers.CancelDepositRequest))
+	http.Handle("POST /announcements/{id}/deposit-request", perm("request_locker_deposit", handlers.CreateDepositRequest))
+	http.Handle("DELETE /announcements/{id}/deposit-request", perm("request_locker_deposit", handlers.CancelDepositRequest))
 	http.Handle("POST /deposit-requests/{id}/validate", perm("validate_deposit", handlers.ValidateDepositRequest))
 	http.Handle("POST /deposit-requests/{id}/reject", perm("validate_deposit", handlers.RejectDepositRequest))
 	http.Handle("GET /deposit-requests/pending", perm("validate_deposit", handlers.GetPendingDepositRequests))
@@ -87,9 +87,9 @@ func InitRoutes() {
 
 	http.Handle("GET /events", auth(handlers.GetPublicEventsForUser))
 	http.Handle("GET /user/events", auth(handlers.GetUserEvents))
-	http.Handle("DELETE /user/event/{id}", auth(handlers.DeleteMyEvent))
-	http.Handle("POST /user/event/{id}/register", auth(handlers.RegisterForEvent))
-	http.Handle("DELETE /user/event/{id}/unregister", auth(handlers.UnregisterFromEvent))
+	http.Handle("DELETE /user/event/{id}", perm("create_event", handlers.DeleteMyEvent))
+	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))
+	http.Handle("DELETE /user/event/{id}/unregister", perm("register_event", handlers.UnregisterFromEvent))
 
 	http.Handle("POST /reports", auth(handlers.SubmitReport))
 
