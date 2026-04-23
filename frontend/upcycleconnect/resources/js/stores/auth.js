@@ -11,37 +11,49 @@ export const useAuthStore = defineStore("auth", () => {
         () => user.value?.roles?.includes("admin") ?? false,
     );
 
-    async function login(email, password){
-        const { data } = await api.post('/auth/login', {email, password_user: password})
+    async function login(email, password) {
+        const { data } = await api.post("/auth/login", {
+            email,
+            password_user: password,
+        });
 
-        token.value = data.token
-        user.value = data.user
+        token.value = data.token;
+        user.value = data.user;
 
-        sessionStorage.setItem('token', data.token)
-        sessionStorage.setItem('user', JSON.stringify(data.user))
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
 
-        setAuthToken(data.token)
+        setAuthToken(data.token);
     }
 
     function logout() {
-        token.value = null
-        user.value = null
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('user')
-        clearAuthToken()
+        token.value = null;
+        user.value = null;
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        clearAuthToken();
     }
 
-    function init(){
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        if(token.value){
-            setAuthToken(token.value)
+    function init() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        if (token.value) {
+            setAuthToken(token.value);
         }
     }
 
     function hasPermission(permission) {
-        return user.value?.permissions?.includes(permission) ?? false
+        return user.value?.permissions?.includes(permission) ?? false;
     }
 
-    return { token, user, isLoggedIn, isAdmin, hasPermission, login, logout, init }
+    return {
+        token,
+        user,
+        isLoggedIn,
+        isAdmin,
+        hasPermission,
+        login,
+        logout,
+        init,
+    };
 });
