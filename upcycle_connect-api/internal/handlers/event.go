@@ -24,6 +24,10 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if events == nil {
+		events = []models.Event{}
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(events)
 }

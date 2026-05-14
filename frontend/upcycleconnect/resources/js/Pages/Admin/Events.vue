@@ -46,7 +46,16 @@
                         <option>Annulé</option>
                     </select>
 
-                    <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">
+                    <button
+                        @click="openCreate"
+                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Créer
+                    </button>
+
+                    <span class="text-xs text-gray-400 whitespace-nowrap">
                         {{ filteredEvents.length }} résultat(s)
                     </span>
                 </div>
@@ -97,6 +106,15 @@
                                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+
+                                        <button
+                                            @click="openEdit(event)"
+                                            title="Modifier l'événement"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </button>
 
@@ -180,7 +198,12 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2">
+                    <button
+                        @click="openEdit(detailEvent)"
+                        class="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
+                        Modifier
+                    </button>
                     <button
                         @click="confirmDelete(detailEvent); detailEvent = null"
                         class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
@@ -211,6 +234,93 @@
             </div>
         </div>
 
+        <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        {{ formModal.mode === 'create' ? 'Créer un événement' : 'Modifier l\'événement' }}
+                    </h3>
+                    <button
+                        @click="formModal.open = false"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <input
+                            v-model="eventForm.title"
+                            type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Titre de l'événement" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <textarea
+                            v-model="eventForm.description"
+                            rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Description de l'événement…" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date & heure</label>
+                            <input
+                                v-model="eventForm.date"
+                                type="datetime-local"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
+                            <input
+                                v-model="eventForm.location"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse ou ville" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <input
+                                v-model.number="eventForm.capacity"
+                                type="number"
+                                min="1"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0 = illimitée" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                            <input
+                                v-model.number="eventForm.priceEuros"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0 = gratuit" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button
+                        @click="formModal.open = false"
+                        class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveEvent"
+                        :disabled="saving"
+                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ saving ? 'Enregistrement…' : (formModal.mode === 'create' ? 'Créer' : 'Enregistrer') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -227,6 +337,9 @@ const filterStatus = ref('')
 const detailEvent = ref(null)
 const toDelete = ref(null)
 const deleting = ref(false)
+const formModal = ref({ open: false, mode: 'create', id: null })
+const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
+const saving = ref(false)
 
 const stats = computed(() => [
     {
@@ -285,6 +398,9 @@ function mapEvent(e) {
         registered: e.inscription_count ?? 0,
         status: computeStatus(e.date),
         description: e.description ?? '—',
+        priceCents: e.price_cents ?? 0,
+        rawDate: e.date ?? null,
+        idCreator: e.id_creator ?? null,
     }
 }
 
@@ -319,6 +435,57 @@ async function deleteEvent() {
         alert('Erreur lors de la suppression.')
     } finally {
         deleting.value = false
+    }
+}
+
+function openCreate() {
+    eventForm.value = { title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 }
+    formModal.value = { open: true, mode: 'create', id: null }
+}
+
+function openEdit(event) {
+    eventForm.value = {
+        title: event.title,
+        description: event.description === '—' ? '' : event.description,
+        date: event.rawDate ? event.rawDate.slice(0, 16) : '',
+        location: event.location === '—' ? '' : event.location,
+        capacity: event.capacity || null,
+        priceEuros: parseFloat((event.priceCents / 100).toFixed(2)),
+        idCreator: event.idCreator ?? null,
+    }
+    formModal.value = { open: true, mode: 'edit', id: event.id }
+    detailEvent.value = null
+}
+
+async function saveEvent() {
+    if (!eventForm.value.title.trim()) return
+    saving.value = true
+    try {
+        const payload = {
+            title: eventForm.value.title,
+            description: eventForm.value.description || null,
+            date: eventForm.value.date || null,
+            location: eventForm.value.location || null,
+            capacity: eventForm.value.capacity || null,
+            price_cents: Math.round((eventForm.value.priceEuros || 0) * 100),
+            id_creator: eventForm.value.idCreator ?? null,
+        }
+        if (formModal.value.mode === 'create') {
+            const { data } = await api.post('/admin/events', payload)
+            events.value.push(mapEvent(data.event))
+        } else {
+            const { data } = await api.put(`/admin/event/${formModal.value.id}`, payload)
+            const idx = events.value.findIndex(e => e.id === formModal.value.id)
+            if (idx !== -1) {
+                const existing = events.value[idx]
+                events.value[idx] = { ...mapEvent(data.event), registered: existing.registered, organizer: existing.organizer }
+            }
+        }
+        formModal.value.open = false
+    } catch {
+        alert('Erreur lors de l\'enregistrement.')
+    } finally {
+        saving.value = false
     }
 }
 

@@ -100,7 +100,16 @@
                         <option>Supprimée</option>
                     </select>
 
-                    <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">
+                    <button
+                        @click="openCreate"
+                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Créer
+                    </button>
+
+                    <span class="text-xs text-gray-400 whitespace-nowrap">
                         {{ filteredListings.length }} résultat(s)
                     </span>
                 </div>
@@ -180,6 +189,15 @@
                                             ]">
                                             <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="listing.featured ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                            </svg>
+                                        </button>
+
+                                        <button
+                                            @click="openEdit(listing)"
+                                            title="Modifier l'annonce"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </button>
 
@@ -279,6 +297,11 @@
 
                 <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
                     <button
+                        @click="openEdit(detailListing)"
+                        class="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
+                        Modifier
+                    </button>
+                    <button
                         @click="toggleFeatured(detailListing); detailListing = null"
                         :class="[
                             'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors',
@@ -321,6 +344,144 @@
             </div>
         </div>
 
+        <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        {{ formModal.mode === 'create' ? 'Créer une annonce' : 'Modifier l\'annonce' }}
+                    </h3>
+                    <button
+                        @click="formModal.open = false"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <input
+                            v-model="listingForm.title"
+                            type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Titre de l'annonce" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Type</label>
+                            <select
+                                v-model="listingForm.type"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
+                                <option value="don">Don</option>
+                                <option value="vente">Vente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Catégorie</label>
+                            <select
+                                v-model="listingForm.idCategory"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
+                                <option value="">— Aucune —</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <textarea
+                            v-model="listingForm.description"
+                            rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Description de l'annonce…" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-400 mb-1">Adresse</label>
+                            <input
+                                v-model="listingForm.address"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Ville</label>
+                            <input
+                                v-model="listingForm.city"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Ville" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Code postal</label>
+                            <input
+                                v-model="listingForm.postal"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="75000" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date de disponibilité <span class="text-red-400">*</span></label>
+                            <input
+                                v-model="listingForm.availDate"
+                                type="date"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                        </div>
+                        <div v-if="listingForm.type === 'vente'">
+                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                            <input
+                                v-model.number="listingForm.price"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Condition</label>
+                            <select
+                                v-model="listingForm.condition"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
+                                <option value="">—</option>
+                                <option value="neuf">Neuf</option>
+                                <option value="tres_bon">Très bon état</option>
+                                <option value="bon">Bon état</option>
+                                <option value="acceptable">Acceptable</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Statut</label>
+                            <select
+                                v-model="listingForm.state"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
+                                <option value="Active">Active</option>
+                                <option value="Expirée">Expirée</option>
+                                <option value="Supprimée">Supprimée</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button
+                        @click="formModal.open = false"
+                        class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveListing"
+                        :disabled="saving"
+                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ saving ? 'Enregistrement…' : (formModal.mode === 'create' ? 'Créer' : 'Enregistrer') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -341,6 +502,9 @@ const filterStatus = ref('')
 const detailListing = ref(null)
 const toDelete = ref(null)
 const deleting = ref(false)
+const formModal = ref({ open: false, mode: 'create', id: null })
+const listingForm = ref({ title: '', type: 'don', idCategory: '', description: '', address: '', city: '', postal: '', availDate: '', price: 0, condition: '', state: 'Active' })
+const saving = ref(false)
 
 const stats = computed(() => [
     {
@@ -410,6 +574,12 @@ onMounted(async () => {
             date: a.availability_date?.slice(0, 10) ?? '—',
             description: a.description ?? '—',
             tags: [],
+            idCategory: a.id_category ?? '',
+            address: a.address ?? '',
+            city: a.city ?? '',
+            postal: a.postal ?? '',
+            price: a.price ?? 0,
+            condition: a.condition ?? '',
         }))
     } catch {
         error.value = 'Impossible de charger les annonces.'
@@ -442,6 +612,96 @@ async function deleteListing() {
         alert('Erreur lors de la suppression.')
     } finally {
         deleting.value = false
+    }
+}
+
+function openCreate() {
+    listingForm.value = { title: '', type: 'don', idCategory: '', description: '', address: '', city: '', postal: '', availDate: '', price: 0, condition: '', state: 'Active' }
+    formModal.value = { open: true, mode: 'create', id: null }
+}
+
+function openEdit(listing) {
+    listingForm.value = {
+        title: listing.title,
+        type: listing.type === 'Vente' ? 'vente' : 'don',
+        idCategory: listing.idCategory ?? '',
+        description: listing.description === '—' ? '' : listing.description,
+        address: listing.address ?? '',
+        city: listing.city ?? '',
+        postal: listing.postal ?? '',
+        availDate: listing.date !== '—' ? listing.date : '',
+        price: listing.price ?? 0,
+        condition: listing.condition ?? '',
+        state: listing.status ?? 'Active',
+    }
+    formModal.value = { open: true, mode: 'edit', id: listing.id }
+    detailListing.value = null
+}
+
+async function saveListing() {
+    if (!listingForm.value.title.trim() || !listingForm.value.availDate) return
+    saving.value = true
+    try {
+        const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
+        const payload = {
+            title: listingForm.value.title,
+            type: listingForm.value.type,
+            id_category: listingForm.value.idCategory,
+            description: listingForm.value.description,
+            address: listingForm.value.address,
+            city: listingForm.value.city,
+            postal: listingForm.value.postal,
+            availability_date: listingForm.value.availDate,
+            price: listingForm.value.type === 'vente' ? listingForm.value.price : 0,
+            condition: listingForm.value.condition,
+            state: listingForm.value.state,
+        }
+        if (formModal.value.mode === 'create') {
+            const { data } = await api.post('/admin/announcements', payload)
+            listings.value.unshift({
+                id: data.announcement.id,
+                title: data.announcement.title,
+                author: '—',
+                type: data.announcement.type === 'vente' ? 'Vente' : 'Don',
+                category: catMap[data.announcement.id_category] ?? '—',
+                status: data.announcement.state ?? 'Active',
+                featured: false,
+                date: data.announcement.availability_date?.slice(0, 10) ?? '—',
+                description: data.announcement.description ?? '—',
+                tags: [],
+                idCategory: data.announcement.id_category ?? '',
+                address: data.announcement.address ?? '',
+                city: data.announcement.city ?? '',
+                postal: data.announcement.postal ?? '',
+                price: data.announcement.price ?? 0,
+                condition: data.announcement.condition ?? '',
+            })
+        } else {
+            await api.put(`/admin/announcement/${formModal.value.id}`, payload)
+            const idx = listings.value.findIndex(l => l.id === formModal.value.id)
+            if (idx !== -1) {
+                listings.value[idx] = {
+                    ...listings.value[idx],
+                    title: payload.title,
+                    type: payload.type === 'vente' ? 'Vente' : 'Don',
+                    category: catMap[payload.id_category] ?? '—',
+                    status: payload.state,
+                    date: payload.availability_date,
+                    description: payload.description,
+                    idCategory: payload.id_category,
+                    address: payload.address,
+                    city: payload.city,
+                    postal: payload.postal,
+                    price: payload.price,
+                    condition: payload.condition,
+                }
+            }
+        }
+        formModal.value.open = false
+    } catch {
+        alert('Erreur lors de l\'enregistrement.')
+    } finally {
+        saving.value = false
     }
 }
 
