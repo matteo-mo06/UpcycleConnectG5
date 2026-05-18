@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -93,6 +94,12 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 		typ = "don"
 	}
 
+	perms, _ := r.Context().Value(middleware.ContextPermissions).([]string)
+	state := "En attente"
+	if slices.Contains(perms, "manage_announcements") {
+		state = "Active"
+	}
+
 	a := models.Announcement{
 		Id_announcement:         uuid.New().String(),
 		Id_category:             body.IdCategory,
@@ -104,7 +111,7 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 		Availability_date:       body.AvailDate,
 		Price:                   body.Price,
 		Request:                 0,
-		State_annoucement:       "Active",
+		State_annoucement:       state,
 		TypeAnnouncement:        typ,
 		ConditionAnnouncement:   body.Condition,
 	}
@@ -207,6 +214,32 @@ func GetAnnouncementDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(docs)
+}
+
+func ApproveAnnouncement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	if err := db.SetAnnouncementState(id, "Active"); err != nil {
+		fmt.Println("ApproveAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve announcement"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce approuvée"})
+}
+
+func RejectAnnouncement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	if err := db.SetAnnouncementState(id, "Supprimée"); err != nil {
+		fmt.Println("RejectAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject announcement"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce rejetée"})
 }
 
 func GetAnnouncementStats(w http.ResponseWriter, r *http.Request) {

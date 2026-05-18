@@ -82,10 +82,12 @@
                             <span class="text-xs text-gray-500">{{ a.author_name || 'Inconnu' }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span
-                                v-if="activeTab === 'mine' && a.state !== 'Active'"
-                                class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium"
-                            >{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
+                            <template v-if="activeTab === 'mine'">
+                                <span v-if="a.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente de validation</span>
+                                <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Validée</span>
+                                <span v-else-if="a.state === 'Supprimée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">Refusée</span>
+                                <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
+                            </template>
 
                             <button
                                 v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 0"

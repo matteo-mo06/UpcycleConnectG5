@@ -14,17 +14,18 @@ import (
 const announcementSelect = `SELECT a.id_announcement, a.id_category, a.title_announcement, a.address_annoucement, a.city, a.postal,
 	a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement,
 	u.id_user, u.first_name, u.last_name, a.type_announcement, a.condition_announcement,
-	(SELECT d.link FROM DOCUMENT d WHERE d.category = a.id_announcement ORDER BY d.id_document LIMIT 1) AS first_photo `
+	(SELECT d.link FROM DOCUMENT d WHERE d.category = a.id_announcement ORDER BY d.id_document LIMIT 1) AS first_photo,
+	a.created_at `
 
 func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement, error) {
 	var a models.Announcement
-	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto sql.NullString
+	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt sql.NullString
 	err := row.Scan(
 		&a.Id_announcement, &idCat, &a.Title_announcement,
 		&a.Address_annoucement, &a.City, &a.Postal,
 		&a.Description_annoucement, &a.Availability_date, &a.Price,
 		&a.Request, &a.State_annoucement,
-		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto,
+		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto, &createdAt,
 	)
 	if err != nil {
 		return a, err
@@ -35,6 +36,7 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 	a.TypeAnnouncement = typ.String
 	a.ConditionAnnouncement = cond.String
 	a.FirstPhoto = firstPhoto.String
+	a.CreatedAt = createdAt.String
 	return a, nil
 }
 
@@ -118,7 +120,7 @@ func GetPublicAnnouncements(search, idCategory string, limit, offset int) ([]mod
 	query := announcementSelect + `FROM ANNOUNCEMENT a
 	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 	          LEFT JOIN USER u ON u.id_user = ua.id_user
-	          ` + where + ` ORDER BY a.availability_date DESC LIMIT ? OFFSET ?`
+	          ` + where + ` ORDER BY a.created_at DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
 
 	rows, err := config.Conn.Query(query, args...)
@@ -143,7 +145,7 @@ func GetUserAnnouncements(userID string) ([]models.Announcement, error) {
 		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		JOIN USER u ON u.id_user = ua.id_user
 		WHERE ua.id_user = ?
-		ORDER BY a.availability_date DESC`, userID)
+		ORDER BY a.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +192,17 @@ func GetAnnouncementStats() (models.AnnouncementStats, error) {
 	if err != nil {
 		return s, err
 	}
+	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE state_annoucement = 'En attente'").Scan(&s.Pending)
+	if err != nil {
+		return s, err
+	}
 	err = config.Conn.QueryRow("SELECT COUNT(DISTINCT id_announcement) FROM REPORT WHERE id_announcement IS NOT NULL AND status = 'pending'").Scan(&s.Reported)
 	return s, err
+}
+
+func SetAnnouncementState(id, state string) error {
+	_, err := config.Conn.Exec("UPDATE ANNOUNCEMENT SET state_annoucement = ? WHERE id_announcement = ?", state, id)
+	return err
 }
 
 func GetAnnouncementById(id string) (models.Announcement, error) {
@@ -254,7 +265,7 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		LEFT JOIN USER u ON u.id_user = ua.id_user
 		WHERE a.id_buyer = ?
-		ORDER BY a.availability_date DESC`, userID)
+		ORDER BY a.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,7 @@
 
         <template v-else>
 
-            <div class="grid grid-cols-4 gap-5 mb-8">
+            <div class="grid grid-cols-5 gap-5 mb-8">
                 <div
                     v-for="stat in stats"
                     :key="stat.label"
@@ -95,6 +95,7 @@
                         v-model="filterStatus"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les statuts</option>
+                        <option>En attente</option>
                         <option>Active</option>
                         <option>Expirée</option>
                         <option>Supprimée</option>
@@ -177,30 +178,47 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                             </svg>
                                         </button>
-
-                                        <button
-                                            @click="toggleFeatured(listing)"
-                                            :title="listing.featured ? 'Retirer la mise en avant' : 'Mettre en avant'"
-                                            :class="[
-                                                'p-1.5 rounded-lg transition-colors',
-                                                listing.featured
-                                                    ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-50'
-                                                    : 'text-gray-400 hover:text-amber-400 hover:bg-amber-50'
-                                            ]">
-                                            <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="listing.featured ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                            </svg>
-                                        </button>
-
-                                        <button
-                                            @click="openEdit(listing)"
-                                            title="Modifier l'annonce"
-                                            class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
-
+                                        <template v-if="listing.status === 'En attente'">
+                                            <button
+                                                @click="approveAnnouncement(listing)"
+                                                title="Approuver"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="rejectAnnouncement(listing)"
+                                                title="Rejeter"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template v-else>
+                                            <button
+                                                @click="toggleFeatured(listing)"
+                                                :title="listing.featured ? 'Retirer la mise en avant' : 'Mettre en avant'"
+                                                :class="[
+                                                    'p-1.5 rounded-lg transition-colors',
+                                                    listing.featured
+                                                        ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-50'
+                                                        : 'text-gray-400 hover:text-amber-400 hover:bg-amber-50'
+                                                ]">
+                                                <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="listing.featured ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="openEdit(listing)"
+                                                title="Modifier l'annonce"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                        </template>
                                         <button
                                             @click="confirmDelete(listing)"
                                             title="Supprimer l'annonce"
@@ -303,6 +321,7 @@
                         Modifier
                     </button>
                     <button
+                        v-if="detailListing.status !== 'En attente'"
                         @click="toggleFeatured(detailListing); detailListing = null"
                         :class="[
                             'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors',
@@ -533,6 +552,13 @@ const stats = computed(() => [
         icon: `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
     },
     {
+        label: 'En attente',
+        value: statsData.value.pending ?? '—',
+        bgClass: 'bg-orange-100',
+        iconClass: 'text-orange-500',
+        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+    {
         label: 'Signalées',
         value: statsData.value.reported ?? '—',
         bgClass: 'bg-red-100',
@@ -691,18 +717,36 @@ async function saveListing() {
     }
 }
 
+async function approveAnnouncement(listing) {
+    try {
+        await api.patch(`/admin/announcement/${listing.id}/approve`)
+        await fetchListings()
+    } catch {
+        alert('Erreur lors de l\'approbation.')
+    }
+}
+
+async function rejectAnnouncement(listing) {
+    try {
+        await api.patch(`/admin/announcement/${listing.id}/reject`)
+        await fetchListings()
+    } catch {
+        alert('Erreur lors du rejet.')
+    }
+}
+
 function typeBadge(type) {
     const map = { 'Don': 'bg-green-100 text-green-700', 'Vente': 'bg-blue-100 text-blue-700' }
     return map[type] ?? 'bg-gray-100 text-gray-600'
 }
 
 function statusDot(status) {
-    const map = { 'Active': 'bg-green-500', 'Expirée': 'bg-gray-400', 'Supprimée': 'bg-red-400' }
+    const map = { 'Active': 'bg-green-500', 'En attente': 'bg-orange-400', 'Expirée': 'bg-gray-400', 'Supprimée': 'bg-red-400' }
     return map[status] ?? 'bg-gray-300'
 }
 
 function statusText(status) {
-    const map = { 'Active': 'text-green-700', 'Expirée': 'text-gray-500', 'Supprimée': 'text-red-600' }
+    const map = { 'Active': 'text-green-700', 'En attente': 'text-orange-600', 'Expirée': 'text-gray-500', 'Supprimée': 'text-red-600' }
     return map[status] ?? 'text-gray-500'
 }
 </script>

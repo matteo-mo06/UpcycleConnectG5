@@ -19,6 +19,7 @@ type Announcement struct {
 	FirstPhoto              string  `json:"first_photo"`
 	AccessCode              string  `json:"access_code"`
 	LockerNumber            int     `json:"locker_number"`
+	CreatedAt               string  `json:"created_at"`
 }
 
 type CreateAnnouncementRequest struct {
@@ -38,5 +39,6 @@ type CreateAnnouncementRequest struct {
 type AnnouncementStats struct {
 	Total    int `json:"total"`
 	Active   int `json:"active"`
+	Pending  int `json:"pending"`
 	Reported int `json:"reported"`
 }
