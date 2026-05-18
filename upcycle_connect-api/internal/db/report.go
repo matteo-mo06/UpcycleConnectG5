@@ -38,8 +38,33 @@ func GetReportByID(id string) (models.Report, error) {
 	return r, err
 }
 
-func GetReports(status, search string) ([]models.Report, error) {
-	query := `
+func GetReports(status, search string, limit, offset int) ([]models.Report, int, error) {
+	where := `WHERE 1=1`
+	var args []any
+	if status != "" {
+		where += " AND r.status = ?"
+		args = append(args, status)
+	}
+	if search != "" {
+		where += " AND (TRIM(CONCAT(COALESCE(rep.first_name,''), ' ', COALESCE(rep.last_name,''))) LIKE ? OR COALESCE(a.title_announcement,'') LIKE ?)"
+		args = append(args, "%"+search+"%", "%"+search+"%")
+	}
+
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := config.Conn.QueryRow(`SELECT COUNT(*) FROM REPORT r
+		LEFT JOIN USER rep ON rep.id_user = r.id_user
+		LEFT JOIN ANNOUNCEMENT a ON a.id_announcement = r.id_announcement
+		`+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := config.Conn.Query(`
 		SELECT r.id_report, r.id_user, COALESCE(r.id_reported_user, ''), COALESCE(r.id_announcement, ''), COALESCE(r.id_topic, ''), COALESCE(r.id_post, ''),
 		       r.reason, r.status, COALESCE(r.action_taken, ''), COALESCE(r.resolved_by, ''), COALESCE(r.resolved_at, ''), r.created_at,
 		       TRIM(CONCAT(COALESCE(rep.first_name, ''), ' ', COALESCE(rep.last_name, ''))) AS reporter_name,
@@ -50,21 +75,9 @@ func GetReports(status, search string) ([]models.Report, error) {
 		LEFT JOIN USER rep  ON rep.id_user  = r.id_user
 		LEFT JOIN USER repd ON repd.id_user = r.id_reported_user
 		LEFT JOIN ANNOUNCEMENT a ON a.id_announcement = r.id_announcement
-		WHERE 1=1`
-	var args []any
-	if status != "" {
-		query += " AND r.status = ?"
-		args = append(args, status)
-	}
-	if search != "" {
-		query += " AND (TRIM(CONCAT(COALESCE(rep.first_name,''), ' ', COALESCE(rep.last_name,''))) LIKE ? OR COALESCE(a.title_announcement,'') LIKE ?)"
-		args = append(args, "%"+search+"%", "%"+search+"%")
-	}
-	query += " ORDER BY r.created_at DESC"
-
-	rows, err := config.Conn.Query(query, args...)
+		`+where+` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -76,7 +89,7 @@ func GetReports(status, search string) ([]models.Report, error) {
 			&r.Reason, &r.Status, &r.ActionTaken, &r.ResolvedBy, &r.ResolvedAt, &r.CreatedAt,
 			&r.ReporterName, &r.ReporterEmail, &r.ReportedUserName, &r.ContentTitle,
 		); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		switch {
 		case r.IdAnnouncement != "":
@@ -94,7 +107,7 @@ func GetReports(status, search string) ([]models.Report, error) {
 		}
 		list = append(list, r)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func GetReportStats() (map[string]int, error) {

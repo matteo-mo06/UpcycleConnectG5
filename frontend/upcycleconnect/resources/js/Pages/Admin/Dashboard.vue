@@ -150,14 +150,14 @@ onMounted(async () => {
 
         statsData.value = apiStats
 
-        recentUsers.value = usersData.slice(0, 5).map(u => ({
+        recentUsers.value = (usersData.data ?? usersData).slice(0, 5).map(u => ({
             name: fullName(u),
             email: u.email,
             type: roleLabel(u.roles?.[0] ?? ''),
             date: u.created_at?.slice(0, 10) ?? '—',
         }))
 
-        upcomingEvents.value = eventsData.slice(0, 5).map(e => ({
+        upcomingEvents.value = (eventsData.data ?? eventsData).slice(0, 5).map(e => ({
             id: e.id,
             title: e.title,
             date: e.date ?? '—',

@@ -142,6 +142,8 @@
             </div>
         </div>
 
+        <Pagination v-if="activeTab === 'all' && total > 12" :page="page" :total="total" :limit="12" @update:page="changePage" />
+
         <CreateAnnouncementModal v-model="showDepot" @created="onCreated" />
         <ReportModal v-model="showReport" contentType="announcement" :contentId="reportTarget?.id" :contentTitle="reportTarget?.title ?? ''" />
 
@@ -219,6 +221,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import ReportModal from '@/Components/ReportModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
@@ -232,6 +235,8 @@ const router = useRouter()
 const announcements = ref([])
 const loading = ref(true)
 const search = ref('')
+const page = ref(1)
+const total = ref(0)
 const showDepot = ref(false)
 const selected = ref(null)
 const selectedPhotos = ref([])
@@ -253,12 +258,19 @@ const tabs = [
 let debounceTimer = null
 function debouncedFetch() {
     clearTimeout(debounceTimer)
+    page.value = 1
     debounceTimer = setTimeout(fetchAnnouncements, 300)
+}
+
+function changePage(p) {
+    page.value = p
+    window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function switchTab(tab) {
     activeTab.value = tab
     search.value = ''
+    page.value = 1
     router.replace({ query: { tab } })
     fetchAnnouncements()
 }
@@ -269,17 +281,21 @@ async function fetchAnnouncements() {
         if (activeTab.value === 'mine') {
             const { data } = await api.get('/user/announcements')
             announcements.value = data
+            total.value = 0
         } else if (activeTab.value === 'acquisitions') {
             const { data } = await api.get('/user/acquisitions')
             announcements.value = data
+            total.value = 0
         } else {
-            const params = {}
+            const params = { page: page.value, limit: 12 }
             if (search.value) params.search = search.value
             const { data } = await api.get('/announcements', { params })
-            announcements.value = data
+            announcements.value = data.data ?? []
+            total.value = data.total ?? 0
         }
     } catch {
         announcements.value = []
+        total.value = 0
     } finally {
         loading.value = false
     }
@@ -372,6 +388,8 @@ function onCreated() {
     else fetchAnnouncements()
 }
 
+
+watch(page, () => { if (activeTab.value === 'all') fetchAnnouncements() })
 
 onMounted(fetchAnnouncements)
 </script>

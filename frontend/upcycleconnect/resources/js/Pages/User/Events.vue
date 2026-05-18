@@ -1,11 +1,22 @@
 <template>
     <UserLayout>
 
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
-                Événements
-            </h1>
-            <p class="text-sm text-gray-500 mt-1">Découvrez et inscrivez-vous aux événements disponibles</p>
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
+                    Événements
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">Découvrez et inscrivez-vous aux événements disponibles</p>
+            </div>
+            <button
+                v-if="canCreate"
+                @click="openCreate"
+                class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Créer un événement
+            </button>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
@@ -110,6 +121,7 @@
                     Aucun événement disponible pour le moment.
                 </div>
             </div>
+            <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
         </div>
 
         <div
@@ -198,26 +210,108 @@
             </div>
         </div>
 
+        <div v-if="createModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="createModal = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        Créer un événement
+                    </h3>
+                    <button @click="createModal = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <input v-model="eventForm.title" type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Titre de l'événement" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <textarea v-model="eventForm.description" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Description de l'événement…" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date & heure <span class="text-red-400">*</span></label>
+                            <input v-model="eventForm.date" type="datetime-local" :min="minDateTime"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
+                            <input v-model="eventForm.location" type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse ou ville" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <input v-model.number="eventForm.capacity" type="number" min="1"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0 = illimitée" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                            <input v-model.number="eventForm.priceEuros" type="number" min="0" step="0.01"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0 = gratuit" />
+                        </div>
+                    </div>
+                    <p v-if="createError" class="text-xs text-red-500">{{ createError }}</p>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button @click="createModal = false"
+                        class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button @click="submitCreate" :disabled="creating"
+                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ creating ? 'Création…' : 'Créer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </UserLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import frLocale from '@fullcalendar/core/locales/fr'
 import UserLayout from '@/Layouts/UserLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 import { useAuthStore } from '@/stores/auth.js'
 
 const auth = useAuthStore()
 const events = ref([])
+const calendarEvents = ref([])
+const page = ref(1)
+const total = ref(0)
 const search = ref('')
 const filterStatus = ref('')
 const detailEvent = ref(null)
 const toDelete = ref(null)
 const deleting = ref(false)
+const createModal = ref(false)
+const creating = ref(false)
+const createError = ref('')
+const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
+
+const canCreate = computed(() => auth.hasPermission('create_event'))
+
+const minDateTime = computed(() => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() + 1)
+    return now.toISOString().slice(0, 16)
+})
 
 const MONTHS_SHORT = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc']
 
@@ -245,8 +339,6 @@ function mapEvent(e) {
     }
 }
 
-const userEvents = computed(() => events.value.filter(e => e.isRegistered))
-
 const calendarOptions = computed(() => ({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -256,7 +348,7 @@ const calendarOptions = computed(() => ({
         center: 'title',
         right: '',
     },
-    events: userEvents.value
+    events: calendarEvents.value
         .filter(e => e.dateStr)
         .map(e => ({
             id: e.id,
@@ -266,7 +358,8 @@ const calendarOptions = computed(() => ({
             borderColor: '#6fa028',
         })),
     eventClick: (info) => {
-        const event = events.value.find(e => e.id === info.event.id)
+        const event = calendarEvents.value.find(e => e.id === info.event.id)
+            || events.value.find(e => e.id === info.event.id)
         if (event) openDetail(event)
     },
     height: 'auto',
@@ -306,6 +399,7 @@ async function deleteEvent() {
             await api.delete(`/admin/event/${toDelete.value.id}`)
         }
         events.value = events.value.filter(e => e.id !== toDelete.value.id)
+        calendarEvents.value = calendarEvents.value.filter(e => e.id !== toDelete.value.id)
         toDelete.value = null
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
@@ -325,10 +419,14 @@ async function toggleRegistration(event) {
             await api.delete(`/user/event/${event.id}/unregister`)
             event.isRegistered = false
             event.registered = Math.max(0, event.registered - 1)
+            calendarEvents.value = calendarEvents.value.filter(e => e.id !== event.id)
         } else {
             await api.post(`/user/event/${event.id}/register`)
             event.isRegistered = true
             event.registered++
+            if (!calendarEvents.value.find(e => e.id === event.id)) {
+                calendarEvents.value.push({ ...event, isRegistered: true })
+            }
         }
     } catch (err) {
         console.error('toggleRegistration error:', err)
@@ -337,12 +435,70 @@ async function toggleRegistration(event) {
     }
 }
 
-onMounted(async () => {
+function openCreate() {
+    eventForm.value = { title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 }
+    createError.value = ''
+    createModal.value = true
+}
+
+async function submitCreate() {
+    if (!eventForm.value.title.trim()) {
+        createError.value = 'Le titre est requis.'
+        return
+    }
+    if (!eventForm.value.date) {
+        createError.value = 'La date est requise.'
+        return
+    }
+    if (new Date(eventForm.value.date) <= new Date()) {
+        createError.value = 'La date doit être dans le futur.'
+        return
+    }
+    creating.value = true
+    createError.value = ''
     try {
-        const { data } = await api.get('/events')
-        events.value = (data ?? []).map(mapEvent)
+        const payload = {
+            title: eventForm.value.title,
+            description: eventForm.value.description || null,
+            date: eventForm.value.date || null,
+            location: eventForm.value.location || null,
+            capacity: eventForm.value.capacity || null,
+            price_cents: Math.round((eventForm.value.priceEuros || 0) * 100),
+        }
+        await api.post('/events', payload)
+        page.value = 1
+        await fetchEvents()
+        createModal.value = false
+    } catch (e) {
+        createError.value = e.response?.data?.error ?? 'Erreur lors de la création.'
+    } finally {
+        creating.value = false
+    }
+}
+
+async function fetchEvents() {
+    try {
+        const { data } = await api.get('/events', { params: { page: page.value, limit: 15 } })
+        events.value = (data.data ?? []).map(mapEvent)
+        total.value = data.total ?? 0
     } catch (e) {
         console.error('Events fetch error:', e)
     }
+}
+
+function changePage(p) {
+    page.value = p
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+watch(page, fetchEvents)
+
+onMounted(async () => {
+    await Promise.all([
+        fetchEvents(),
+        api.get('/user/events').then(({ data }) => {
+            calendarEvents.value = (data ?? []).map(mapEvent)
+        }).catch(() => {}),
+    ])
 })
 </script>

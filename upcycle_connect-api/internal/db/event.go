@@ -5,7 +5,32 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
-func GetAllEvents() ([]models.Event, error) {
+func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int, error) {
+	where := `WHERE 1=1`
+	var args []any
+
+	if search != "" {
+		where += " AND event.title_event LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	switch status {
+	case "upcoming":
+		where += " AND event.date_event > NOW()"
+	case "past":
+		where += " AND event.date_event <= NOW()"
+	}
+
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM EVENT event "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
 	rows, err := config.Conn.Query(`
 		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		       event.capacity, event.price_cents, event.id_creator,
@@ -14,10 +39,13 @@ func GetAllEvents() ([]models.Event, error) {
 		FROM EVENT event
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
+		`+where+`
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
-		         event.capacity, event.price_cents, event.id_creator`)
+		         event.capacity, event.price_cents, event.id_creator
+		ORDER BY event.date_event DESC
+		LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -37,11 +65,11 @@ func GetAllEvents() ([]models.Event, error) {
 			&e.InscriptionCount,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, e)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func GetEventById(id string) (models.Event, error) {
@@ -106,7 +134,12 @@ func UpdateEvent(e models.Event) error {
 	return err
 }
 
-func GetPublicEventsForUser(userID string) ([]models.Event, error) {
+func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, int, error) {
+	var total int
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM EVENT").Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
 	rows, err := config.Conn.Query(`
 		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		       event.capacity, event.price_cents, event.id_creator,
@@ -118,9 +151,10 @@ func GetPublicEventsForUser(userID string) ([]models.Event, error) {
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		         event.capacity, event.price_cents, event.id_creator
-		ORDER BY event.date_event ASC`, userID)
+		ORDER BY event.date_event ASC
+		LIMIT ? OFFSET ?`, userID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -141,11 +175,11 @@ func GetPublicEventsForUser(userID string) ([]models.Event, error) {
 			&e.IsRegistered,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, e)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func GetUserRegisteredEvents(userID string) ([]models.Event, error) {

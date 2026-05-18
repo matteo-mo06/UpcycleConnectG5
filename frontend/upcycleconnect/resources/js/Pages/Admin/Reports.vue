@@ -49,7 +49,7 @@
                     <option>Ignoré</option>
                 </select>
 
-                <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">{{ filteredReports.length }} signalement(s)</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">{{ total }} signalement(s)</span>
             </div>
 
             <div v-if="loading" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
@@ -146,9 +146,10 @@
             </div>
 
             <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-                {{ filteredReports.length }} signalement(s) affiché(s)
+                {{ total }} signalement(s) au total
             </div>
         </div>
+        <Pagination v-if="total > 20" :page="page" :total="total" :limit="20" @update:page="changePage" />
 
         <div class="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -470,11 +471,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 
 const reports = ref([])
+const total = ref(0)
+const page = ref(1)
 const stats = ref([
     {
         label: 'Total signalements', key: 'total', value: 0, bgClass: 'bg-red-100', iconClass: 'text-red-500',
@@ -515,14 +519,11 @@ const histoLoading = ref(false)
 const histoUser = ref(null)
 
 const filteredReports = computed(() => {
-    return reports.value.filter(r => {
-        const q = search.value.toLowerCase()
-        if (q && !r.contentTitle.toLowerCase().includes(q) && !r.reporter.toLowerCase().includes(q)) return false
-        if (filterType.value && r.type !== filterType.value) return false
-        if (filterStatus.value && r.status !== filterStatus.value) return false
-        return true
-    })
+    if (!filterType.value) return reports.value
+    return reports.value.filter(r => r.type === filterType.value)
 })
+
+function changePage(p) { page.value = p }
 
 function mapReport(r) {
     return {
@@ -558,14 +559,29 @@ async function fetchReports() {
     loading.value = true
     error.value = ''
     try {
-        const { data } = await api.get('/admin/reports')
-        reports.value = data.map(mapReport)
+        const params = { page: page.value, limit: 20 }
+        if (search.value) params.search = search.value
+        if (filterStatus.value) {
+            const statusMap = { 'À traiter': 'pending', 'Résolu': 'resolved', 'Ignoré': 'ignored' }
+            params.status = statusMap[filterStatus.value] ?? filterStatus.value
+        }
+        const { data } = await api.get('/admin/reports', { params })
+        reports.value = data.data.map(mapReport)
+        total.value = data.total
     } catch {
         error.value = 'Impossible de charger les signalements.'
     } finally {
         loading.value = false
     }
 }
+
+let debounce = null
+watch(search, () => {
+    clearTimeout(debounce)
+    debounce = setTimeout(() => { page.value = 1; fetchReports() }, 300)
+})
+watch(filterStatus, () => { page.value = 1; fetchReports() })
+watch(page, fetchReports)
 
 let histoTimer = null
 function debouncedHistoFetch() {

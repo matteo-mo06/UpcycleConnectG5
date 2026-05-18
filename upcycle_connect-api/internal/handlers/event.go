@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -16,7 +17,8 @@ import (
 func GetEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	events, err := db.GetAllEvents()
+	page, limit, offset := parsePage(r, 20)
+	events, total, err := db.GetAllEvents(r.URL.Query().Get("search"), r.URL.Query().Get("status"), limit, offset)
 	if err != nil {
 		fmt.Println("GetEvents error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -29,7 +31,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(events)
+	_ = json.NewEncoder(w).Encode(pageResponse(events, total, page, limit))
 }
 
 func GetEventById(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +64,8 @@ func GetEventById(w http.ResponseWriter, r *http.Request) {
 func CreateEvent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
 	var e models.Event
 	err := json.NewDecoder(r.Body).Decode(&e)
 	if err != nil {
@@ -76,7 +80,26 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if e.Date_event == nil || *e.Date_event == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "date is required"})
+		return
+	}
+
+	parsed, err := time.Parse("2006-01-02T15:04:05", *e.Date_event)
+	if err != nil {
+		parsed, err = time.Parse("2006-01-02T15:04", *e.Date_event)
+	}
+	if err != nil || parsed.Before(time.Now()) {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date doit être dans le futur"})
+		return
+	}
+
 	e.Id_event = uuid.New().String()
+	if e.Id_creator == nil && userID != "" {
+		e.Id_creator = &userID
+	}
 
 	err = db.CreateEvent(e)
 	if err != nil {
@@ -209,8 +232,9 @@ func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	page, limit, offset := parsePage(r, 15)
 
-	events, err := db.GetPublicEventsForUser(userID)
+	events, total, err := db.GetPublicEventsForUser(userID, limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicEventsForUser error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -218,8 +242,12 @@ func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if events == nil {
+		events = []models.Event{}
+	}
+
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(events)
+	_ = json.NewEncoder(w).Encode(pageResponse(events, total, page, limit))
 }
 
 func GetUserEvents(w http.ResponseWriter, r *http.Request) {

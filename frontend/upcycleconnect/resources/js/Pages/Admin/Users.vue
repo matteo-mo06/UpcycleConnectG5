@@ -82,19 +82,19 @@
                 class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
                 <option value="">Tous les types</option>
-                <option v-for="role in roles" :key="role.value" :value="role.label">{{ role.label }}</option>
+                <option v-for="role in roles" :key="role.value" :value="role.value">{{ role.label }}</option>
             </select>
             <select
                 v-model="filterStatus"
                 class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
                 <option value="">Tous les statuts</option>
-                <option value="Actif">Actif</option>
-                <option value="Suspendu">Suspendu</option>
-                <option value="Blacklisté">Blacklisté</option>
+                <option value="active">Actif</option>
+                <option value="suspended">Suspendu</option>
+                <option value="blacklisted">Blacklisté</option>
             </select>
             <span class="text-xs text-gray-400 ml-auto"
-                >{{ filteredUsers.length }} utilisateur(s)</span
+                >{{ total }} utilisateur(s)</span
             >
         </div>
 
@@ -148,7 +148,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="(user, i) in filteredUsers"
+                            v-for="(user, i) in users"
                             :key="user.id"
                             :class="[
                                 'border-b border-gray-50',
@@ -283,7 +283,7 @@
                             </td>
                         </tr>
 
-                        <tr v-if="filteredUsers.length === 0">
+                        <tr v-if="users.length === 0">
                             <td
                                 colspan="6"
                                 class="px-5 py-12 text-center text-gray-400 text-sm"
@@ -299,9 +299,10 @@
             <div
                 class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400"
             >
-                {{ filteredUsers.length }} utilisateur(s)
+                {{ total }} utilisateur(s) au total
             </div>
         </div>
+        <Pagination v-if="total > 50" :page="page" :total="total" :limit="50" @update:page="changePage" />
 
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
@@ -381,9 +382,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import api from "@/api.js";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
+import Pagination from "@/Components/Pagination.vue";
 import { roleLabel, fullName } from "@/utils.js";
 
 const search = ref("");
@@ -392,32 +394,53 @@ const filterStatus = ref("");
 
 const proRequests = ref([]);
 const users = ref([]);
+const total = ref(0);
+const page = ref(1);
 const loading = ref(false);
 const error = ref("");
 const roleDisplayMap = ref({});
 const toDelete = ref(null);
 const deleting = ref(false);
 
-const filteredUsers = computed(() => {
-    return users.value.filter((u) => {
-        const matchSearch =
-            !search.value ||
-            u.name.toLowerCase().includes(search.value.toLowerCase()) ||
-            u.email.toLowerCase().includes(search.value.toLowerCase()) ||
-            String(u.id).includes(search.value);
-        const matchType = !filterType.value || u.type === filterType.value;
-        const matchStatus =
-            !filterStatus.value || u.status === filterStatus.value;
-        return matchSearch && matchType && matchStatus;
-    });
-});
-
 const rightsModal = ref({ open: false, user: null, selectedRole: "" });
-
 const roles = ref([]);
 
-onMounted(async () => {
+function changePage(p) { page.value = p }
+
+async function fetchUsers() {
     loading.value = true;
+    try {
+        const params = { page: page.value, limit: 50 };
+        if (search.value) params.search = search.value;
+        if (filterStatus.value) params.status = filterStatus.value;
+        if (filterType.value) params.role = filterType.value;
+        const { data } = await api.get("/admin/users", { params });
+        users.value = data.data.map((u) => ({
+            id: u.id,
+            email: u.email,
+            name: fullName(u),
+            type: roleToType(u.roles),
+            status: statusToLabel(u.status),
+            date: u.created_at?.slice(0, 10) ?? "—",
+        }));
+        total.value = data.total;
+    } catch (e) {
+        error.value = "Impossible de charger les utilisateurs";
+        console.error(e);
+    } finally {
+        loading.value = false;
+    }
+}
+
+let debounce = null;
+watch(search, () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => { page.value = 1; fetchUsers(); }, 300);
+});
+watch([filterType, filterStatus], () => { page.value = 1; fetchUsers(); });
+watch(page, fetchUsers);
+
+onMounted(async () => {
     try {
         const { data: rolesData } = await api.get("/admin/roles");
         roleDisplayMap.value = Object.fromEntries(
@@ -429,19 +452,10 @@ onMounted(async () => {
             label: formatRoleName(r.name),
         }));
 
-        const [{ data: usersData }, { data: reqsData }] = await Promise.all([
-            api.get("/admin/users"),
+        const [, { data: reqsData }] = await Promise.all([
+            fetchUsers(),
             api.get("/admin/professional-requests?status=pending"),
         ]);
-
-        users.value = usersData.map((u) => ({
-            id: u.id,
-            email: u.email,
-            name: fullName(u),
-            type: roleToType(u.roles),
-            status: statusToLabel(u.status),
-            date: u.created_at?.slice(0, 10) ?? "—",
-        }));
 
         proRequests.value = (reqsData ?? []).map((r) => ({
             id: r.id,
@@ -453,8 +467,6 @@ onMounted(async () => {
     } catch (e) {
         error.value = "Impossible de charger les données";
         console.error(e);
-    } finally {
-        loading.value = false;
     }
 });
 
@@ -527,8 +539,8 @@ async function confirmDeleteUser() {
     deleting.value = true;
     try {
         await api.delete(`/admin/user/${toDelete.value.id}`);
-        users.value = users.value.filter((u) => u.id !== toDelete.value.id);
         toDelete.value = null;
+        await fetchUsers();
     } catch (e) {
         alert("Erreur lors de la suppression");
     } finally {

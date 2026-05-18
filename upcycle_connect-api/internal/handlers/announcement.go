@@ -17,7 +17,8 @@ import (
 func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	list, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"))
+	page, limit, offset := parsePage(r, 12)
+	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -28,7 +29,7 @@ func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
 		list = []models.Announcement{}
 	}
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(list)
+	_ = json.NewEncoder(w).Encode(pageResponse(list, total, page, limit))
 }
 
 func GetPublicAnnouncementById(w http.ResponseWriter, r *http.Request) {
@@ -227,6 +228,9 @@ func GetAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	idCategory := r.URL.Query().Get("id_category")
+	search := r.URL.Query().Get("search")
+	filterType := r.URL.Query().Get("type")
+	filterStatus := r.URL.Query().Get("status")
 
 	request := -1
 	if raw := r.URL.Query().Get("request"); raw != "" {
@@ -239,16 +243,21 @@ func GetAnnouncements(w http.ResponseWriter, r *http.Request) {
 		request = v
 	}
 
-	announcements, err := db.GetAllAnnouncements(idCategory, request)
+	page, limit, offset := parsePage(r, 20)
+
+	announcements, total, err := db.GetAllAnnouncements(idCategory, search, filterType, filterStatus, request, limit, offset)
 	if err != nil {
 		fmt.Println("GetAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch announcements"})
 		return
 	}
+	if announcements == nil {
+		announcements = []models.Announcement{}
+	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(announcements)
+	_ = json.NewEncoder(w).Encode(pageResponse(announcements, total, page, limit))
 }
 
 func GetAnnouncementById(w http.ResponseWriter, r *http.Request) {
@@ -281,6 +290,8 @@ func GetAnnouncementById(w http.ResponseWriter, r *http.Request) {
 func CreateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
 	var a models.Announcement
 	err := json.NewDecoder(r.Body).Decode(&a)
 	if err != nil {
@@ -297,8 +308,7 @@ func CreateAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 	a.Id_announcement = uuid.New().String()
 
-	err = db.CreateAnnouncement(a)
-	if err != nil {
+	if err = db.CreateUserAnnouncement(a, userID, nil); err != nil {
 		fmt.Println("CreateAnnouncement error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create announcement"})

@@ -85,7 +85,8 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 func GetAdminReports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	list, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"))
+	page, limit, offset := parsePage(r, 20)
+	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), limit, offset)
 	if err != nil {
 		fmt.Println("GetAdminReports error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -95,7 +96,7 @@ func GetAdminReports(w http.ResponseWriter, r *http.Request) {
 	if list == nil {
 		list = []models.Report{}
 	}
-	_ = json.NewEncoder(w).Encode(list)
+	_ = json.NewEncoder(w).Encode(pageResponse(list, total, page, limit))
 }
 
 func GetAdminReportStats(w http.ResponseWriter, r *http.Request) {

@@ -110,7 +110,7 @@
                     </button>
 
                     <span class="text-xs text-gray-400 whitespace-nowrap">
-                        {{ filteredListings.length }} résultat(s)
+                        {{ total }} résultat(s)
                     </span>
                 </div>
 
@@ -223,9 +223,10 @@
                 </div>
 
                 <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-                    {{ filteredListings.length }} annonce(s)
+                    {{ total }} annonce(s) au total
                 </div>
             </div>
+            <Pagination v-if="total > 20" :page="page" :total="total" :limit="20" @update:page="changePage" />
 
         </template>
 
@@ -486,11 +487,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 
 const listings = ref([])
+const total = ref(0)
+const page = ref(1)
 const categories = ref([])
 const loading = ref(true)
 const error = ref('')
@@ -541,8 +545,6 @@ const recentListings = computed(() => listings.value.slice(0, 3))
 
 const filteredListings = computed(() => {
     const filtered = listings.value.filter(l => {
-        const q = search.value.toLowerCase()
-        if (q && !l.title.toLowerCase().includes(q) && !l.author.toLowerCase().includes(q)) return false
         if (filterType.value && l.type !== filterType.value) return false
         if (filterCategory.value && l.category !== filterCategory.value) return false
         if (filterStatus.value && l.status !== filterStatus.value) return false
@@ -551,19 +553,15 @@ const filteredListings = computed(() => {
     return [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
 })
 
-onMounted(async () => {
+function changePage(p) { page.value = p }
+
+async function fetchListings() {
     try {
-        const [{ data: announcementsData }, { data: catsData }, { data: announcementStats }] = await Promise.all([
-            api.get('/admin/announcements'),
-            api.get('/admin/categories'),
-            api.get('/admin/announcements/stats'),
-        ])
-
-        categories.value = catsData ?? []
-        statsData.value = announcementStats
-
+        const params = { page: page.value, limit: 20 }
+        if (search.value) params.search = search.value
+        const { data: announcementsData } = await api.get('/admin/announcements', { params })
         const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
-        listings.value = announcementsData.map(a => ({
+        listings.value = announcementsData.data.map(a => ({
             id: a.id,
             title: a.title,
             author: a.author_name || '—',
@@ -581,6 +579,28 @@ onMounted(async () => {
             price: a.price ?? 0,
             condition: a.condition ?? '',
         }))
+        total.value = announcementsData.total
+    } catch {
+        error.value = 'Impossible de charger les annonces.'
+    }
+}
+
+let debounce = null
+watch(search, () => {
+    clearTimeout(debounce)
+    debounce = setTimeout(() => { page.value = 1; fetchListings() }, 300)
+})
+watch(page, fetchListings)
+
+onMounted(async () => {
+    try {
+        const [{ data: catsData }, { data: announcementStats }] = await Promise.all([
+            api.get('/admin/categories'),
+            api.get('/admin/announcements/stats'),
+        ])
+        categories.value = catsData ?? []
+        statsData.value = announcementStats
+        await fetchListings()
     } catch {
         error.value = 'Impossible de charger les annonces.'
     } finally {
@@ -605,9 +625,9 @@ async function deleteListing() {
     deleting.value = true
     try {
         await api.delete(`/admin/announcement/${toDelete.value.id}`)
-        listings.value = listings.value.filter(l => l.id !== toDelete.value.id)
         if (detailListing.value?.id === toDelete.value.id) detailListing.value = null
         toDelete.value = null
+        await fetchListings()
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {
@@ -657,47 +677,13 @@ async function saveListing() {
             state: listingForm.value.state,
         }
         if (formModal.value.mode === 'create') {
-            const { data } = await api.post('/admin/announcements', payload)
-            listings.value.unshift({
-                id: data.announcement.id,
-                title: data.announcement.title,
-                author: '—',
-                type: data.announcement.type === 'vente' ? 'Vente' : 'Don',
-                category: catMap[data.announcement.id_category] ?? '—',
-                status: data.announcement.state ?? 'Active',
-                featured: false,
-                date: data.announcement.availability_date?.slice(0, 10) ?? '—',
-                description: data.announcement.description ?? '—',
-                tags: [],
-                idCategory: data.announcement.id_category ?? '',
-                address: data.announcement.address ?? '',
-                city: data.announcement.city ?? '',
-                postal: data.announcement.postal ?? '',
-                price: data.announcement.price ?? 0,
-                condition: data.announcement.condition ?? '',
-            })
+            await api.post('/admin/announcements', payload)
+            page.value = 1
         } else {
             await api.put(`/admin/announcement/${formModal.value.id}`, payload)
-            const idx = listings.value.findIndex(l => l.id === formModal.value.id)
-            if (idx !== -1) {
-                listings.value[idx] = {
-                    ...listings.value[idx],
-                    title: payload.title,
-                    type: payload.type === 'vente' ? 'Vente' : 'Don',
-                    category: catMap[payload.id_category] ?? '—',
-                    status: payload.state,
-                    date: payload.availability_date,
-                    description: payload.description,
-                    idCategory: payload.id_category,
-                    address: payload.address,
-                    city: payload.city,
-                    postal: payload.postal,
-                    price: payload.price,
-                    condition: payload.condition,
-                }
-            }
         }
         formModal.value.open = false
+        await fetchListings()
     } catch {
         alert('Erreur lors de l\'enregistrement.')
     } finally {

@@ -86,6 +86,7 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/announcement/{id}", admin(handlers.DeleteAnnouncement))
 
 	http.Handle("GET /events", auth(handlers.GetPublicEventsForUser))
+	http.Handle("POST /events", perm("create_event", handlers.CreateEvent))
 	http.Handle("GET /user/events", auth(handlers.GetUserEvents))
 	http.Handle("DELETE /user/event/{id}", perm("create_event", handlers.DeleteMyEvent))
 	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))

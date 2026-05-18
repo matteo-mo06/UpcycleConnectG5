@@ -72,8 +72,36 @@ func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.U
 	return users, nil
 }
 
-func GetAllUsersWithRoles(firstName string, lastName string) ([]models.UserListItem, error) {
-	query := `
+func GetAllUsersWithRoles(search, status, role string, limit, offset int) ([]models.UserListItem, int, error) {
+	where := `WHERE 1=1`
+	var args []any
+
+	if search != "" {
+		where += " AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?)"
+		s := "%" + search + "%"
+		args = append(args, s, s, s, s)
+	}
+	if status != "" {
+		where += " AND u.status = ?"
+		args = append(args, status)
+	}
+	if role != "" {
+		where += " AND EXISTS (SELECT 1 FROM USER_ROLE ur2 JOIN ROLE r2 ON r2.id_role = ur2.id_role WHERE ur2.id_user = u.id_user AND r2.name_role = ?)"
+		args = append(args, role)
+	}
+
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM USER u "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := config.Conn.Query(`
 		SELECT
 			u.id_user, u.email, u.first_name, u.last_name,
 			u.upcycling_score, u.premium, u.status, u.created_at,
@@ -81,22 +109,9 @@ func GetAllUsersWithRoles(firstName string, lastName string) ([]models.UserListI
 		FROM USER u
 		LEFT JOIN USER_ROLE ur ON ur.id_user = u.id_user
 		LEFT JOIN ROLE r ON r.id_role = ur.id_role
-		WHERE 1=1`
-	var args []any
-
-	if firstName != "" {
-		query += " AND u.first_name LIKE ?"
-		args = append(args, "%"+firstName+"%")
-	}
-	if lastName != "" {
-		query += " AND u.last_name LIKE ?"
-		args = append(args, "%"+lastName+"%")
-	}
-	query += " GROUP BY u.id_user ORDER BY u.created_at DESC"
-
-	rows, err := config.Conn.Query(query, args...)
+		`+where+` GROUP BY u.id_user ORDER BY u.created_at DESC LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -116,7 +131,7 @@ func GetAllUsersWithRoles(firstName string, lastName string) ([]models.UserListI
 			&rolesStr,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if rolesStr != "" {
 			item.Roles = strings.Split(rolesStr, ",")
@@ -125,7 +140,7 @@ func GetAllUsersWithRoles(firstName string, lastName string) ([]models.UserListI
 		}
 		users = append(users, item)
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func CreateUser(user models.User) error {

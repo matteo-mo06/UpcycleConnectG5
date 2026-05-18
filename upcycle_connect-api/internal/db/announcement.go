@@ -38,59 +38,49 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 	return a, nil
 }
 
-func GetAllAnnouncements(idCategory string, request int) ([]models.Announcement, error) {
-	query := announcementSelect + `FROM ANNOUNCEMENT a
-	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
-	          LEFT JOIN USER u ON u.id_user = ua.id_user
-	          WHERE 1=1`
+func GetAllAnnouncements(idCategory, search, filterType, filterStatus string, request, limit, offset int) ([]models.Announcement, int, error) {
+	where := `WHERE 1=1`
 	var args []any
 
 	if idCategory != "" {
-		query += " AND a.id_category = ?"
+		where += " AND a.id_category = ?"
 		args = append(args, idCategory)
 	}
 	if request >= 0 {
-		query += " AND a.request = ?"
+		where += " AND a.request = ?"
 		args = append(args, request)
 	}
-
-	rows, err := config.Conn.Query(query, args...)
-	if err != nil {
-		return nil, err
+	if search != "" {
+		where += " AND (a.title_announcement LIKE ? OR TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) LIKE ?)"
+		args = append(args, "%"+search+"%", "%"+search+"%")
 	}
-	defer rows.Close()
-
-	var list []models.Announcement
-	for rows.Next() {
-		a, err := scanAnnouncement(rows)
-		if err != nil {
-			return nil, err
-		}
-		list = append(list, a)
+	if filterType != "" {
+		where += " AND a.type_announcement = ?"
+		args = append(args, filterType)
 	}
-	return list, nil
-}
+	if filterStatus != "" {
+		where += " AND a.state_annoucement = ?"
+		args = append(args, filterStatus)
+	}
 
-func GetPublicAnnouncements(search, idCategory string) ([]models.Announcement, error) {
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := config.Conn.QueryRow(`SELECT COUNT(*) FROM ANNOUNCEMENT a
+	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+	          LEFT JOIN USER u ON u.id_user = ua.id_user `+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
 	query := announcementSelect + `FROM ANNOUNCEMENT a
 	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 	          LEFT JOIN USER u ON u.id_user = ua.id_user
-	          WHERE a.state_annoucement = 'Active' AND a.request = 0 AND a.deleted_at IS NULL`
-	var args []any
-
-	if search != "" {
-		query += " AND (a.title_announcement LIKE ? OR a.description_annoucement LIKE ?)"
-		args = append(args, "%"+search+"%", "%"+search+"%")
-	}
-	if idCategory != "" {
-		query += " AND a.id_category = ?"
-		args = append(args, idCategory)
-	}
-	query += " ORDER BY a.availability_date DESC"
+	          ` + where + ` LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := config.Conn.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -98,11 +88,54 @@ func GetPublicAnnouncements(search, idCategory string) ([]models.Announcement, e
 	for rows.Next() {
 		a, err := scanAnnouncement(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, a)
 	}
-	return list, nil
+	return list, total, nil
+}
+
+func GetPublicAnnouncements(search, idCategory string, limit, offset int) ([]models.Announcement, int, error) {
+	where := `WHERE a.state_annoucement = 'Active' AND a.request = 0 AND a.deleted_at IS NULL`
+	var args []any
+
+	if search != "" {
+		where += " AND (a.title_announcement LIKE ? OR a.description_annoucement LIKE ?)"
+		args = append(args, "%"+search+"%", "%"+search+"%")
+	}
+	if idCategory != "" {
+		where += " AND a.id_category = ?"
+		args = append(args, idCategory)
+	}
+
+	var total int
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT a "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	query := announcementSelect + `FROM ANNOUNCEMENT a
+	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+	          LEFT JOIN USER u ON u.id_user = ua.id_user
+	          ` + where + ` ORDER BY a.availability_date DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
+
+	rows, err := config.Conn.Query(query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var list []models.Announcement
+	for rows.Next() {
+		a, err := scanAnnouncement(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		list = append(list, a)
+	}
+	return list, total, nil
 }
 
 func GetUserAnnouncements(userID string) ([]models.Announcement, error) {

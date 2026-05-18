@@ -56,7 +56,7 @@
                     </button>
 
                     <span class="text-xs text-gray-400 whitespace-nowrap">
-                        {{ filteredEvents.length }} résultat(s)
+                        {{ total }} résultat(s)
                     </span>
                 </div>
 
@@ -73,7 +73,7 @@
                         </thead>
                         <tbody>
                             <tr
-                                v-for="(event, i) in filteredEvents"
+                                v-for="(event, i) in events"
                                 :key="event.id"
                                 :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']">
                                 <td class="px-5 py-3">
@@ -130,7 +130,7 @@
                                 </td>
                             </tr>
 
-                            <tr v-if="filteredEvents.length === 0">
+                            <tr v-if="events.length === 0">
                                 <td colspan="5" class="px-5 py-12 text-center text-gray-400 text-sm">
                                     Aucun événement ne correspond à vos filtres.
                                 </td>
@@ -140,9 +140,10 @@
                 </div>
 
                 <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-                    {{ filteredEvents.length }} événement(s) au total
+                    {{ total }} événement(s) au total
                 </div>
             </div>
+            <Pagination v-if="total > 20" :page="page" :total="total" :limit="20" @update:page="changePage" />
 
         </template>
 
@@ -325,11 +326,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 
 const events = ref([])
+const total = ref(0)
+const page = ref(1)
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
@@ -344,7 +348,7 @@ const saving = ref(false)
 const stats = computed(() => [
     {
         label: 'Total événements',
-        value: events.value.length,
+        value: total.value,
         bgClass: 'bg-red-100',
         iconClass: 'text-red-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
@@ -372,14 +376,30 @@ const stats = computed(() => [
     },
 ])
 
-const filteredEvents = computed(() => {
-    return events.value.filter(e => {
-        const q = search.value.toLowerCase()
-        if (q && !e.title.toLowerCase().includes(q) && !e.organizer.toLowerCase().includes(q)) return false
-        if (filterStatus.value && e.status !== filterStatus.value) return false
-        return true
-    })
+async function fetchEvents() {
+    loading.value = true
+    error.value = ''
+    try {
+        const params = { page: page.value, limit: 20 }
+        if (search.value) params.search = search.value
+        if (filterStatus.value) params.status = filterStatus.value === 'À venir' ? 'upcoming' : filterStatus.value === 'Passé' ? 'past' : ''
+        const { data } = await api.get('/admin/events', { params })
+        events.value = data.data.map(mapEvent)
+        total.value = data.total
+    } catch {
+        error.value = 'Impossible de charger les événements.'
+    } finally {
+        loading.value = false
+    }
+}
+
+let debounce = null
+watch(search, () => {
+    clearTimeout(debounce)
+    debounce = setTimeout(() => { page.value = 1; fetchEvents() }, 300)
 })
+watch(filterStatus, () => { page.value = 1; fetchEvents() })
+watch(page, fetchEvents)
 
 function computeStatus(dateStr) {
     if (!dateStr) return '—'
@@ -404,16 +424,7 @@ function mapEvent(e) {
     }
 }
 
-onMounted(async () => {
-    try {
-        const { data } = await api.get('/admin/events')
-        events.value = data.map(mapEvent)
-    } catch {
-        error.value = 'Impossible de charger les événements.'
-    } finally {
-        loading.value = false
-    }
-})
+onMounted(fetchEvents)
 
 function openDetail(event) {
     detailEvent.value = event
@@ -428,15 +439,17 @@ async function deleteEvent() {
     deleting.value = true
     try {
         await api.delete(`/admin/event/${toDelete.value.id}`)
-        events.value = events.value.filter(e => e.id !== toDelete.value.id)
         if (detailEvent.value?.id === toDelete.value.id) detailEvent.value = null
         toDelete.value = null
+        await fetchEvents()
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {
         deleting.value = false
     }
 }
+
+function changePage(p) { page.value = p }
 
 function openCreate() {
     eventForm.value = { title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 }
@@ -471,17 +484,13 @@ async function saveEvent() {
             id_creator: eventForm.value.idCreator ?? null,
         }
         if (formModal.value.mode === 'create') {
-            const { data } = await api.post('/admin/events', payload)
-            events.value.push(mapEvent(data.event))
+            await api.post('/admin/events', payload)
+            page.value = 1
         } else {
-            const { data } = await api.put(`/admin/event/${formModal.value.id}`, payload)
-            const idx = events.value.findIndex(e => e.id === formModal.value.id)
-            if (idx !== -1) {
-                const existing = events.value[idx]
-                events.value[idx] = { ...mapEvent(data.event), registered: existing.registered, organizer: existing.organizer }
-            }
+            await api.put(`/admin/event/${formModal.value.id}`, payload)
         }
         formModal.value.open = false
+        await fetchEvents()
     } catch {
         alert('Erreur lors de l\'enregistrement.')
     } finally {

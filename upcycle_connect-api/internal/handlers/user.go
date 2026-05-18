@@ -126,10 +126,12 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	firstName := r.URL.Query().Get("first_name")
-	lastName := r.URL.Query().Get("last_name")
+	search := r.URL.Query().Get("search")
+	status := r.URL.Query().Get("status")
+	role := r.URL.Query().Get("role")
+	page, limit, offset := parsePage(r, 50)
 
-	users, err := db.GetAllUsersWithRoles(firstName, lastName)
+	users, total, err := db.GetAllUsersWithRoles(search, status, role, limit, offset)
 	if err != nil {
 		fmt.Println("GetUsers error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -142,7 +144,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(users)
+	_ = json.NewEncoder(w).Encode(pageResponse(users, total, page, limit))
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
