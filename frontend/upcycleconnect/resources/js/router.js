@@ -16,6 +16,7 @@ import Roles from './Pages/Admin/Roles.vue'
 import Listings from './Pages/Admin/Listings.vue'
 import Events from './Pages/Admin/Events.vue'
 import Reports from './Pages/Admin/Reports.vue'
+import Lockers from './Pages/Admin/Lockers.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
@@ -44,6 +45,7 @@ const router = createRouter({
         { path: '/admin/listings', component: Listings, meta: { requiresAdmin: true } },
         { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
         { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
+        { path: '/admin/lockers', component: Lockers, meta: { requiresAdmin: true } },
 
         { path: '/:pathMatch(.*)*', redirect: '/accueil' },
     ],

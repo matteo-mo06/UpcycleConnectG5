@@ -421,7 +421,7 @@ async function fetchUsers() {
             name: fullName(u),
             type: roleToType(u.roles),
             status: statusToLabel(u.status),
-            date: u.created_at?.slice(0, 10) ?? "—",
+            date: u.created_at?.slice(0, 10) ?? "-",
         }));
         total.value = data.total;
     } catch (e) {
@@ -461,8 +461,8 @@ onMounted(async () => {
             id: r.id,
             name: fullName(r),
             email: r.email,
-            requestDate: r.created_at?.slice(0, 10) ?? "—",
-            reason: "—",
+            requestDate: r.created_at?.slice(0, 10) ?? "-",
+            reason: "-",
         }));
     } catch (e) {
         error.value = "Impossible de charger les données";

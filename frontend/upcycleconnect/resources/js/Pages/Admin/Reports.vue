@@ -388,7 +388,7 @@
                                     {{ sanctionLabels[s.type] ?? s.type }}
                                 </span>
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-gray-700">{{ s.reason || '—' }}</p>
+                                    <p class="text-gray-700">{{ s.reason || '-' }}</p>
                                     <p class="text-gray-400 mt-0.5">{{ s.created_at?.slice(0, 10) }} · par {{ s.admin_name }}</p>
                                 </div>
                             </div>
@@ -405,7 +405,7 @@
                                     {{ contentTypeLabel(r.content_type) }}
                                 </span>
                                 <div class="min-w-0">
-                                    <p class="font-medium text-gray-700 truncate">{{ r.content_title || '—' }}</p>
+                                    <p class="font-medium text-gray-700 truncate">{{ r.content_title || '-' }}</p>
                                     <p class="text-gray-500 truncate">{{ r.reason }}</p>
                                     <p class="text-gray-400 mt-0.5">{{ r.created_at?.slice(0, 10) }} ·
                                         <span :class="statusText(statusLabel(r.status))">{{ statusLabel(r.status) }}</span>
@@ -530,12 +530,12 @@ function mapReport(r) {
         id: r.id_report,
         contentAuthorId: r.id_reported_user,
         type: { announcement: 'Annonce', topic: 'Topic', post: 'Post' }[r.content_type] ?? r.content_type,
-        contentTitle: r.content_title || r.id_announcement || r.id_topic || r.id_post || '—',
-        contentAuthor: r.reported_user_name || '—',
-        reporter: r.reporter_name || '—',
+        contentTitle: r.content_title || r.id_announcement || r.id_topic || r.id_post || '-',
+        contentAuthor: r.reported_user_name || '-',
+        reporter: r.reporter_name || '-',
         reporterEmail: r.reporter_email || '',
         reason: r.reason,
-        date: r.created_at?.slice(0, 10) ?? '—',
+        date: r.created_at?.slice(0, 10) ?? '-',
         status: statusLabel(r.status),
     }
 }

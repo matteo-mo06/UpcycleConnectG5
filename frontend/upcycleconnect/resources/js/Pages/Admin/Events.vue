@@ -369,7 +369,7 @@ const stats = computed(() => [
     },
     {
         label: 'Sans date',
-        value: events.value.filter(e => e.status === '—').length,
+        value: events.value.filter(e => e.status === '-').length,
         bgClass: 'bg-gray-100',
         iconClass: 'text-gray-400',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>`,
@@ -402,7 +402,7 @@ watch(filterStatus, () => { page.value = 1; fetchEvents() })
 watch(page, fetchEvents)
 
 function computeStatus(dateStr) {
-    if (!dateStr) return '—'
+    if (!dateStr) return '-'
     return new Date(dateStr) > new Date() ? 'À venir' : 'Passé'
 }
 
@@ -410,14 +410,14 @@ function mapEvent(e) {
     return {
         id: e.id,
         title: e.title,
-        organizer: e.creator_name ?? '—',
-        location: e.location ?? '—',
-        date: e.date?.slice(0, 10) ?? '—',
-        time: e.date?.slice(11, 16) ?? '—',
+        organizer: e.creator_name ?? '-',
+        location: e.location ?? '-',
+        date: e.date?.slice(0, 10) ?? '-',
+        time: e.date?.slice(11, 16) ?? '-',
         capacity: e.capacity ?? 0,
         registered: e.inscription_count ?? 0,
         status: computeStatus(e.date),
-        description: e.description ?? '—',
+        description: e.description ?? '-',
         priceCents: e.price_cents ?? 0,
         rawDate: e.date ?? null,
         idCreator: e.id_creator ?? null,
@@ -459,9 +459,9 @@ function openCreate() {
 function openEdit(event) {
     eventForm.value = {
         title: event.title,
-        description: event.description === '—' ? '' : event.description,
+        description: event.description === '-' ? '' : event.description,
         date: event.rawDate ? event.rawDate.slice(0, 16) : '',
-        location: event.location === '—' ? '' : event.location,
+        location: event.location === '-' ? '' : event.location,
         capacity: event.capacity || null,
         priceEuros: parseFloat((event.priceCents / 100).toFixed(2)),
         idCreator: event.idCreator ?? null,

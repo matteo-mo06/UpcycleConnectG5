@@ -120,9 +120,13 @@ func RejectDepositRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateAccessCode() (string, error) {
-	b := make([]byte, 4)
+	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%08X", b), nil
+	code := make([]byte, 8)
+	for i := range code {
+		code[i] = '0' + b[i]%10
+	}
+	return string(code), nil
 }

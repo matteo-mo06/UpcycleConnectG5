@@ -112,28 +112,28 @@ const upcomingEvents = ref([])
 const stats = computed(() => [
     {
         label: 'Utilisateurs total',
-        value: statsData.value.user_count ?? '—',
+        value: statsData.value.user_count ?? '-',
         bgClass: 'bg-red-100',
         iconClass: 'text-red-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
     },
     {
         label: 'Annonces actives',
-        value: statsData.value.announcement_count ?? '—',
+        value: statsData.value.announcement_count ?? '-',
         bgClass: 'bg-green-100',
         iconClass: 'text-green-600',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
     },
     {
         label: 'Événements à venir',
-        value: statsData.value.event_count ?? '—',
+        value: statsData.value.event_count ?? '-',
         bgClass: 'bg-amber-100',
         iconClass: 'text-amber-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
     },
     {
         label: 'Signalements ouverts',
-        value: statsData.value.report_count ?? '—',
+        value: statsData.value.report_count ?? '-',
         bgClass: 'bg-red-100',
         iconClass: 'text-red-400',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
@@ -154,14 +154,14 @@ onMounted(async () => {
             name: fullName(u),
             email: u.email,
             type: roleLabel(u.roles?.[0] ?? ''),
-            date: u.created_at?.slice(0, 10) ?? '—',
+            date: u.created_at?.slice(0, 10) ?? '-',
         }))
 
         upcomingEvents.value = (eventsData.data ?? eventsData).slice(0, 5).map(e => ({
             id: e.id,
             title: e.title,
-            date: e.date ?? '—',
-            location: e.location ?? '—',
+            date: e.date ?? '-',
+            location: e.location ?? '-',
         }))
     } catch {
         error.value = 'Impossible de charger les données.'

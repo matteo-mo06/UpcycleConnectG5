@@ -75,8 +75,8 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-3 text-xs text-gray-500">
-                            <span v-if="event.location !== '—'">{{ event.location }}</span>
-                            <span v-if="event.time !== '—'">{{ event.time }}</span>
+                            <span v-if="event.location !== '-'">{{ event.location }}</span>
+                            <span v-if="event.time !== '-'">{{ event.time }}</span>
                             <span v-if="event.capacity">{{ event.registered }}/{{ event.capacity }} places</span>
                         </div>
                     </div>
@@ -322,19 +322,19 @@ function mapEvent(e) {
         id: e.id,
         title: e.title,
         creatorId: e.id_creator ?? null,
-        organizer: e.creator_name ?? '—',
-        location: e.location ?? '—',
-        date: e.date?.slice(0, 10) ?? '—',
-        time: e.date?.slice(11, 16) ?? '—',
+        organizer: e.creator_name ?? '-',
+        location: e.location ?? '-',
+        date: e.date?.slice(0, 10) ?? '-',
+        time: e.date?.slice(11, 16) ?? '-',
         dateStr: e.date?.slice(0, 10) ?? null,
-        dayNum: e.date?.slice(8, 10) ?? '—',
-        monthShort: e.date ? MONTHS_SHORT[parseInt(e.date.slice(5, 7)) - 1] : '—',
+        dayNum: e.date?.slice(8, 10) ?? '-',
+        monthShort: e.date ? MONTHS_SHORT[parseInt(e.date.slice(5, 7)) - 1] : '-',
         capacity: e.capacity ?? 0,
         registered: e.inscription_count ?? 0,
         price: e.price_cents ?? 0,
         isRegistered: e.is_registered ?? false,
         isPast: e.date ? e.date.slice(0, 10) < today.toISOString().slice(0, 10) : false,
-        description: e.description ?? '—',
+        description: e.description ?? '-',
         loading: false,
     }
 }

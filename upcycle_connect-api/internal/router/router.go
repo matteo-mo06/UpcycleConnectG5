@@ -104,6 +104,11 @@ func InitRoutes() {
 	http.Handle("POST /admin/user/{id}/sanctions", admin(handlers.CreateSanction))
 	http.Handle("GET /admin/user/{id}/history", admin(handlers.GetUserHistory))
 
+	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
+	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))
+	http.Handle("DELETE /admin/locker/{id}", perm("manage_lockers", handlers.DeleteLocker))
+	http.Handle("PATCH /admin/locker/{id}/access-code", perm("manage_lockers", handlers.UpdateLockerAccessCode))
+
 	http.Handle("GET /admin/events", admin(handlers.GetEvents))
 	http.Handle("GET /admin/event/{id}", admin(handlers.GetEventById))
 	http.Handle("POST /admin/events", admin(handlers.CreateEvent))

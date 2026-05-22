@@ -16,8 +16,13 @@ type DepositRequest struct {
 }
 
 type Locker struct {
-	ID     string `json:"id"`
-	Number int    `json:"number"`
+	ID                string `json:"id"`
+	Number            int    `json:"number"`
+	AccessCode        string `json:"access_code"`
+	Occupied          bool   `json:"occupied"`
+	AnnouncementTitle string `json:"announcement_title"`
+	SellerName        string `json:"seller_name"`
+	BuyerName         string `json:"buyer_name"`
 }
 
 type UserStats struct {

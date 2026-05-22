@@ -12,7 +12,7 @@ const CONDITION_LABELS = {
 }
 
 export function formatDate(d) {
-    if (!d) return '—'
+    if (!d) return '-'
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 

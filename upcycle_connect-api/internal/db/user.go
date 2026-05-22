@@ -186,11 +186,31 @@ func UpdateUserStatus(id string, status string) error {
 }
 
 func DeleteUser(id string) error {
+	// 1. Récupère les annonces du vendeur avant toute suppression
+	rows, err := config.Conn.Query("SELECT id_announcement FROM USER_ANNOUNCEMENT WHERE id_user = ?", id)
+	if err != nil {
+		return err
+	}
+	var announcementIDs []string
+	for rows.Next() {
+		var aid string
+		if err := rows.Scan(&aid); err != nil {
+			rows.Close()
+			return err
+		}
+		announcementIDs = append(announcementIDs, aid)
+	}
+	rows.Close()
+
+	// 2. Nullifie les FK nullable qui pointent vers cet utilisateur
 	nullifies := []string{
-		"UPDATE EVENT     SET id_creator   = NULL WHERE id_creator   = ?",
-		"UPDATE PROJECT   SET id_creator   = NULL WHERE id_creator   = ?",
-		"UPDATE FORMATION SET id_creator   = NULL WHERE id_creator   = ?",
-		"UPDATE FORMATION SET id_formateur = NULL WHERE id_formateur = ?",
+		"UPDATE EVENT        SET id_creator       = NULL WHERE id_creator       = ?",
+		"UPDATE PROJECT      SET id_creator       = NULL WHERE id_creator       = ?",
+		"UPDATE FORMATION    SET id_creator       = NULL WHERE id_creator       = ?",
+		"UPDATE FORMATION    SET id_formateur     = NULL WHERE id_formateur     = ?",
+		"UPDATE REPORT       SET id_reported_user = NULL WHERE id_reported_user = ?",
+		"UPDATE REPORT       SET resolved_by      = NULL WHERE resolved_by      = ?",
+		"UPDATE ANNOUNCEMENT SET id_buyer         = NULL WHERE id_buyer         = ?",
 	}
 	for _, q := range nullifies {
 		if _, err := config.Conn.Exec(q, id); err != nil {
@@ -198,12 +218,42 @@ func DeleteUser(id string) error {
 		}
 	}
 
+	// 3. Libère les casiers et supprime les annonces du vendeur
+	for _, aid := range announcementIDs {
+		for _, q := range []string{
+			"UPDATE REPORT SET id_announcement = NULL WHERE id_announcement = ?",
+			"DELETE FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?",
+		} {
+			if _, err := config.Conn.Exec(q, aid); err != nil {
+				return err
+			}
+		}
+	}
+	if _, err := config.Conn.Exec("DELETE FROM USER_ANNOUNCEMENT WHERE id_user = ?", id); err != nil {
+		return err
+	}
+	for _, aid := range announcementIDs {
+		if _, err := config.Conn.Exec("DELETE FROM ANNOUNCEMENT WHERE id_announcement = ?", aid); err != nil {
+			return err
+		}
+	}
+
+	// 4. Supprime les sanctions (doit précéder la suppression des REPORT)
+	for _, q := range []string{
+		"DELETE FROM USER_SANCTIONS WHERE id_user  = ?",
+		"DELETE FROM USER_SANCTIONS WHERE id_admin = ?",
+	} {
+		if _, err := config.Conn.Exec(q, id); err != nil {
+			return err
+		}
+	}
+
+	// 5. Supprime les autres tables liées à l'utilisateur
 	tables := []string{
 		"PROFESSIONAL_REQUEST",
 		"DOCUMENT",
 		"REPORT",
 		"USER_ROLE",
-		"USER_ANNOUNCEMENT",
 		"USER_ADVICE",
 		"USER_TOPIC",
 		"USER_PROJECT_INSCRIPTION",
@@ -216,14 +266,13 @@ func DeleteUser(id string) error {
 		"USER_PAYEMENT",
 		"USER_SUBSCRIPTION",
 	}
-
 	for _, table := range tables {
 		if _, err := config.Conn.Exec("DELETE FROM "+table+" WHERE id_user = ?", id); err != nil {
 			return err
 		}
 	}
 
-	_, err := config.Conn.Exec("DELETE FROM USER WHERE id_user = ?", id)
+	_, err = config.Conn.Exec("DELETE FROM USER WHERE id_user = ?", id)
 	return err
 }
 

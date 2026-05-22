@@ -119,7 +119,7 @@ const showDepot = ref(false)
 const stats = ref([
     {
         label: 'Upcycling Score',
-        value: '—',
+        value: '-',
         key: 'upcycling_score',
         badge: null,
         bgClass: 'bg-secondary/20',
@@ -128,7 +128,7 @@ const stats = ref([
     },
     {
         label: 'Annonces actives',
-        value: '—',
+        value: '-',
         key: 'active_announcements',
         badge: null,
         bgClass: 'bg-primary/10',
@@ -137,7 +137,7 @@ const stats = ref([
     },
     {
         label: 'Dépôts en attente',
-        value: '—',
+        value: '-',
         key: 'pending_deposits',
         badge: 'En attente',
         bgClass: 'bg-primary/10',
@@ -146,7 +146,7 @@ const stats = ref([
     },
     {
         label: 'Événements à venir',
-        value: '—',
+        value: '-',
         key: 'upcoming_events',
         badge: null,
         bgClass: 'bg-blue-100',
