@@ -18,6 +18,8 @@ type Report struct {
 	ReportedUserName string `json:"reported_user_name"`
 	ContentType      string `json:"content_type"`
 	ContentTitle     string `json:"content_title"`
+	ContentBody      string `json:"content_body"`
+	ContentPhoto     string `json:"content_photo"`
 }
 
 type Sanction struct {

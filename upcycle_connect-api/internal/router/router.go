@@ -94,6 +94,15 @@ func InitRoutes() {
 	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))
 	http.Handle("DELETE /user/event/{id}/unregister", perm("register_event", handlers.UnregisterFromEvent))
 
+	http.Handle("GET /forum/topics", auth(handlers.GetForumTopics))
+	http.Handle("GET /forum/topics/{id}", auth(handlers.GetForumTopic))
+	http.Handle("POST /forum/topics", perm("create_topic", handlers.CreateForumTopic))
+	http.Handle("PATCH /forum/topics/{id}", auth(handlers.UpdateForumTopic))
+	http.Handle("DELETE /forum/topics/{id}", auth(handlers.DeleteForumTopic))
+	http.Handle("POST /forum/topics/{id}/posts", perm("create_post", handlers.AddForumPost))
+	http.Handle("PATCH /forum/topics/{id}/posts/{post_id}", auth(handlers.UpdateForumPost))
+	http.Handle("DELETE /forum/topics/{id}/posts/{post_id}", auth(handlers.DeleteForumPost))
+
 	http.Handle("POST /reports", auth(handlers.SubmitReport))
 
 	http.Handle("GET /admin/reports", admin(handlers.GetAdminReports))

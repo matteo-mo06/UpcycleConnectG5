@@ -1,7 +1,7 @@
 <template>
     <AdminLayout title="Signalements">
 
-        <div class="grid grid-cols-4 gap-5 mb-8">
+        <div class="grid grid-cols-3 gap-5 mb-8">
             <div
                 v-for="stat in stats"
                 :key="stat.label"
@@ -36,8 +36,8 @@
                     class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                     <option value="">Tous les types</option>
                     <option>Annonce</option>
-                    <option>Topic</option>
-                    <option>Post</option>
+                    <option>Sujet</option>
+                    <option>Message</option>
                 </select>
 
                 <select
@@ -46,7 +46,6 @@
                     <option value="">Tous les statuts</option>
                     <option>À traiter</option>
                     <option>Résolu</option>
-                    <option>Ignoré</option>
                 </select>
 
                 <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">{{ total }} signalement(s)</span>
@@ -85,9 +84,7 @@
                             </td>
 
                             <td class="px-5 py-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 max-w-32 truncate">
-                                    {{ report.reason }}
-                                </span>
+                                <p class="text-xs text-gray-600 max-w-48 line-clamp-2">{{ report.reason }}</p>
                             </td>
 
                             <td class="px-5 py-3 text-gray-500 text-xs">{{ report.reporter }}</td>
@@ -110,16 +107,6 @@
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    </button>
-
-                                    <button
-                                        v-if="report.status === 'À traiter'"
-                                        @click="ignoreReport(report)"
-                                        title="Ignorer"
-                                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                                         </svg>
                                     </button>
 
@@ -243,7 +230,7 @@
 
                 <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
 
-                    <div class="bg-gray-50 rounded-xl p-4">
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
                         <div class="flex items-start gap-3">
                             <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-0.5" :class="typeBadge(detailReport.type)">
                                 {{ detailReport.type }}
@@ -253,6 +240,13 @@
                                 <p class="text-xs text-gray-500 mt-0.5">Par {{ detailReport.contentAuthor }}</p>
                             </div>
                         </div>
+                        <img
+                            v-if="detailReport.contentPhoto"
+                            :src="detailReport.contentPhoto"
+                            alt=""
+                            class="w-full max-h-40 object-cover rounded-lg"
+                        />
+                        <p v-if="detailReport.contentBody" class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ detailReport.contentBody }}</p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -334,14 +328,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
-                    <button
-                        v-if="detailReport.status === 'À traiter'"
-                        @click="ignoreReport(detailReport); detailReport = null"
-                        class="px-3 py-1.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        Ignorer
-                    </button>
-                    <div v-else />
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end">
                     <button
                         v-if="detailReport.status === 'À traiter'"
                         @click="resolveReport(detailReport); detailReport = null"
@@ -492,10 +479,6 @@ const stats = ref([
         label: 'Résolus', key: 'resolved', value: 0, bgClass: 'bg-green-100', iconClass: 'text-green-600',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
-    {
-        label: 'Ignorés', key: 'ignored', value: 0, bgClass: 'bg-gray-100', iconClass: 'text-gray-400',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>`,
-    },
 ])
 
 const loading = ref(false)
@@ -529,8 +512,10 @@ function mapReport(r) {
     return {
         id: r.id_report,
         contentAuthorId: r.id_reported_user,
-        type: { announcement: 'Annonce', topic: 'Topic', post: 'Post' }[r.content_type] ?? r.content_type,
-        contentTitle: r.content_title || r.id_announcement || r.id_topic || r.id_post || '-',
+        type: { announcement: 'Annonce', topic: 'Sujet', post: 'Message' }[r.content_type] ?? r.content_type,
+        contentTitle: r.content_title || '-',
+        contentBody: r.content_body || '',
+        contentPhoto: r.content_photo || '',
         contentAuthor: r.reported_user_name || '-',
         reporter: r.reporter_name || '-',
         reporterEmail: r.reporter_email || '',
@@ -541,11 +526,11 @@ function mapReport(r) {
 }
 
 function statusLabel(s) {
-    return { pending: 'À traiter', resolved: 'Résolu', ignored: 'Ignoré' }[s] ?? s
+    return { pending: 'À traiter', resolved: 'Résolu' }[s] ?? s
 }
 
 function contentTypeLabel(t) {
-    return { announcement: 'Annonce', topic: 'Topic', post: 'Post' }[t] ?? t
+    return { announcement: 'Annonce', topic: 'Sujet', post: 'Message' }[t] ?? t
 }
 
 async function fetchStats() {
@@ -562,7 +547,7 @@ async function fetchReports() {
         const params = { page: page.value, limit: 20 }
         if (search.value) params.search = search.value
         if (filterStatus.value) {
-            const statusMap = { 'À traiter': 'pending', 'Résolu': 'resolved', 'Ignoré': 'ignored' }
+            const statusMap = { 'À traiter': 'pending', 'Résolu': 'resolved' }
             params.status = statusMap[filterStatus.value] ?? filterStatus.value
         }
         const { data } = await api.get('/admin/reports', { params })
@@ -640,16 +625,6 @@ function closeDetailModal() {
     detailReport.value = null
     sanctionType.value = ''
     sanctionTarget.value = null
-}
-
-async function ignoreReport(report) {
-    try {
-        await api.patch(`/admin/report/${report.id}`, { status: 'ignored' })
-        report.status = 'Ignoré'
-        await fetchStats()
-    } catch (e) {
-        alert(e.response?.data?.error ?? 'Erreur lors de la mise à jour.')
-    }
 }
 
 async function resolveReport(report) {
@@ -733,7 +708,7 @@ function userStatusLabel(status) {
 }
 
 function typeBadge(type) {
-    const map = { 'Annonce': 'bg-blue-100 text-blue-700', 'Topic': 'bg-purple-100 text-purple-700', 'Post': 'bg-indigo-100 text-indigo-700' }
+    const map = { 'Annonce': 'bg-blue-100 text-blue-700', 'Sujet': 'bg-purple-100 text-purple-700', 'Message': 'bg-teal-100 text-teal-700' }
     return map[type] ?? 'bg-gray-100 text-gray-600'
 }
 
@@ -743,12 +718,12 @@ function sanctionBadge(type) {
 }
 
 function statusDot(status) {
-    const map = { 'À traiter': 'bg-red-500', 'Résolu': 'bg-green-500', 'Ignoré': 'bg-gray-400' }
+    const map = { 'À traiter': 'bg-red-500', 'Résolu': 'bg-green-500' }
     return map[status] ?? 'bg-gray-300'
 }
 
 function statusText(status) {
-    const map = { 'À traiter': 'text-red-600', 'Résolu': 'text-green-700', 'Ignoré': 'text-gray-500' }
+    const map = { 'À traiter': 'text-red-600', 'Résolu': 'text-green-700' }
     return map[status] ?? 'text-gray-500'
 }
 

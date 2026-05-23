@@ -70,11 +70,15 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 		       TRIM(CONCAT(COALESCE(rep.first_name, ''), ' ', COALESCE(rep.last_name, ''))) AS reporter_name,
 		       COALESCE(rep.email, '') AS reporter_email,
 		       TRIM(CONCAT(COALESCE(repd.first_name, ''), ' ', COALESCE(repd.last_name, ''))) AS reported_name,
-		       COALESCE(a.title_announcement, '') AS content_title
+		       COALESCE(a.title_announcement, t.title_topic, LEFT(rp.body_post, 80), '') AS content_title,
+		       COALESCE(LEFT(rp.body_post, 300), (SELECT LEFT(pp.body_post, 300) FROM POST pp JOIN TOPIC_POST tp ON tp.id_post = pp.id_post WHERE tp.id_topic = r.id_topic AND pp.deleted_at IS NULL ORDER BY pp.created_at ASC LIMIT 1), '') AS content_body,
+		       COALESCE((SELECT d.link FROM DOCUMENT d WHERE d.category = r.id_announcement ORDER BY d.id_document LIMIT 1), '') AS content_photo
 		FROM REPORT r
 		LEFT JOIN USER rep  ON rep.id_user  = r.id_user
 		LEFT JOIN USER repd ON repd.id_user = r.id_reported_user
 		LEFT JOIN ANNOUNCEMENT a ON a.id_announcement = r.id_announcement
+		LEFT JOIN TOPIC t ON t.id_topic = r.id_topic
+		LEFT JOIN POST rp ON rp.id_post = r.id_post
 		`+where+` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -87,7 +91,7 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 		if err := rows.Scan(
 			&r.IdReport, &r.IdReporter, &r.IdReportedUser, &r.IdAnnouncement, &r.IdTopic, &r.IdPost,
 			&r.Reason, &r.Status, &r.ActionTaken, &r.ResolvedBy, &r.ResolvedAt, &r.CreatedAt,
-			&r.ReporterName, &r.ReporterEmail, &r.ReportedUserName, &r.ContentTitle,
+			&r.ReporterName, &r.ReporterEmail, &r.ReportedUserName, &r.ContentTitle, &r.ContentBody, &r.ContentPhoto,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -96,14 +100,8 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 			r.ContentType = "announcement"
 		case r.IdTopic != "":
 			r.ContentType = "topic"
-			if r.ContentTitle == "" {
-				r.ContentTitle = r.IdTopic
-			}
 		case r.IdPost != "":
 			r.ContentType = "post"
-			if r.ContentTitle == "" {
-				r.ContentTitle = r.IdPost
-			}
 		}
 		list = append(list, r)
 	}
@@ -111,7 +109,7 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 }
 
 func GetReportStats() (map[string]int, error) {
-	stats := map[string]int{"total": 0, "pending": 0, "resolved": 0, "ignored": 0}
+	stats := map[string]int{"total": 0, "pending": 0, "resolved": 0}
 	var total int
 	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM REPORT").Scan(&total); err != nil {
 		return nil, err

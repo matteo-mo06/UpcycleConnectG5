@@ -74,15 +74,31 @@
             </main>
         </div>
 
-        <div
-            v-if="toast"
-            class="fixed bottom-6 right-6 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm"
-            :class="toast.type === 'warning' ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-red-50 text-red-800 border border-red-200'"
-        >
-            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" :class="toast.type === 'warning' ? 'text-amber-500' : 'text-red-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            <span>{{ toast.message }}</span>
+        <div v-if="toast" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/50" />
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div class="h-1.5 w-full" :class="toast.type === 'warning' ? 'bg-amber-500' : 'bg-red-600'" />
+                <div class="px-6 py-5 flex flex-col items-center text-center gap-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                        :class="toast.type === 'warning' ? 'bg-amber-100' : 'bg-red-100'">
+                        <svg class="w-6 h-6" :class="toast.type === 'warning' ? 'text-amber-500' : 'text-red-600'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800 text-base" style="font-family: var(--font-family-title)">
+                            {{ toastTitle }}
+                        </p>
+                        <p class="mt-2 text-sm text-gray-600 leading-relaxed">{{ toast.message }}</p>
+                    </div>
+                    <button
+                        @click="dismissToast"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
+                        :class="toast.type === 'warning' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-red-600 hover:bg-red-700'">
+                        J'ai compris
+                    </button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -113,13 +129,26 @@ function handleLogout() {
 }
 
 const toast = ref(null)
-let toastTimer = null
 let sseAbort = null
 
-function showToast(message, type = 'warning') {
-    clearTimeout(toastTimer)
-    toast.value = { message, type }
-    toastTimer = setTimeout(() => { toast.value = null }, 6000)
+const toastTitles = {
+    warning: 'Avertissement des modérateurs',
+    suspension: 'Votre compte a été suspendu',
+    ban: 'Votre compte a été banni',
+}
+const toastTitle = computed(() => toastTitles[toast.value?.sanctionType] ?? 'Action sur votre compte')
+
+function showToast(message, type, sanctionType) {
+    toast.value = { message, type, sanctionType }
+}
+
+function dismissToast() {
+    const sanctionType = toast.value?.sanctionType
+    toast.value = null
+    if (sanctionType === 'suspension' || sanctionType === 'ban') {
+        auth.logout()
+        router.push('/login')
+    }
 }
 
 async function connectSSE() {
@@ -151,8 +180,8 @@ async function connectSSE() {
                 if (!line.startsWith('data: ')) continue
                 try {
                     const data = JSON.parse(line.slice(6))
-                    if (data.type === 'sanction') {
-                        showToast(data.message, data.sanction_type === 'warning' ? 'warning' : 'error')
+                    if (data.type === 'sanction' && !auth.isAdmin) {
+                        showToast(data.message, data.sanction_type === 'warning' ? 'warning' : 'error', data.sanction_type)
                     }
                 } catch {}
             }
@@ -167,7 +196,6 @@ async function connectSSE() {
 onMounted(connectSSE)
 onUnmounted(() => {
     sseAbort?.abort()
-    clearTimeout(toastTimer)
 })
 
 const navItems = [

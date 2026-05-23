@@ -50,15 +50,27 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var reportedUserID string
-	if body.IdAnnouncement != "" {
-		authorID, err := db.GetAnnouncementOwnerID(body.IdAnnouncement)
+	type contentLookup struct {
+		id     string
+		fetch  func(string) (string, error)
+		errMsg string
+	}
+	for _, l := range []contentLookup{
+		{body.IdAnnouncement, db.GetAnnouncementOwnerID, "annonce introuvable"},
+		{body.IdTopic, db.GetTopicAuthor, "topic introuvable"},
+		{body.IdPost, db.GetPostAuthor, "post introuvable"},
+	} {
+		if l.id == "" {
+			continue
+		}
+		authorID, err := l.fetch(l.id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				w.WriteHeader(http.StatusNotFound)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": l.errMsg})
 				return
 			}
-			fmt.Println("SubmitReport GetAnnouncementOwnerID error:", err)
+			fmt.Println("SubmitReport author lookup error:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
 			return
@@ -69,6 +81,7 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reportedUserID = authorID
+		break
 	}
 
 	if err := db.CreateReport(reporterID, reportedUserID, body.IdAnnouncement, body.IdTopic, body.IdPost, body.Reason); err != nil {
@@ -127,10 +140,10 @@ func UpdateAdminReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed := map[string]bool{"resolved": true, "ignored": true}
+	allowed := map[string]bool{"resolved": true}
 	if !allowed[body.Status] {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "status invalide (resolved | ignored)"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "status invalide (resolved)"})
 		return
 	}
 
@@ -219,12 +232,21 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sanctionMessages := map[string]string{
-		"warning":    `{"type":"sanction","sanction_type":"warning","message":"Vous avez reçu un avertissement de la part des modérateurs."}`,
-		"suspension": `{"type":"sanction","sanction_type":"suspension","message":"Votre compte a été suspendu."}`,
-		"ban":        `{"type":"sanction","sanction_type":"ban","message":"Votre compte a été banni."}`,
+	defaultMessages := map[string]string{
+		"warning":    "Vous avez reçu un avertissement de la part des modérateurs.",
+		"suspension": "Votre compte a été suspendu.",
+		"ban":        "Votre compte a été banni.",
 	}
-	sse.Default.Notify(userID, sanctionMessages[body.Type])
+	msg := body.Reason
+	if msg == "" {
+		msg = defaultMessages[body.Type]
+	}
+	ssePayload, _ := json.Marshal(map[string]string{
+		"type":          "sanction",
+		"sanction_type": body.Type,
+		"message":       msg,
+	})
+	sse.Default.Notify(userID, string(ssePayload))
 
 	if body.Type == "ban" {
 		if err := db.UpdateUserStatus(userID, "blacklisted"); err != nil {
