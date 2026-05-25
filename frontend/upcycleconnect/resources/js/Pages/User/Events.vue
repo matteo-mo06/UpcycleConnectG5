@@ -26,6 +26,45 @@
             <FullCalendar :options="calendarOptions" />
         </div>
 
+        <div v-if="canCreate && myEvents.length > 0" class="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">Mes événements créés</h2>
+                <span class="text-xs text-gray-400">{{ myEvents.length }} événement(s)</span>
+            </div>
+            <div class="divide-y divide-gray-50">
+                <div v-for="event in myEvents" :key="event.id" class="flex items-center gap-4 px-6 py-4">
+                    <div class="flex-shrink-0 w-14 text-center">
+                        <div class="bg-gray-100 rounded-xl px-2 py-2">
+                            <p class="text-xs font-semibold text-gray-500 uppercase leading-none">{{ event.monthShort }}</p>
+                            <p class="text-2xl font-bold text-gray-700 leading-none mt-0.5">{{ event.dayNum }}</p>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <p class="font-semibold text-gray-800 truncate">{{ event.title }}</p>
+                            <span v-if="event.dbStatus === 'pending'" class="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-600">En attente</span>
+                            <span v-else-if="event.dbStatus === 'approved'" class="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Validé</span>
+                            <span v-else-if="event.dbStatus === 'rejected'" class="flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">Refusé</span>
+                        </div>
+                        <div v-if="event.dbStatus === 'rejected' && event.rejectionReason" class="text-xs text-red-500 mt-0.5">{{ event.rejectionReason }}</div>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <span v-if="event.location !== '-'">{{ event.location }}</span>
+                            <span v-if="event.time !== '-'">{{ event.time }}</span>
+                            <span v-if="event.capacity">{{ event.registered }}/{{ event.capacity }} places</span>
+                        </div>
+                    </div>
+                    <button
+                        @click="confirmDeleteOwn(event)"
+                        class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Supprimer">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                 <div class="relative flex-1">
@@ -292,6 +331,7 @@ import { useAuthStore } from '@/stores/auth.js'
 
 const auth = useAuthStore()
 const events = ref([])
+const myEvents = ref([])
 const calendarEvents = ref([])
 const page = ref(1)
 const total = ref(0)
@@ -335,6 +375,8 @@ function mapEvent(e) {
         isRegistered: e.is_registered ?? false,
         isPast: e.date ? e.date.slice(0, 10) < today.toISOString().slice(0, 10) : false,
         description: e.description ?? '-',
+        dbStatus: e.status ?? 'approved',
+        rejectionReason: e.rejection_reason ?? null,
         loading: false,
     }
 }
@@ -388,17 +430,17 @@ function confirmDelete(event) {
     toDelete.value = event
 }
 
+function confirmDeleteOwn(event) {
+    toDelete.value = event
+}
+
 async function deleteEvent() {
     if (!toDelete.value) return
     deleting.value = true
     try {
-        const isOwner = toDelete.value.creatorId === auth.user?.id
-        if (isOwner) {
-            await api.delete(`/user/event/${toDelete.value.id}`)
-        } else {
-            await api.delete(`/admin/event/${toDelete.value.id}`)
-        }
+        await api.delete(`/user/event/${toDelete.value.id}`)
         events.value = events.value.filter(e => e.id !== toDelete.value.id)
+        myEvents.value = myEvents.value.filter(e => e.id !== toDelete.value.id)
         calendarEvents.value = calendarEvents.value.filter(e => e.id !== toDelete.value.id)
         toDelete.value = null
     } catch (e) {
@@ -468,6 +510,11 @@ async function submitCreate() {
         await api.post('/events', payload)
         page.value = 1
         await fetchEvents()
+        if (auth.hasPermission('create_event')) {
+            api.get('/user/my-events').then(({ data }) => {
+                myEvents.value = (data ?? []).map(mapEvent)
+            }).catch(() => {})
+        }
         createModal.value = false
     } catch (e) {
         createError.value = e.response?.data?.error ?? 'Erreur lors de la création.'
@@ -494,11 +541,19 @@ function changePage(p) {
 watch(page, fetchEvents)
 
 onMounted(async () => {
-    await Promise.all([
+    const promises = [
         fetchEvents(),
         api.get('/user/events').then(({ data }) => {
             calendarEvents.value = (data ?? []).map(mapEvent)
         }).catch(() => {}),
-    ])
+    ]
+    if (auth.hasPermission('create_event')) {
+        promises.push(
+            api.get('/user/my-events').then(({ data }) => {
+                myEvents.value = (data ?? []).map(mapEvent)
+            }).catch(() => {})
+        )
+    }
+    await Promise.all(promises)
 })
 </script>

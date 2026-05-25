@@ -40,10 +40,10 @@
                         v-model="filterStatus"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les statuts</option>
-                        <option>À venir</option>
-                        <option>En cours</option>
-                        <option>Passé</option>
-                        <option>Annulé</option>
+                        <option value="pending">En attente</option>
+                        <option value="approved-upcoming">À venir</option>
+                        <option value="approved-past">Passé</option>
+                        <option value="rejected">Refusé</option>
                     </select>
 
                     <button
@@ -109,14 +109,34 @@
                                             </svg>
                                         </button>
 
-                                        <button
-                                            @click="openEdit(event)"
-                                            title="Modifier l'événement"
-                                            class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
-                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        <template v-if="event.dbStatus === 'pending'">
+                                            <button
+                                                @click="approveEvent(event)"
+                                                title="Approuver"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-secondary hover:bg-secondary/10 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="openRejectEvent(event)"
+                                                title="Refuser"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <template v-else>
+                                            <button
+                                                @click="openEdit(event)"
+                                                title="Modifier l'événement"
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </button>
+                                        </template>
 
                                         <button
                                             @click="confirmDelete(event)"
@@ -197,14 +217,33 @@
                         <p class="text-xs text-gray-400 mb-1">Description</p>
                         <p class="text-sm text-gray-700 leading-relaxed">{{ detailEvent.description }}</p>
                     </div>
+                    <div v-if="detailEvent.rejectionReason" class="p-3 rounded-xl bg-red-50 border border-red-100">
+                        <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
+                        <p class="text-sm text-red-700">{{ detailEvent.rejectionReason }}</p>
+                    </div>
                 </div>
 
                 <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2">
-                    <button
-                        @click="openEdit(detailEvent)"
-                        class="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
-                        Modifier
-                    </button>
+                    <div class="flex gap-2">
+                        <button
+                            v-if="detailEvent.dbStatus === 'pending'"
+                            @click="approveEvent(detailEvent); detailEvent = null"
+                            class="px-3 py-1.5 text-sm font-medium text-secondary border border-secondary/30 rounded-lg hover:bg-secondary/5 transition-colors">
+                            Approuver
+                        </button>
+                        <button
+                            v-if="detailEvent.dbStatus === 'pending'"
+                            @click="openRejectEvent(detailEvent); detailEvent = null"
+                            class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                            Refuser
+                        </button>
+                        <button
+                            v-if="detailEvent.dbStatus !== 'pending'"
+                            @click="openEdit(detailEvent)"
+                            class="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
+                            Modifier
+                        </button>
+                    </div>
                     <button
                         @click="confirmDelete(detailEvent); detailEvent = null"
                         class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
@@ -230,6 +269,28 @@
                         :disabled="deleting"
                         class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
                         {{ deleting ? 'Suppression…' : 'Supprimer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="rejectModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="rejectModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-1">Refuser l'événement</h3>
+                <p class="text-sm text-gray-500 mb-4">« {{ rejectModal.event?.title }} »</p>
+                <div class="mb-4">
+                    <label class="block text-xs text-gray-400 mb-1">Motif de refus (optionnel)</label>
+                    <textarea
+                        v-model="rejectModal.reason"
+                        rows="3"
+                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none"
+                        placeholder="Expliquez pourquoi cet événement est refusé…" />
+                </div>
+                <div class="flex gap-3">
+                    <button @click="rejectModal.open = false" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
+                    <button @click="confirmRejectEvent" :disabled="rejectModal.loading" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+                        {{ rejectModal.loading ? 'Refus…' : 'Refuser' }}
                     </button>
                 </div>
             </div>
@@ -342,6 +403,7 @@ const detailEvent = ref(null)
 const toDelete = ref(null)
 const deleting = ref(false)
 const formModal = ref({ open: false, mode: 'create', id: null })
+const rejectModal = ref({ open: false, event: null, reason: '', loading: false })
 const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
 const saving = ref(false)
 
@@ -354,6 +416,13 @@ const stats = computed(() => [
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
     },
     {
+        label: 'En attente',
+        value: events.value.filter(e => e.dbStatus === 'pending').length,
+        bgClass: 'bg-orange-100',
+        iconClass: 'text-orange-500',
+        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+    {
         label: 'À venir',
         value: events.value.filter(e => e.status === 'À venir').length,
         bgClass: 'bg-green-100',
@@ -361,18 +430,11 @@ const stats = computed(() => [
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
     {
-        label: 'Passés',
-        value: events.value.filter(e => e.status === 'Passé').length,
-        bgClass: 'bg-amber-100',
-        iconClass: 'text-amber-500',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-    },
-    {
-        label: 'Sans date',
-        value: events.value.filter(e => e.status === '-').length,
-        bgClass: 'bg-gray-100',
-        iconClass: 'text-gray-400',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>`,
+        label: 'Refusés',
+        value: events.value.filter(e => e.dbStatus === 'rejected').length,
+        bgClass: 'bg-red-100',
+        iconClass: 'text-red-500',
+        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
 ])
 
@@ -382,7 +444,8 @@ async function fetchEvents() {
     try {
         const params = { page: page.value, limit: 20 }
         if (search.value) params.search = search.value
-        if (filterStatus.value) params.status = filterStatus.value === 'À venir' ? 'upcoming' : filterStatus.value === 'Passé' ? 'past' : ''
+        const statusMap = { 'pending': 'pending', 'approved-upcoming': 'upcoming', 'approved-past': 'past', 'rejected': 'rejected' }
+        if (filterStatus.value) params.status = statusMap[filterStatus.value] ?? ''
         const { data } = await api.get('/admin/events', { params })
         events.value = data.data.map(mapEvent)
         total.value = data.total
@@ -401,9 +464,11 @@ watch(search, () => {
 watch(filterStatus, () => { page.value = 1; fetchEvents() })
 watch(page, fetchEvents)
 
-function computeStatus(dateStr) {
-    if (!dateStr) return '-'
-    return new Date(dateStr) > new Date() ? 'À venir' : 'Passé'
+function computeStatus(e) {
+    if (e.status === 'pending') return 'En attente'
+    if (e.status === 'rejected') return 'Refusé'
+    if (!e.date) return '-'
+    return new Date(e.date) > new Date() ? 'À venir' : 'Passé'
 }
 
 function mapEvent(e) {
@@ -416,7 +481,9 @@ function mapEvent(e) {
         time: e.date?.slice(11, 16) ?? '-',
         capacity: e.capacity ?? 0,
         registered: e.inscription_count ?? 0,
-        status: computeStatus(e.date),
+        dbStatus: e.status ?? 'approved',
+        status: computeStatus(e),
+        rejectionReason: e.rejection_reason ?? null,
         description: e.description ?? '-',
         priceCents: e.price_cents ?? 0,
         rawDate: e.date ?? null,
@@ -499,12 +566,39 @@ async function saveEvent() {
 }
 
 function statusDot(status) {
-    const map = { 'À venir': 'bg-green-500', 'En cours': 'bg-blue-500', 'Passé': 'bg-gray-400', 'Annulé': 'bg-red-400' }
+    const map = { 'À venir': 'bg-green-500', 'Passé': 'bg-gray-400', 'En attente': 'bg-orange-400', 'Refusé': 'bg-red-400' }
     return map[status] ?? 'bg-gray-300'
 }
 
 function statusText(status) {
-    const map = { 'À venir': 'text-green-700', 'En cours': 'text-blue-700', 'Passé': 'text-gray-500', 'Annulé': 'text-red-600' }
+    const map = { 'À venir': 'text-green-700', 'Passé': 'text-gray-500', 'En attente': 'text-orange-600', 'Refusé': 'text-red-600' }
     return map[status] ?? 'text-gray-500'
+}
+
+async function approveEvent(event) {
+    try {
+        await api.patch(`/admin/event/${event.id}/approve`)
+        await fetchEvents()
+    } catch {
+        alert('Erreur lors de l\'approbation.')
+    }
+}
+
+function openRejectEvent(event) {
+    rejectModal.value = { open: true, event, reason: '', loading: false }
+}
+
+async function confirmRejectEvent() {
+    if (!rejectModal.value.event) return
+    rejectModal.value.loading = true
+    try {
+        await api.patch(`/admin/event/${rejectModal.value.event.id}/reject`, { reason: rejectModal.value.reason })
+        rejectModal.value.open = false
+        await fetchEvents()
+    } catch {
+        alert('Erreur lors du refus.')
+    } finally {
+        rejectModal.value.loading = false
+    }
 }
 </script>

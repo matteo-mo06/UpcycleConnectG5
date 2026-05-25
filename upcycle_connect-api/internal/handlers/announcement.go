@@ -232,7 +232,11 @@ func ApproveAnnouncement(w http.ResponseWriter, r *http.Request) {
 func RejectAnnouncement(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := r.PathValue("id")
-	if err := db.SetAnnouncementState(id, "Supprimée"); err != nil {
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if err := db.RejectAnnouncementWithReason(id, body.Reason); err != nil {
 		fmt.Println("RejectAnnouncement error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject announcement"})

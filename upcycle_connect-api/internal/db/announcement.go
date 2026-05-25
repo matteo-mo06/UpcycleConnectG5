@@ -12,19 +12,19 @@ import (
 )
 
 const announcementSelect = `SELECT a.id_announcement, a.id_category, a.title_announcement, a.address_annoucement, a.city, a.postal,
-	a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement,
+	a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement, a.rejection_reason,
 	u.id_user, u.first_name, u.last_name, a.type_announcement, a.condition_announcement,
 	(SELECT d.link FROM DOCUMENT d WHERE d.category = a.id_announcement ORDER BY d.id_document LIMIT 1) AS first_photo,
 	a.created_at `
 
 func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement, error) {
 	var a models.Announcement
-	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt sql.NullString
+	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt, rejReason sql.NullString
 	err := row.Scan(
 		&a.Id_announcement, &idCat, &a.Title_announcement,
 		&a.Address_annoucement, &a.City, &a.Postal,
 		&a.Description_annoucement, &a.Availability_date, &a.Price,
-		&a.Request, &a.State_annoucement,
+		&a.Request, &a.State_annoucement, &rejReason,
 		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto, &createdAt,
 	)
 	if err != nil {
@@ -37,6 +37,9 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 	a.ConditionAnnouncement = cond.String
 	a.FirstPhoto = firstPhoto.String
 	a.CreatedAt = createdAt.String
+	if rejReason.Valid && rejReason.String != "" {
+		a.RejectionReason = &rejReason.String
+	}
 	return a, nil
 }
 
@@ -202,6 +205,14 @@ func GetAnnouncementStats() (models.AnnouncementStats, error) {
 
 func SetAnnouncementState(id, state string) error {
 	_, err := config.Conn.Exec("UPDATE ANNOUNCEMENT SET state_annoucement = ? WHERE id_announcement = ?", state, id)
+	return err
+}
+
+func RejectAnnouncementWithReason(id, reason string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Refusée', rejection_reason = ? WHERE id_announcement = ?",
+		reason, id,
+	)
 	return err
 }
 

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/models"
 )
@@ -15,9 +17,15 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 	}
 	switch status {
 	case "upcoming":
-		where += " AND event.date_event > NOW()"
+		where += " AND event.date_event > NOW() AND event.status = 'approved'"
 	case "past":
-		where += " AND event.date_event <= NOW()"
+		where += " AND event.date_event <= NOW() AND event.status = 'approved'"
+	case "pending":
+		where += " AND event.status = 'pending'"
+	case "approved":
+		where += " AND event.status = 'approved'"
+	case "rejected":
+		where += " AND event.status = 'rejected'"
 	}
 
 	var total int
@@ -35,13 +43,14 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
-		       COUNT(inscription.id_user) AS inscription_count
+		       COUNT(inscription.id_user) AS inscription_count,
+		       event.status, event.rejection_reason
 		FROM EVENT event
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		`+where+`
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
-		         event.capacity, event.price_cents, event.id_creator
+		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
 		ORDER BY event.date_event DESC
 		LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
@@ -52,20 +61,17 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 	var list []models.Event
 	for rows.Next() {
 		var e models.Event
+		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.Id_event,
-			&e.Title_event,
-			&e.Description_event,
-			&e.Date_event,
-			&e.Location_event,
-			&e.Capacity,
-			&e.Price_cents,
-			&e.Id_creator,
-			&e.CreatorName,
-			&e.InscriptionCount,
+			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
+			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.Status, &rejReason,
 		)
 		if err != nil {
 			return nil, 0, err
+		}
+		if rejReason.Valid && rejReason.String != "" {
+			e.RejectionReason = &rejReason.String
 		}
 		list = append(list, e)
 	}
@@ -74,38 +80,35 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 
 func GetEventById(id string) (models.Event, error) {
 	var e models.Event
+	var rejReason sql.NullString
 	err := config.Conn.QueryRow(`
-		SELECT id_event, title_event, description_event, date_event, location_event, capacity, price_cents, id_creator
+		SELECT id_event, title_event, description_event, date_event, location_event,
+		       capacity, price_cents, id_creator, status, rejection_reason
 		FROM EVENT WHERE id_event = ?`, id,
 	).Scan(
-		&e.Id_event,
-		&e.Title_event,
-		&e.Description_event,
-		&e.Date_event,
-		&e.Location_event,
-		&e.Capacity,
-		&e.Price_cents,
-		&e.Id_creator,
+		&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
+		&e.Capacity, &e.Price_cents, &e.Id_creator, &e.Status, &rejReason,
 	)
+	if rejReason.Valid && rejReason.String != "" {
+		e.RejectionReason = &rejReason.String
+	}
 	return e, err
 }
 
 func CreateEvent(e models.Event) error {
+	status := e.Status
+	if status == "" {
+		status = "pending"
+	}
 	_, err := config.Conn.Exec(`
 		INSERT INTO EVENT (
 			id_event, title_event, description_event, date_event,
-			location_event, capacity, price_cents, id_creator
+			location_event, capacity, price_cents, id_creator, status
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
-		e.Id_event,
-		e.Title_event,
-		e.Description_event,
-		e.Date_event,
-		e.Location_event,
-		e.Capacity,
-		e.Price_cents,
-		e.Id_creator,
+		e.Id_event, e.Title_event, e.Description_event, e.Date_event,
+		e.Location_event, e.Capacity, e.Price_cents, e.Id_creator, status,
 	)
 	return err
 }
@@ -122,21 +125,29 @@ func UpdateEvent(e models.Event) error {
 			id_creator = ?
 		WHERE id_event = ?
 	`,
-		e.Title_event,
-		e.Description_event,
-		e.Date_event,
-		e.Location_event,
-		e.Capacity,
-		e.Price_cents,
-		e.Id_creator,
-		e.Id_event,
+		e.Title_event, e.Description_event, e.Date_event, e.Location_event,
+		e.Capacity, e.Price_cents, e.Id_creator, e.Id_event,
+	)
+	return err
+}
+
+func ApproveEvent(id string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE EVENT SET status = 'approved', rejection_reason = NULL WHERE id_event = ?", id,
+	)
+	return err
+}
+
+func RejectEvent(id, reason string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE EVENT SET status = 'rejected', rejection_reason = ? WHERE id_event = ?", reason, id,
 	)
 	return err
 }
 
 func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, int, error) {
 	var total int
-	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM EVENT").Scan(&total); err != nil {
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM EVENT WHERE status = 'approved'").Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -145,12 +156,14 @@ func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, i
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count,
-		       MAX(CASE WHEN inscription.id_user = ? THEN 1 ELSE 0 END) AS is_registered
+		       EXISTS(SELECT 1 FROM USER_EVENT_INSCRIPTION i WHERE i.id_user = ? AND i.id_event = event.id_event) AS is_registered,
+		       event.status
 		FROM EVENT event
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
+		WHERE event.status = 'approved'
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
-		         event.capacity, event.price_cents, event.id_creator
+		         event.capacity, event.price_cents, event.id_creator, event.status
 		ORDER BY event.date_event ASC
 		LIMIT ? OFFSET ?`, userID, limit, offset)
 	if err != nil {
@@ -162,17 +175,9 @@ func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, i
 	for rows.Next() {
 		var e models.Event
 		err := rows.Scan(
-			&e.Id_event,
-			&e.Title_event,
-			&e.Description_event,
-			&e.Date_event,
-			&e.Location_event,
-			&e.Capacity,
-			&e.Price_cents,
-			&e.Id_creator,
-			&e.CreatorName,
-			&e.InscriptionCount,
-			&e.IsRegistered,
+			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
+			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.IsRegistered, &e.Status,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -180,6 +185,45 @@ func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, i
 		list = append(list, e)
 	}
 	return list, total, nil
+}
+
+func GetMyCreatedEvents(userID string) ([]models.Event, error) {
+	rows, err := config.Conn.Query(`
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		       event.capacity, event.price_cents, event.id_creator,
+		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
+		       COUNT(inscription.id_user) AS inscription_count,
+		       event.status, event.rejection_reason
+		FROM EVENT event
+		LEFT JOIN USER user ON user.id_user = event.id_creator
+		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
+		WHERE event.id_creator = ?
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
+		ORDER BY event.date_event DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Event
+	for rows.Next() {
+		var e models.Event
+		var rejReason sql.NullString
+		err := rows.Scan(
+			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
+			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.Status, &rejReason,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if rejReason.Valid && rejReason.String != "" {
+			e.RejectionReason = &rejReason.String
+		}
+		list = append(list, e)
+	}
+	return list, nil
 }
 
 func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
@@ -206,17 +250,10 @@ func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 	for rows.Next() {
 		var e models.Event
 		e.IsRegistered = true
+		e.Status = "approved"
 		err := rows.Scan(
-			&e.Id_event,
-			&e.Title_event,
-			&e.Description_event,
-			&e.Date_event,
-			&e.Location_event,
-			&e.Capacity,
-			&e.Price_cents,
-			&e.Id_creator,
-			&e.CreatorName,
-			&e.InscriptionCount,
+			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
+			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
 		)
 		if err != nil {
 			return nil, err

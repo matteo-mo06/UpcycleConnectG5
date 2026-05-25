@@ -85,7 +85,7 @@
                             <template v-if="activeTab === 'mine'">
                                 <span v-if="a.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente de validation</span>
                                 <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Validée</span>
-                                <span v-else-if="a.state === 'Supprimée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">Refusée</span>
+                                <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium" :title="a.rejection_reason ?? ''">Refusée{{ a.rejection_reason ? ' — voir détail' : '' }}</span>
                                 <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
                             </template>
 
@@ -102,7 +102,8 @@
                             <span
                                 v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 1 && !a.locker_number"
                                 class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium"
-                            >Dépôt demandé</span>
+                                title="En attente d'assignation de casier"
+                            >En attente de casier</span>
                             <span
                                 v-if="activeTab === 'mine' && a.state === 'Vendu' && a.locker_number"
                                 class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium"
@@ -189,6 +190,11 @@
                         <div><span class="font-medium text-gray-700">Disponible :</span> {{ formatDate(selected.availability_date) }}</div>
                         <div><span class="font-medium text-gray-700">Par :</span> {{ selected.author_name || 'Inconnu' }}</div>
                     </div>
+                    <div v-if="activeTab === 'mine' && selected.state === 'Refusée' && selected.rejection_reason" class="p-3 rounded-xl bg-red-50 border border-red-100">
+                        <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
+                        <p class="text-sm text-red-700">{{ selected.rejection_reason }}</p>
+                    </div>
+
                     <div v-if="activeTab === 'all' && selected.author_name !== fullName(auth.user)" class="pt-2 flex justify-end">
                         <button @click="openReport(selected)" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Signaler ce contenu</button>
                     </div>
@@ -367,10 +373,14 @@ function openReport(a) {
 
 async function requestDeposit(a) {
     try {
-        await api.post(`/announcements/${a.id}/deposit-request`)
+        const { data } = await api.post(`/announcements/${a.id}/deposit-request`)
         a.request = 1
+        if (data?.locker_number) {
+            a.locker_number = data.locker_number
+        }
     } catch (e) {
-        alert(e.response?.data ?? 'Erreur lors de la demande de dépôt.')
+        const msg = e.response?.data?.error ?? 'Erreur lors de la demande de dépôt.'
+        alert(msg)
     }
 }
 

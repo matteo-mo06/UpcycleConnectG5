@@ -93,7 +93,7 @@ func GetPendingDepositRequests() ([]models.Announcement, error) {
 		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		LEFT JOIN USER u ON u.id_user = ua.id_user
 		LEFT JOIN ANNOUNCEMENT_LOCKER al ON al.id_announcement = a.id_announcement
-		WHERE a.request = 1 AND al.id_locker IS NULL
+		WHERE a.request = 1 AND al.id_locker IS NOT NULL
 		ORDER BY a.availability_date ASC`)
 	if err != nil {
 		return nil, err
@@ -157,6 +157,41 @@ func GetAvailableLocker() (models.Locker, error) {
 	return l, err
 }
 
+// ReserveLocker finds an available locker and assigns it atomically in a transaction.
+func ReserveLocker(announcementID, accessCode string) (models.Locker, error) {
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return models.Locker{}, err
+	}
+	defer tx.Rollback()
+
+	var l models.Locker
+	err = tx.QueryRow(`
+		SELECT id_locker, locker_number FROM LOCKER
+		WHERE id_locker NOT IN (SELECT id_locker FROM ANNOUNCEMENT_LOCKER)
+		ORDER BY locker_number ASC
+		LIMIT 1
+		FOR UPDATE`).Scan(&l.ID, &l.Number)
+	if err != nil {
+		return models.Locker{}, err
+	}
+
+	if _, err = tx.Exec(
+		"INSERT INTO ANNOUNCEMENT_LOCKER (id_announcement, id_locker) VALUES (?, ?)",
+		announcementID, l.ID,
+	); err != nil {
+		return models.Locker{}, err
+	}
+	if _, err = tx.Exec(
+		"UPDATE LOCKER SET access_code = ? WHERE id_locker = ?",
+		accessCode, l.ID,
+	); err != nil {
+		return models.Locker{}, err
+	}
+
+	return l, tx.Commit()
+}
+
 func AssignLocker(announcementID, lockerID, accessCode string) error {
 	_, err := config.Conn.Exec(
 		"INSERT INTO ANNOUNCEMENT_LOCKER (id_announcement, id_locker) VALUES (?, ?)",
@@ -168,6 +203,14 @@ func AssignLocker(announcementID, lockerID, accessCode string) error {
 	_, err = config.Conn.Exec(
 		"UPDATE LOCKER SET access_code = ? WHERE id_locker = ?",
 		accessCode, lockerID,
+	)
+	return err
+}
+
+func UnassignLocker(announcementID string) error {
+	_, err := config.Conn.Exec(
+		"DELETE FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?",
+		announcementID,
 	)
 	return err
 }

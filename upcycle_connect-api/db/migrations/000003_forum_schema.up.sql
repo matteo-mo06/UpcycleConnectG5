@@ -22,4 +22,4 @@ CREATE TABLE `user_topic` (
   KEY `fk_user_topic_topic` (`id_topic`),
   CONSTRAINT `fk_user_topic_topic` FOREIGN KEY (`id_topic`) REFERENCES `topic` (`id_topic`),
   CONSTRAINT `fk_user_topic_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);

@@ -12,4 +12,6 @@ type Event struct {
 	CreatorName       *string `json:"creator_name"`
 	InscriptionCount  int     `json:"inscription_count"`
 	IsRegistered      bool    `json:"is_registered"`
+	Status            string  `json:"status"`
+	RejectionReason   *string `json:"rejection_reason"`
 }

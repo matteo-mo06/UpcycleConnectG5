@@ -118,9 +118,31 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/locker/{id}", perm("manage_lockers", handlers.DeleteLocker))
 	http.Handle("PATCH /admin/locker/{id}/access-code", perm("manage_lockers", handlers.UpdateLockerAccessCode))
 
+	http.Handle("GET /user/my-events", perm("create_event", handlers.GetMyCreatedEvents))
+
 	http.Handle("GET /admin/events", admin(handlers.GetEvents))
 	http.Handle("GET /admin/event/{id}", admin(handlers.GetEventById))
-	http.Handle("POST /admin/events", admin(handlers.CreateEvent))
+	http.Handle("POST /admin/events", admin(handlers.CreateEventAdmin))
 	http.Handle("PUT /admin/event/{id}", admin(handlers.UpdateEvent))
 	http.Handle("DELETE /admin/event/{id}", admin(handlers.DeleteEvent))
+	http.Handle("PATCH /admin/event/{id}/approve", admin(handlers.ApproveEvent))
+	http.Handle("PATCH /admin/event/{id}/reject", admin(handlers.RejectEvent))
+
+	http.Handle("GET /formations", auth(handlers.GetFormations))
+	http.Handle("GET /formations/pending", perm("manage_formations", handlers.GetPendingFormations))
+	http.Handle("GET /formations/{id}", auth(handlers.GetFormationById))
+	http.Handle("POST /formations", perm("create_formation", handlers.CreateFormation))
+	http.Handle("PATCH /formations/{id}", auth(handlers.UpdateMyFormation))
+	http.Handle("DELETE /user/formation/{id}", auth(handlers.DeleteMyFormation))
+	http.Handle("PATCH /formations/{id}/approve", perm("manage_formations", handlers.ApproveFormation))
+	http.Handle("PATCH /formations/{id}/reject", perm("manage_formations", handlers.RejectFormation))
+	http.Handle("POST /user/formation/{id}/register", perm("register_formation", handlers.RegisterForFormation))
+	http.Handle("DELETE /user/formation/{id}/unregister", perm("register_formation", handlers.UnregisterFromFormation))
+	http.Handle("GET /user/formations", auth(handlers.GetUserFormations))
+	http.Handle("GET /user/my-formations", perm("create_formation", handlers.GetMyCreatedFormations))
+
+	http.Handle("GET /admin/formations", admin(handlers.GetAllFormationsAdmin))
+	http.Handle("GET /admin/formation/{id}", admin(handlers.GetFormationByIdAdmin))
+	http.Handle("PUT /admin/formation/{id}", admin(handlers.UpdateFormationAdmin))
+	http.Handle("DELETE /admin/formation/{id}", admin(handlers.DeleteFormationAdmin))
 }

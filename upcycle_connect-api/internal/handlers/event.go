@@ -61,7 +61,7 @@ func GetEventById(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(event)
 }
 
-func CreateEvent(w http.ResponseWriter, r *http.Request) {
+func createEvent(w http.ResponseWriter, r *http.Request, defaultStatus string) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
@@ -100,6 +100,7 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 	if e.Id_creator == nil && userID != "" {
 		e.Id_creator = &userID
 	}
+	e.Status = defaultStatus
 
 	err = db.CreateEvent(e)
 	if err != nil {
@@ -111,6 +112,44 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]any{"message": "event created successfully", "event": e})
+}
+
+func CreateEvent(w http.ResponseWriter, r *http.Request) {
+	createEvent(w, r, "pending")
+}
+
+func CreateEventAdmin(w http.ResponseWriter, r *http.Request) {
+	createEvent(w, r, "approved")
+}
+
+func ApproveEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	if err := db.ApproveEvent(id); err != nil {
+		fmt.Println("ApproveEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve event"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement approuvé"})
+}
+
+func RejectEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if err := db.RejectEvent(id, body.Reason); err != nil {
+		fmt.Println("RejectEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject event"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement rejeté"})
 }
 
 func UpdateEvent(w http.ResponseWriter, r *http.Request) {
@@ -267,6 +306,26 @@ func GetUserEvents(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(events)
 }
 
+func GetMyCreatedEvents(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	events, err := db.GetMyCreatedEvents(userID)
+	if err != nil {
+		fmt.Println("GetMyCreatedEvents error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch created events"})
+		return
+	}
+	if events == nil {
+		events = []models.Event{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(events)
+}
+
 func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -279,7 +338,7 @@ func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.GetEventById(id)
+	event, err := db.GetEventById(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			w.WriteHeader(http.StatusNotFound)
@@ -289,6 +348,12 @@ func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("RegisterForEvent error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find event"})
+		return
+	}
+
+	if event.Status != "approved" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cet événement n'est pas disponible"})
 		return
 	}
 

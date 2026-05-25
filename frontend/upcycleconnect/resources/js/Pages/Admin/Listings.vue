@@ -98,6 +98,7 @@
                         <option>En attente</option>
                         <option>Active</option>
                         <option>Expirée</option>
+                        <option>Refusée</option>
                         <option>Supprimée</option>
                     </select>
 
@@ -182,9 +183,9 @@
                                             <button
                                                 @click="approveAnnouncement(listing)"
                                                 title="Approuver"
-                                                class="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                                                class="p-1.5 rounded-lg text-gray-400 hover:text-secondary hover:bg-secondary/10 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
                                             </button>
                                             <button
@@ -192,7 +193,7 @@
                                                 title="Rejeter"
                                                 class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
                                             </button>
                                         </template>
@@ -364,6 +365,28 @@
             </div>
         </div>
 
+        <div v-if="rejectModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="rejectModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-1">Refuser l'annonce</h3>
+                <p class="text-sm text-gray-500 mb-4">« {{ rejectModal.listing?.title }} »</p>
+                <div class="mb-4">
+                    <label class="block text-xs text-gray-400 mb-1">Motif de refus (optionnel)</label>
+                    <textarea
+                        v-model="rejectModal.reason"
+                        rows="3"
+                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none"
+                        placeholder="Expliquez pourquoi cette annonce est refusée…" />
+                </div>
+                <div class="flex gap-3">
+                    <button @click="rejectModal.open = false" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
+                    <button @click="confirmRejectAnnouncement" :disabled="rejectModal.loading" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+                        {{ rejectModal.loading ? 'Refus…' : 'Refuser' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
@@ -524,6 +547,7 @@ const filterCategory = ref('')
 const filterStatus = ref('')
 const detailListing = ref(null)
 const toDelete = ref(null)
+const rejectModal = ref({ open: false, listing: null, reason: '', loading: false })
 const deleting = ref(false)
 const formModal = ref({ open: false, mode: 'create', id: null })
 const listingForm = ref({ title: '', type: 'don', idCategory: '', description: '', address: '', city: '', postal: '', availDate: '', price: 0, condition: '', state: 'Active' })
@@ -726,12 +750,21 @@ async function approveAnnouncement(listing) {
     }
 }
 
-async function rejectAnnouncement(listing) {
+function rejectAnnouncement(listing) {
+    rejectModal.value = { open: true, listing, reason: '', loading: false }
+}
+
+async function confirmRejectAnnouncement() {
+    if (!rejectModal.value.listing) return
+    rejectModal.value.loading = true
     try {
-        await api.patch(`/admin/announcement/${listing.id}/reject`)
+        await api.patch(`/admin/announcement/${rejectModal.value.listing.id}/reject`, { reason: rejectModal.value.reason })
+        rejectModal.value.open = false
         await fetchListings()
     } catch {
         alert('Erreur lors du rejet.')
+    } finally {
+        rejectModal.value.loading = false
     }
 }
 
@@ -741,12 +774,12 @@ function typeBadge(type) {
 }
 
 function statusDot(status) {
-    const map = { 'Active': 'bg-green-500', 'En attente': 'bg-orange-400', 'Expirée': 'bg-gray-400', 'Supprimée': 'bg-red-400' }
+    const map = { 'Active': 'bg-green-500', 'En attente': 'bg-orange-400', 'Expirée': 'bg-gray-400', 'Supprimée': 'bg-gray-400', 'Refusée': 'bg-red-400' }
     return map[status] ?? 'bg-gray-300'
 }
 
 function statusText(status) {
-    const map = { 'Active': 'text-green-700', 'En attente': 'text-orange-600', 'Expirée': 'text-gray-500', 'Supprimée': 'text-red-600' }
+    const map = { 'Active': 'text-green-700', 'En attente': 'text-orange-600', 'Expirée': 'text-gray-500', 'Supprimée': 'text-gray-500', 'Refusée': 'text-red-600' }
     return map[status] ?? 'text-gray-500'
 }
 </script>
