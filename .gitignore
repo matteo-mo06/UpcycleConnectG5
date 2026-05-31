@@ -1,3 +1,4 @@
+.env
 upcycle_connect-api/.env
 upcycle_connect-api/tmp/
 node_modules/
@@ -14,3 +15,4 @@ frontend/upcycleconnect/dist/
 .nova
 .vscode
 .zed
+secrets/
