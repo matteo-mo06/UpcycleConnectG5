@@ -28,7 +28,7 @@ func GenerateToken(userID string, roles []string, permissions []string) (string,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(config.JWTSecret))
+	return token.SignedString(config.JWTSecret())
 }
 
 func ParseToken(tokenString string) (*Claims, error) {
@@ -36,7 +36,7 @@ func ParseToken(tokenString string) (*Claims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("algorithme de signature inattendu: %v", token.Header["alg"])
 		}
-		return []byte(config.JWTSecret), nil
+		return config.JWTSecret(), nil
 	})
 	if err != nil {
 		return nil, err
