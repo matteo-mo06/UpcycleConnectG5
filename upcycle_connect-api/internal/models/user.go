@@ -10,6 +10,7 @@ type User struct {
 	Premium         int    `json:"premium"`
 	Status          string `json:"status"`
 	Created_at      string `json:"created_at"`
+	Profile         string `json:"profile"`
 }
 
 type UserResponse struct {

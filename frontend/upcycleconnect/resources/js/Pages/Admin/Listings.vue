@@ -97,8 +97,9 @@
                         <option value="">Tous les statuts</option>
                         <option>En attente</option>
                         <option>Active</option>
-                        <option>Expirée</option>
+                        <option>Vendu</option>
                         <option>Refusée</option>
+                        <option>Expirée</option>
                         <option>Supprimée</option>
                     </select>
 
@@ -501,7 +502,10 @@
                             <select
                                 v-model="listingForm.state"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
+                                <option value="En attente">En attente</option>
                                 <option value="Active">Active</option>
+                                <option value="Refusée">Refusée</option>
+                                <option value="Vendu">Vendu</option>
                                 <option value="Expirée">Expirée</option>
                                 <option value="Supprimée">Supprimée</option>
                             </select>

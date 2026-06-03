@@ -90,7 +90,7 @@
                             </template>
 
                             <button
-                                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 0"
+                                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 0 && !a.locker_number"
                                 @click.stop="requestDeposit(a)"
                                 class="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Déposer l'objet dans un casier"
@@ -186,7 +186,7 @@
                     <p class="leading-relaxed">{{ selected.description }}</p>
                     <div class="grid grid-cols-2 gap-4 text-xs text-gray-500">
                         <div><span class="font-medium text-gray-700">Ville :</span> {{ selected.city }}</div>
-                        <div><span class="font-medium text-gray-700">Prix :</span> {{ selected.price ? selected.price + ' €' : 'Gratuit' }}</div>
+                        <div><span class="font-medium text-gray-700">Prix :</span> {{ selected.price ? Number(selected.price).toFixed(2) + ' €' : 'Gratuit' }}</div>
                         <div><span class="font-medium text-gray-700">Disponible :</span> {{ formatDate(selected.availability_date) }}</div>
                         <div><span class="font-medium text-gray-700">Par :</span> {{ selected.author_name || 'Inconnu' }}</div>
                     </div>

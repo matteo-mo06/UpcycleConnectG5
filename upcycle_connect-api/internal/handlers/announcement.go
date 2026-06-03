@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -417,6 +418,11 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.ClaimAnnouncement(id, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce a déjà été acquise"})
+			return
+		}
 		fmt.Println("ClaimAnnouncement error:", err)
 		http.Error(w, "erreur serveur", http.StatusInternalServerError)
 		return

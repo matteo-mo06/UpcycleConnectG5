@@ -232,6 +232,14 @@ func UpdateLockerAccessCode(id, code string) error {
 	return err
 }
 
+func IsLockerAssigned(announcementID string) (bool, error) {
+	var count int
+	err := config.Conn.QueryRow(
+		"SELECT COUNT(*) FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?", announcementID,
+	).Scan(&count)
+	return count > 0, err
+}
+
 func SetDepositRequest(announcementID string, value int) error {
 	_, err := config.Conn.Exec(
 		"UPDATE ANNOUNCEMENT SET request = ? WHERE id_announcement = ?",

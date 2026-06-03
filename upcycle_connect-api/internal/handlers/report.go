@@ -9,7 +9,6 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
-	"upcycle_connect-api/internal/sse"
 )
 
 func SubmitReport(w http.ResponseWriter, r *http.Request) {
@@ -241,13 +240,6 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 	if msg == "" {
 		msg = defaultMessages[body.Type]
 	}
-	ssePayload, _ := json.Marshal(map[string]string{
-		"type":          "sanction",
-		"sanction_type": body.Type,
-		"message":       msg,
-	})
-	sse.Default.Notify(userID, string(ssePayload))
-
 	if body.Type == "ban" {
 		if err := db.UpdateUserStatus(userID, "blacklisted"); err != nil {
 			fmt.Println("CreateSanction ban UpdateUserStatus error:", err)

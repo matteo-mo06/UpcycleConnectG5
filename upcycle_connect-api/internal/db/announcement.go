@@ -264,11 +264,21 @@ func CreateUserAnnouncement(a models.Announcement, userID string, photoURLs []st
 }
 
 func ClaimAnnouncement(announcementID, userID string) error {
-	_, err := config.Conn.Exec(
+	result, err := config.Conn.Exec(
 		"UPDATE ANNOUNCEMENT SET id_buyer = ?, state_annoucement = 'Vendu' WHERE id_announcement = ? AND id_buyer IS NULL",
 		userID, announcementID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
@@ -307,6 +317,10 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 }
 
 func UpdateAnnouncement(a models.Announcement) error {
+	var idCategory interface{}
+	if a.Id_category != "" {
+		idCategory = a.Id_category
+	}
 	_, err := config.Conn.Exec(`
 		UPDATE ANNOUNCEMENT SET
 			id_category = ?, title_announcement = ?, address_annoucement = ?,
@@ -314,7 +328,7 @@ func UpdateAnnouncement(a models.Announcement) error {
 			availability_date = ?, price = ?, request = ?, state_annoucement = ?,
 			type_announcement = ?, condition_announcement = ?
 		WHERE id_announcement = ?`,
-		a.Id_category, a.Title_announcement, a.Address_annoucement,
+		idCategory, a.Title_announcement, a.Address_annoucement,
 		a.City, a.Postal, a.Description_annoucement,
 		a.Availability_date, a.Price, a.Request, a.State_annoucement,
 		a.TypeAnnouncement, a.ConditionAnnouncement,
