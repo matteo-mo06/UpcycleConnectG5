@@ -21,7 +21,7 @@ func GetFormations(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	page, limit, offset := parsePage(r, 15)
 
-	formations, total, err := db.GetFormations(userID, limit, offset)
+	formations, total, err := db.GetFormations(userID, r.URL.Query().Get("search"), r.URL.Query().Get("level"), r.URL.Query().Get("id_category"), limit, offset)
 	if err != nil {
 		fmt.Println("GetFormations error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -316,7 +316,7 @@ func RejectFormation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.RejectFormationRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	json.NewDecoder(r.Body).Decode(&req)
 
 	if err := db.RejectFormation(id, req.Reason); err != nil {
 		fmt.Println("RejectFormation error:", err)

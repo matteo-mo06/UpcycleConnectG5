@@ -12,7 +12,7 @@ func GetUserById(id string) (models.User, error) {
 	err := config.Conn.QueryRow(`
 		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at
 		FROM USER
-		WHERE id_user = ?`, id,
+		WHERE id_user = ? AND deleted_at IS NULL`, id,
 	).Scan(
 		&user.Id_user,
 		&user.Email,
@@ -31,7 +31,7 @@ func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.U
 	query := `
 		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at
 		FROM USER
-		WHERE 1=1`
+		WHERE deleted_at IS NULL`
 	var args []any
 
 	if firstName != "" {
@@ -73,7 +73,7 @@ func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.U
 }
 
 func GetAllUsersWithRoles(search, status, role string, limit, offset int) ([]models.UserListItem, int, error) {
-	where := `WHERE 1=1`
+	where := `WHERE u.deleted_at IS NULL`
 	var args []any
 
 	if search != "" {
@@ -186,93 +186,16 @@ func UpdateUserStatus(id string, status string) error {
 }
 
 func DeleteUser(id string) error {
-	// 1. Récupère les annonces du vendeur avant toute suppression
-	rows, err := config.Conn.Query("SELECT id_announcement FROM USER_ANNOUNCEMENT WHERE id_user = ?", id)
-	if err != nil {
-		return err
-	}
-	var announcementIDs []string
-	for rows.Next() {
-		var aid string
-		if err := rows.Scan(&aid); err != nil {
-			rows.Close()
-			return err
-		}
-		announcementIDs = append(announcementIDs, aid)
-	}
-	rows.Close()
-
-	// 2. Nullifie les FK nullable qui pointent vers cet utilisateur
-	nullifies := []string{
-		"UPDATE EVENT        SET id_creator       = NULL WHERE id_creator       = ?",
-		"UPDATE PROJECT      SET id_creator       = NULL WHERE id_creator       = ?",
-		"UPDATE FORMATION    SET id_creator       = NULL WHERE id_creator       = ?",
-		"UPDATE FORMATION    SET id_formateur     = NULL WHERE id_formateur     = ?",
-		"UPDATE REPORT       SET id_reported_user = NULL WHERE id_reported_user = ?",
-		"UPDATE REPORT       SET resolved_by      = NULL WHERE resolved_by      = ?",
-		"UPDATE ANNOUNCEMENT SET id_buyer         = NULL WHERE id_buyer         = ?",
-	}
-	for _, q := range nullifies {
-		if _, err := config.Conn.Exec(q, id); err != nil {
-			return err
-		}
-	}
-
-	// 3. Libère les casiers et supprime les annonces du vendeur
-	for _, aid := range announcementIDs {
-		for _, q := range []string{
-			"UPDATE REPORT SET id_announcement = NULL WHERE id_announcement = ?",
-			"DELETE FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?",
-		} {
-			if _, err := config.Conn.Exec(q, aid); err != nil {
-				return err
-			}
-		}
-	}
-	if _, err := config.Conn.Exec("DELETE FROM USER_ANNOUNCEMENT WHERE id_user = ?", id); err != nil {
-		return err
-	}
-	for _, aid := range announcementIDs {
-		if _, err := config.Conn.Exec("DELETE FROM ANNOUNCEMENT WHERE id_announcement = ?", aid); err != nil {
-			return err
-		}
-	}
-
-	// 4. Supprime les sanctions (doit précéder la suppression des REPORT)
-	for _, q := range []string{
-		"DELETE FROM USER_SANCTIONS WHERE id_user  = ?",
-		"DELETE FROM USER_SANCTIONS WHERE id_admin = ?",
-	} {
-		if _, err := config.Conn.Exec(q, id); err != nil {
-			return err
-		}
-	}
-
-	// 5. Supprime les autres tables liées à l'utilisateur
-	tables := []string{
-		"PROFESSIONAL_REQUEST",
-		"DOCUMENT",
-		"REPORT",
-		"USER_ROLE",
-		"USER_ADVICE",
-		"USER_TOPIC",
-		"USER_PROJECT_INSCRIPTION",
-		"USER_PROJECT_UPDOWN",
-		"USER_FORMATION_INSCRIPTION",
-		"USER_FORMATION_INSCRIPTION_PAYEMENT",
-		"USER_EVENT_INSCRIPTION",
-		"USER_TICKET",
-		"USER_NOTIFICATION",
-		"USER_PAYEMENT",
-		"USER_SUBSCRIPTION",
-	}
-	for _, table := range tables {
-		if _, err := config.Conn.Exec("DELETE FROM "+table+" WHERE id_user = ?", id); err != nil {
-			return err
-		}
-	}
-
-	_, err = config.Conn.Exec("DELETE FROM USER WHERE id_user = ?", id)
+	// Anonymise les données personnelles et marque le compte comme supprimé.
+	// Les annonces, événements, formations et historiques restent pour la traçabilité.
+	_, err := config.Conn.Exec(`
+		UPDATE USER SET
+			email          = CONCAT('deleted_', id_user, '@deleted.invalid'),
+			password_user  = '',
+			first_name     = 'Utilisateur',
+			last_name      = 'supprimé',
+			deleted_at     = NOW()
+		WHERE id_user = ?`, id)
 	return err
 }
 
@@ -310,7 +233,7 @@ func GetUserByEmail(email string) (models.User, error) {
 	err := config.Conn.QueryRow(`
 		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at
 		FROM USER
-		WHERE email = ?`, email,
+		WHERE email = ? AND deleted_at IS NULL`, email,
 	).Scan(
 		&user.Id_user,
 		&user.Email,

@@ -22,6 +22,8 @@ func perm(permission string, h http.HandlerFunc) http.Handler {
 func InitRoutes() {
 	http.HandleFunc("GET /{$}", handlers.HealthCheck)
 
+	http.Handle("GET /categories", auth(handlers.GetCategories))
+
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
 

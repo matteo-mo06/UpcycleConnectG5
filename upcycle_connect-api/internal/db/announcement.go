@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -15,17 +13,17 @@ const announcementSelect = `SELECT a.id_announcement, a.id_category, a.title_ann
 	a.description_annoucement, a.availability_date, a.price, a.request, a.state_annoucement, a.rejection_reason,
 	u.id_user, u.first_name, u.last_name, a.type_announcement, a.condition_announcement,
 	(SELECT d.link FROM DOCUMENT d WHERE d.category = a.id_announcement ORDER BY d.id_document LIMIT 1) AS first_photo,
-	a.created_at `
+	a.created_at, a.deleted_at `
 
 func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement, error) {
 	var a models.Announcement
-	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt, rejReason sql.NullString
+	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt, deletedAt, rejReason sql.NullString
 	err := row.Scan(
 		&a.Id_announcement, &idCat, &a.Title_announcement,
 		&a.Address_annoucement, &a.City, &a.Postal,
 		&a.Description_annoucement, &a.Availability_date, &a.Price,
 		&a.Request, &a.State_annoucement, &rejReason,
-		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto, &createdAt,
+		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto, &createdAt, &deletedAt,
 	)
 	if err != nil {
 		return a, err
@@ -37,6 +35,7 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 	a.ConditionAnnouncement = cond.String
 	a.FirstPhoto = firstPhoto.String
 	a.CreatedAt = createdAt.String
+	a.DeletedAt = deletedAt.String
 	if rejReason.Valid && rejReason.String != "" {
 		a.RejectionReason = &rejReason.String
 	}
@@ -44,8 +43,16 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 }
 
 func GetAllAnnouncements(idCategory, search, filterType, filterStatus string, request, limit, offset int) ([]models.Announcement, int, error) {
-	where := `WHERE 1=1`
+	var where string
 	var args []any
+
+	where = `WHERE a.deleted_at IS NULL`
+	if filterStatus == "Supprimée" {
+		where = `WHERE a.deleted_at IS NOT NULL`
+	} else if filterStatus != "" {
+		where += " AND a.state_annoucement = ?"
+		args = append(args, filterStatus)
+	}
 
 	if idCategory != "" {
 		where += " AND a.id_category = ?"
@@ -62,10 +69,6 @@ func GetAllAnnouncements(idCategory, search, filterType, filterStatus string, re
 	if filterType != "" {
 		where += " AND a.type_announcement = ?"
 		args = append(args, filterType)
-	}
-	if filterStatus != "" {
-		where += " AND a.state_annoucement = ?"
-		args = append(args, filterStatus)
 	}
 
 	var total int
@@ -100,7 +103,7 @@ func GetAllAnnouncements(idCategory, search, filterType, filterStatus string, re
 	return list, total, nil
 }
 
-func GetPublicAnnouncements(search, idCategory string, limit, offset int) ([]models.Announcement, int, error) {
+func GetPublicAnnouncements(search, idCategory, filterType string, limit, offset int) ([]models.Announcement, int, error) {
 	where := `WHERE a.state_annoucement = 'Active' AND a.request = 0 AND a.deleted_at IS NULL`
 	var args []any
 
@@ -111,6 +114,10 @@ func GetPublicAnnouncements(search, idCategory string, limit, offset int) ([]mod
 	if idCategory != "" {
 		where += " AND a.id_category = ?"
 		args = append(args, idCategory)
+	}
+	if filterType != "" {
+		where += " AND a.type_announcement = ?"
+		args = append(args, filterType)
 	}
 
 	var total int
@@ -147,7 +154,7 @@ func GetUserAnnouncements(userID string) ([]models.Announcement, error) {
 	rows, err := config.Conn.Query(announcementSelect+`FROM ANNOUNCEMENT a
 		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		JOIN USER u ON u.id_user = ua.id_user
-		WHERE ua.id_user = ?
+		WHERE ua.id_user = ? AND a.deleted_at IS NULL
 		ORDER BY a.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -187,15 +194,15 @@ func IsAnnouncementOwner(announcementID, userID string) (bool, error) {
 
 func GetAnnouncementStats() (models.AnnouncementStats, error) {
 	var s models.AnnouncementStats
-	err := config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT").Scan(&s.Total)
+	err := config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE deleted_at IS NULL").Scan(&s.Total)
 	if err != nil {
 		return s, err
 	}
-	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE state_annoucement = 'Active' OR state_annoucement IS NULL").Scan(&s.Active)
+	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE deleted_at IS NULL AND (state_annoucement = 'Active' OR state_annoucement IS NULL)").Scan(&s.Active)
 	if err != nil {
 		return s, err
 	}
-	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE state_annoucement = 'En attente'").Scan(&s.Pending)
+	err = config.Conn.QueryRow("SELECT COUNT(*) FROM ANNOUNCEMENT WHERE deleted_at IS NULL AND state_annoucement = 'En attente'").Scan(&s.Pending)
 	if err != nil {
 		return s, err
 	}
@@ -285,7 +292,7 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 	rows, err := config.Conn.Query(announcementSelect+`FROM ANNOUNCEMENT a
 		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		LEFT JOIN USER u ON u.id_user = ua.id_user
-		WHERE a.id_buyer = ?
+		WHERE a.id_buyer = ? AND a.deleted_at IS NULL
 		ORDER BY a.created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -347,41 +354,9 @@ func GetAnnouncementOwnerID(announcementID string) (string, error) {
 }
 
 func DeleteAnnouncement(id string) error {
-	rows, err := config.Conn.Query("SELECT link FROM DOCUMENT WHERE category = ? AND link != ''", id)
-	if err != nil {
-		return err
-	}
-	var links []string
-	for rows.Next() {
-		var link string
-		if err := rows.Scan(&link); err == nil {
-			links = append(links, link)
-		}
-	}
-	rows.Close()
-
-	for _, q := range []string{
-		"DELETE FROM REPORT WHERE id_announcement = ?",
-		"DELETE FROM USER_ANNOUNCEMENT WHERE id_announcement = ?",
-		"DELETE FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?",
-		"DELETE FROM DOCUMENT WHERE category = ?",
-	} {
-		if _, err := config.Conn.Exec(q, id); err != nil {
-			return err
-		}
-	}
-	_, err = config.Conn.Exec("DELETE FROM ANNOUNCEMENT WHERE id_announcement = ?", id)
-	if err != nil {
-		return err
-	}
-
-	uploadsDir := os.Getenv("UPLOADS_DIR")
-	if uploadsDir == "" {
-		uploadsDir = "./uploads"
-	}
-	for _, link := range links {
-		filename := filepath.Base(link)
-		os.Remove(filepath.Join(uploadsDir, filename))
-	}
-	return nil
+	_, err := config.Conn.Exec(
+		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Supprimée', deleted_at = NOW() WHERE id_announcement = ?",
+		id,
+	)
+	return err
 }

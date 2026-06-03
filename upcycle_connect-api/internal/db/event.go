@@ -8,7 +8,7 @@ import (
 )
 
 func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int, error) {
-	where := `WHERE 1=1`
+	where := `WHERE event.deleted_at IS NULL`
 	var args []any
 
 	if search != "" {
@@ -84,7 +84,7 @@ func GetEventById(id string) (models.Event, error) {
 	err := config.Conn.QueryRow(`
 		SELECT id_event, title_event, description_event, date_event, location_event,
 		       capacity, price_cents, id_creator, status, rejection_reason
-		FROM EVENT WHERE id_event = ?`, id,
+		FROM EVENT WHERE id_event = ? AND deleted_at IS NULL`, id,
 	).Scan(
 		&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
 		&e.Capacity, &e.Price_cents, &e.Id_creator, &e.Status, &rejReason,
@@ -145,11 +145,34 @@ func RejectEvent(id, reason string) error {
 	return err
 }
 
-func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, int, error) {
+func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([]models.Event, int, error) {
+	where := `WHERE event.status = 'approved' AND event.deleted_at IS NULL`
+	var args []any
+	args = append(args, userID)
+
+	if search != "" {
+		where += " AND event.title_event LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	switch status {
+	case "upcoming":
+		where += " AND event.date_event > NOW()"
+	case "registered":
+		where += " AND EXISTS (SELECT 1 FROM USER_EVENT_INSCRIPTION reg WHERE reg.id_user = ? AND reg.id_event = event.id_event)"
+		args = append(args, userID)
+	}
+
+	countWhere := where
+	countArgs := make([]any, len(args)-1)
+	copy(countArgs, args[1:])
 	var total int
-	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM EVENT WHERE status = 'approved'").Scan(&total); err != nil {
+	if err := config.Conn.QueryRow("SELECT COUNT(DISTINCT event.id_event) FROM EVENT event "+countWhere, countArgs...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := config.Conn.Query(`
 		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
@@ -161,11 +184,11 @@ func GetPublicEventsForUser(userID string, limit, offset int) ([]models.Event, i
 		FROM EVENT event
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
-		WHERE event.status = 'approved'
+		`+where+`
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status
 		ORDER BY event.date_event ASC
-		LIMIT ? OFFSET ?`, userID, limit, offset)
+		LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -197,7 +220,7 @@ func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 		FROM EVENT event
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
-		WHERE event.id_creator = ?
+		WHERE event.id_creator = ? AND event.deleted_at IS NULL
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
 		ORDER BY event.date_event DESC`, userID)
@@ -237,7 +260,7 @@ func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		WHERE EXISTS (
 			SELECT 1 FROM USER_EVENT_INSCRIPTION WHERE id_user = ? AND id_event = event.id_event
-		)
+		) AND event.deleted_at IS NULL
 		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
 		         event.capacity, event.price_cents, event.id_creator
 		ORDER BY event.date_event ASC`, userID)
@@ -280,14 +303,6 @@ func UnregisterUserFromEvent(userID, eventID string) error {
 }
 
 func DeleteEvent(id string) error {
-	_, err := config.Conn.Exec("DELETE FROM USER_EVENT_INSCRIPTION WHERE id_event = ?", id)
-	if err != nil {
-		return err
-	}
-	_, err = config.Conn.Exec("DELETE FROM PAYEMENT_EVENT WHERE id_event = ?", id)
-	if err != nil {
-		return err
-	}
-	_, err = config.Conn.Exec("DELETE FROM EVENT WHERE id_event = ?", id)
+	_, err := config.Conn.Exec("UPDATE EVENT SET deleted_at = NOW() WHERE id_event = ?", id)
 	return err
 }

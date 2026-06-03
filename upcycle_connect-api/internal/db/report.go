@@ -38,7 +38,7 @@ func GetReportByID(id string) (models.Report, error) {
 	return r, err
 }
 
-func GetReports(status, search string, limit, offset int) ([]models.Report, int, error) {
+func GetReports(status, search, contentType string, limit, offset int) ([]models.Report, int, error) {
 	where := `WHERE 1=1`
 	var args []any
 	if status != "" {
@@ -48,6 +48,14 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 	if search != "" {
 		where += " AND (TRIM(CONCAT(COALESCE(rep.first_name,''), ' ', COALESCE(rep.last_name,''))) LIKE ? OR COALESCE(a.title_announcement,'') LIKE ?)"
 		args = append(args, "%"+search+"%", "%"+search+"%")
+	}
+	switch contentType {
+	case "announcement":
+		where += " AND r.id_announcement IS NOT NULL"
+	case "topic":
+		where += " AND r.id_topic IS NOT NULL"
+	case "post":
+		where += " AND r.id_post IS NOT NULL"
 	}
 
 	var total int

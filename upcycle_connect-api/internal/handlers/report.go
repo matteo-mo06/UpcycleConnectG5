@@ -98,7 +98,7 @@ func GetAdminReports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 20)
-	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), limit, offset)
+	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), r.URL.Query().Get("content_type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetAdminReports error:", err)
 		w.WriteHeader(http.StatusInternalServerError)

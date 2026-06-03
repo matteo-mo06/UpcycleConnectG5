@@ -20,7 +20,7 @@ func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 12)
-	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), limit, offset)
+	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), r.URL.Query().Get("type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)

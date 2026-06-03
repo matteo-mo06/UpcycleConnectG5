@@ -9,7 +9,13 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
-func GetAllLockers() ([]models.Locker, error) {
+func GetAllLockers(status string) ([]models.Locker, error) {
+	where := ""
+	if status == "free" {
+		where = "WHERE al.id_locker IS NULL "
+	} else if status == "occupied" {
+		where = "WHERE al.id_locker IS NOT NULL "
+	}
 	rows, err := config.Conn.Query(`
 		SELECT l.id_locker, l.locker_number, l.access_code,
 		       al.id_announcement IS NOT NULL AS occupied,
@@ -22,7 +28,7 @@ func GetAllLockers() ([]models.Locker, error) {
 		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		LEFT JOIN USER seller ON seller.id_user = ua.id_user
 		LEFT JOIN USER buyer ON buyer.id_user = a.id_buyer
-		ORDER BY l.locker_number ASC`)
+		`+where+`ORDER BY l.locker_number ASC`)
 	if err != nil {
 		return nil, err
 	}

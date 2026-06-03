@@ -14,7 +14,7 @@ var accessCodeRe = regexp.MustCompile(`^\d{8}$`)
 
 func GetLockers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	list, err := db.GetAllLockers()
+	list, err := db.GetAllLockers(r.URL.Query().Get("status"))
 	if err != nil {
 		fmt.Println("GetLockers error:", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -273,7 +273,7 @@ func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	page, limit, offset := parsePage(r, 15)
 
-	events, total, err := db.GetPublicEventsForUser(userID, limit, offset)
+	events, total, err := db.GetPublicEventsForUser(userID, r.URL.Query().Get("search"), r.URL.Query().Get("status"), limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicEventsForUser error:", err)
 		w.WriteHeader(http.StatusInternalServerError)

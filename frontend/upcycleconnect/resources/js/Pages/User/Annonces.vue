@@ -28,18 +28,29 @@
                 >{{ tab.label }}</button>
             </div>
 
-            <div v-if="activeTab === 'all'" class="relative flex-1">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-                </svg>
-                <input
-                    v-model="search"
-                    @input="debouncedFetch"
-                    type="text"
-                    placeholder="Rechercher une annonce…"
-                    class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                />
-            </div>
+            <template v-if="activeTab === 'all'">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="debouncedFetch"
+                        type="text"
+                        placeholder="Rechercher une annonce…"
+                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                    />
+                </div>
+                <select v-model="filterType" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
+                    <option value="">Tous les types</option>
+                    <option value="vente">Vente</option>
+                    <option value="don">Don</option>
+                </select>
+                <select v-model="filterCategory" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
+                    <option value="">Toutes les catégories</option>
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+            </template>
         </div>
 
         <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
@@ -121,7 +132,7 @@
                             </button>
 
                             <button
-                                v-if="activeTab === 'all' && a.author_name !== fullName(auth.user)"
+                                v-if="activeTab === 'all' && a.author_id !== auth.user?.id"
                                 @click.stop="claimAnnouncement(a)"
                                 class="px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary-dark transition-colors"
                             >
@@ -129,7 +140,7 @@
                             </button>
 
                             <button
-                                v-if="activeTab === 'all' && a.author_name !== fullName(auth.user)"
+                                v-if="activeTab === 'all' && a.author_id !== auth.user?.id"
                                 @click.stop="openReport(a)"
                                 class="px-3 py-1 border border-gray-200 text-gray-500 text-xs font-medium rounded-lg hover:border-red-300 hover:text-red-500 transition-colors"
                             >
@@ -195,7 +206,7 @@
                         <p class="text-sm text-red-700">{{ selected.rejection_reason }}</p>
                     </div>
 
-                    <div v-if="activeTab === 'all' && selected.author_name !== fullName(auth.user)" class="pt-2 flex justify-end">
+                    <div v-if="activeTab === 'all' && selected.author_id !== auth.user?.id" class="pt-2 flex justify-end">
                         <button @click="openReport(selected)" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Signaler ce contenu</button>
                     </div>
 
@@ -234,7 +245,7 @@ import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import ReportModal from '@/Components/ReportModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
-import { formatDate, conditionLabel, fullName } from '@/utils.js'
+import { formatDate, conditionLabel } from '@/utils.js'
 import JsBarcode from 'jsbarcode'
 
 const auth = useAuthStore()
@@ -243,6 +254,9 @@ const router = useRouter()
 const announcements = ref([])
 const loading = ref(true)
 const search = ref('')
+const filterType = ref('')
+const filterCategory = ref('')
+const categories = ref([])
 const page = ref(1)
 const total = ref(0)
 const showDepot = ref(false)
@@ -275,9 +289,16 @@ function changePage(p) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+function resetAndFetch() {
+    page.value = 1
+    fetchAnnouncements()
+}
+
 function switchTab(tab) {
     activeTab.value = tab
     search.value = ''
+    filterType.value = ''
+    filterCategory.value = ''
     page.value = 1
     router.replace({ query: { tab } })
     fetchAnnouncements()
@@ -297,6 +318,8 @@ async function fetchAnnouncements() {
         } else {
             const params = { page: page.value, limit: 12 }
             if (search.value) params.search = search.value
+            if (filterType.value) params.type = filterType.value
+            if (filterCategory.value) params.id_category = filterCategory.value
             const { data } = await api.get('/announcements', { params })
             announcements.value = data.data ?? []
             total.value = data.total ?? 0
@@ -396,12 +419,18 @@ watch(() => selected.value?.access_code, (code) => {
 })
 
 function onCreated() {
-    if (activeTab.value === 'mine') fetchAnnouncements()
-    else fetchAnnouncements()
+    switchTab('mine')
 }
 
 
 watch(page, () => { if (activeTab.value === 'all') fetchAnnouncements() })
 
-onMounted(fetchAnnouncements)
+async function fetchCategories() {
+    try {
+        const { data } = await api.get('/categories')
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch {}
+}
+
+onMounted(() => { fetchAnnouncements(); fetchCategories() })
 </script>

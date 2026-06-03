@@ -90,7 +90,7 @@
 
         <div v-else class="grid grid-cols-3 gap-5">
             <div
-                v-for="project in filteredProjects"
+                v-for="project in projects"
                 :key="project.id"
                 class="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer"
                 @click="openDetail(project)"
@@ -195,7 +195,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import api from "@/api.js";
 
@@ -204,16 +204,6 @@ const search = ref("");
 const filterStatus = ref("");
 const selected = ref(null);
 
-const filteredProjects = computed(() => {
-    return projects.value.filter((p) => {
-        const matchSearch =
-            !search.value ||
-            p.title.toLowerCase().includes(search.value.toLowerCase());
-        const matchStatus =
-            !filterStatus.value || p.status === filterStatus.value;
-        return matchSearch && matchStatus;
-    });
-});
 
 function statusLabel(status) {
     return (

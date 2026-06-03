@@ -78,21 +78,24 @@
 
                     <select
                         v-model="filterType"
+                        @change="resetAndFetch"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les types</option>
-                        <option>Don</option>
-                        <option>Vente</option>
+                        <option value="don">Don</option>
+                        <option value="vente">Vente</option>
                     </select>
 
                     <select
                         v-model="filterCategory"
+                        @change="resetAndFetch"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Toutes les catégories</option>
-                        <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                     </select>
 
                     <select
                         v-model="filterStatus"
+                        @change="resetAndFetch"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les statuts</option>
                         <option>En attente</option>
@@ -125,13 +128,13 @@
                                 <th class="text-left text-white font-medium px-5 py-3">Type</th>
                                 <th class="text-left text-white font-medium px-5 py-3">Catégorie</th>
                                 <th class="text-left text-white font-medium px-5 py-3">Statut</th>
-                                <th class="text-left text-white font-medium px-5 py-3">Date</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Dates</th>
                                 <th class="text-right text-white font-medium px-5 py-3">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr
-                                v-for="(listing, i) in filteredListings"
+                                v-for="(listing, i) in listings"
                                 :key="listing.id"
                                 :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']">
                                 <td class="px-5 py-3">
@@ -167,7 +170,10 @@
                                     </span>
                                 </td>
 
-                                <td class="px-5 py-3 text-gray-500 text-xs">{{ listing.date }}</td>
+                                <td class="px-5 py-3 text-xs">
+                                    <p class="text-gray-500">Créé le {{ listing.createdAt }}</p>
+                                    <p v-if="listing.deletedAt" class="text-red-400 mt-0.5">Supprimé le {{ listing.deletedAt }}</p>
+                                </td>
 
                                 <td class="px-5 py-3">
                                     <div class="flex items-center justify-end gap-1">
@@ -233,7 +239,7 @@
                                 </td>
                             </tr>
 
-                            <tr v-if="filteredListings.length === 0">
+                            <tr v-if="listings.length === 0">
                                 <td colspan="6" class="px-5 py-12 text-center text-gray-400 text-sm">
                                     Aucune annonce ne correspond à vos filtres.
                                 </td>
@@ -293,8 +299,12 @@
                             </span>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-0.5">Date de publication</p>
-                            <p class="text-gray-700">{{ detailListing.date }}</p>
+                            <p class="text-xs text-gray-400 mb-0.5">Date de création</p>
+                            <p class="text-gray-700">{{ detailListing.createdAt }}</p>
+                            <template v-if="detailListing.deletedAt">
+                                <p class="text-xs text-gray-400 mb-0.5 mt-2">Date de suppression</p>
+                                <p class="text-red-500">{{ detailListing.deletedAt }}</p>
+                            </template>
                         </div>
                     </div>
 
@@ -597,15 +607,10 @@ const stats = computed(() => [
 
 const recentListings = computed(() => listings.value.slice(0, 3))
 
-const filteredListings = computed(() => {
-    const filtered = listings.value.filter(l => {
-        if (filterType.value && l.type !== filterType.value) return false
-        if (filterCategory.value && l.category !== filterCategory.value) return false
-        if (filterStatus.value && l.status !== filterStatus.value) return false
-        return true
-    })
-    return [...filtered].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))
-})
+function resetAndFetch() {
+    page.value = 1
+    fetchListings()
+}
 
 function changePage(p) { page.value = p }
 
@@ -613,6 +618,9 @@ async function fetchListings() {
     try {
         const params = { page: page.value, limit: 20 }
         if (search.value) params.search = search.value
+        if (filterType.value) params.type = filterType.value
+        if (filterStatus.value) params.status = filterStatus.value
+        if (filterCategory.value) params.id_category = filterCategory.value
         const { data: announcementsData } = await api.get('/admin/announcements', { params })
         const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
         listings.value = announcementsData.data.map(a => ({
@@ -624,6 +632,8 @@ async function fetchListings() {
             status: a.state ?? 'Active',
             featured: false,
             date: a.availability_date?.slice(0, 10) ?? '-',
+            createdAt: a.created_at?.slice(0, 10) ?? '-',
+            deletedAt: a.deleted_at ? a.deleted_at.slice(0, 16).replace('T', ' ') : null,
             description: a.description ?? '-',
             tags: [],
             idCategory: a.id_category ?? '',
