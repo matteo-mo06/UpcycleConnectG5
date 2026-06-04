@@ -255,39 +255,38 @@ const rejectReason = ref('')
 const toDelete = ref(null)
 const deleting = ref(false)
 
-const stats = computed(() => {
-    const all = formations.value
-    return [
-        {
-            label: 'Total formations',
-            value: total.value,
-            bgClass: 'bg-primary/10',
-            iconClass: 'w-6 h-6 text-primary',
-            icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
-        },
-        {
-            label: 'En attente',
-            value: all.filter(f => f.status === 'pending').length,
-            bgClass: 'bg-yellow-100',
-            iconClass: 'w-6 h-6 text-yellow-600',
-            icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-        },
-        {
-            label: 'Approuvées',
-            value: all.filter(f => f.status === 'approved').length,
-            bgClass: 'bg-green-100',
-            iconClass: 'w-6 h-6 text-green-600',
-            icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-        },
-        {
-            label: 'Rejetées',
-            value: all.filter(f => f.status === 'rejected').length,
-            bgClass: 'bg-red-100',
-            iconClass: 'w-6 h-6 text-red-500',
-            icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
-        },
-    ]
-})
+const statCounts = ref({ total: 0, pending: 0, approved: 0, rejected: 0 })
+
+const stats = computed(() => [
+    {
+        label: 'Total formations',
+        value: statCounts.value.total,
+        bgClass: 'bg-primary/10',
+        iconClass: 'w-6 h-6 text-primary',
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+    },
+    {
+        label: 'En attente',
+        value: statCounts.value.pending,
+        bgClass: 'bg-yellow-100',
+        iconClass: 'w-6 h-6 text-yellow-600',
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+    {
+        label: 'Approuvées',
+        value: statCounts.value.approved,
+        bgClass: 'bg-green-100',
+        iconClass: 'w-6 h-6 text-green-600',
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+    {
+        label: 'Rejetées',
+        value: statCounts.value.rejected,
+        bgClass: 'bg-red-100',
+        iconClass: 'w-6 h-6 text-red-500',
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+])
 
 function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
@@ -385,8 +384,25 @@ async function fetchFormations() {
     }
 }
 
+async function fetchStats() {
+    try {
+        const [all, pending, approved, rejected] = await Promise.all([
+            api.get('/admin/formations', { params: { limit: 1 } }),
+            api.get('/admin/formations', { params: { limit: 1, status: 'pending' } }),
+            api.get('/admin/formations', { params: { limit: 1, status: 'approved' } }),
+            api.get('/admin/formations', { params: { limit: 1, status: 'rejected' } }),
+        ])
+        statCounts.value = {
+            total:    all.data.total ?? 0,
+            pending:  pending.data.total ?? 0,
+            approved: approved.data.total ?? 0,
+            rejected: rejected.data.total ?? 0,
+        }
+    } catch {}
+}
+
 watch([page, filterStatus], fetchFormations)
 watch(search, () => { page.value = 1; fetchFormations() })
 
-onMounted(fetchFormations)
+onMounted(() => { fetchFormations(); fetchStats() })
 </script>

@@ -21,7 +21,8 @@ func perm(permission string, h http.HandlerFunc) http.Handler {
 
 func InitRoutes() {
 	http.HandleFunc("GET /{$}", handlers.HealthCheck)
-	http.Handle("GET /sse", auth(handlers.SSEHandler))
+
+	http.Handle("GET /categories", auth(handlers.GetCategories))
 
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
@@ -59,7 +60,10 @@ func InitRoutes() {
 	http.Handle("PATCH /admin/user/{id}/status", admin(handlers.UpdateUserStatus))
 	http.Handle("DELETE /admin/user/{id}", admin(handlers.DeleteUser))
 
-	http.Handle("GET /admin/roles", admin(handlers.GetRoles))
+	http.Handle("GET /admin/roles", perm("manage_roles", handlers.GetRoles))
+	http.Handle("POST /admin/roles", perm("manage_roles", handlers.CreateRole))
+	http.Handle("PUT /admin/role/{id}", perm("manage_roles", handlers.UpdateRole))
+	http.Handle("DELETE /admin/role/{id}", perm("manage_roles", handlers.DeleteRole))
 	http.Handle("GET /admin/user/{id}/roles", admin(handlers.GetUserRoles))
 	http.Handle("POST /admin/user/{id}/roles", admin(handlers.AddRoleToUser))
 	http.Handle("DELETE /admin/user/{id}/roles/{role_id}", admin(handlers.RemoveRoleFromUser))

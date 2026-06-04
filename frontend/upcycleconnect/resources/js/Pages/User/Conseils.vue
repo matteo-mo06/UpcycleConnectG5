@@ -69,7 +69,7 @@
 
         <div v-else class="grid grid-cols-3 gap-5">
             <div
-                v-for="conseil in filteredConseils"
+                v-for="conseil in conseils"
                 :key="conseil.id"
                 class="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer"
                 @click="openDetail(conseil)"
@@ -178,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import api from "@/api.js";
 
@@ -188,16 +188,6 @@ const search = ref("");
 const filterTag = ref("");
 const selected = ref(null);
 
-const filteredConseils = computed(() => {
-    return conseils.value.filter((c) => {
-        const matchSearch =
-            !search.value ||
-            c.title.toLowerCase().includes(search.value.toLowerCase());
-        const matchTag =
-            !filterTag.value || (c.tags ?? []).includes(filterTag.value);
-        return matchSearch && matchTag;
-    });
-});
 
 function openDetail(conseil) {
     selected.value = conseil;

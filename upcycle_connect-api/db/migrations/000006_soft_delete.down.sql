@@ -1,0 +1,4 @@
+ALTER TABLE `event`     DROP COLUMN `deleted_at`;
+ALTER TABLE `formation` DROP COLUMN `deleted_at`;
+ALTER TABLE `user`      DROP COLUMN `deleted_at`;
+ALTER TABLE `category`  DROP COLUMN `deleted_at`;

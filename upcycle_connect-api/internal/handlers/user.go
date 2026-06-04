@@ -260,6 +260,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	user.Id_user = uuid.New().String()
 	user.Password_user = hashedPassword
 
+	profileToRole := map[string]string{
+		"particulier":  "user",
+		"artisan":      "artisan",
+		"professionnel": "artisan",
+	}
+	profile := strings.TrimSpace(user.Profile)
+	roleName, ok := profileToRole[profile]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "profil invalide (particulier, artisan, professionnel)"})
+		return
+	}
+
 	err = db.CreateUser(user)
 	if err != nil {
 		fmt.Println("CreateUser error:", err)
@@ -268,12 +281,11 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role, err := db.GetRoleByName("user")
+	role, err := db.GetRoleByName(roleName)
 	if err != nil {
 		fmt.Println("CreateUser GetRoleByName error:", err)
 	} else {
-		err = db.AddUserRole(user.Id_user, role.Id_role)
-		if err != nil {
+		if err = db.AddUserRole(user.Id_user, role.Id_role); err != nil {
 			fmt.Println("CreateUser AddUserRole error:", err)
 		}
 	}

@@ -21,6 +21,7 @@ type Announcement struct {
 	AccessCode              string  `json:"access_code"`
 	LockerNumber            int     `json:"locker_number"`
 	CreatedAt               string  `json:"created_at"`
+	DeletedAt               string  `json:"deleted_at,omitempty"`
 }
 
 type CreateAnnouncementRequest struct {

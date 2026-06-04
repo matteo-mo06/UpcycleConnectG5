@@ -111,7 +111,7 @@
 
         <div v-else class="grid grid-cols-3 gap-5">
             <div
-                v-for="project in filteredProjects"
+                v-for="project in projects"
                 :key="project.id"
                 class="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer"
                 @click="openDetail(project)"
@@ -350,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import ReportModal from '@/Components/ReportModal.vue'

@@ -7,7 +7,7 @@
             </h1>
         </div>
 
-        <div class="grid grid-cols-4 gap-5 mb-8">
+        <div class="grid grid-cols-4 gap-5 mb-8" data-tutorial="stats">
             <div
                 v-for="stat in stats"
                 :key="stat.label"
@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5">
+            <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5" data-tutorial="quick-actions">
                 <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Actions rapides</h2>
                 <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
                 <div class="grid grid-cols-2 gap-3">
@@ -102,6 +102,12 @@
 
         <CreateAnnouncementModal v-model="showDepot" />
 
+        <OnboardingTutorial
+            v-if="showTutorial"
+            :steps="tutorialSteps"
+            @done="finishTutorial"
+        />
+
     </UserLayout>
 </template>
 
@@ -110,11 +116,83 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
+import OnboardingTutorial from '@/Components/OnboardingTutorial.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
 const auth = useAuthStore()
 const showDepot = ref(false)
+
+const tutorialKey = () => `tutorial_done_${auth.user?.id}`
+const showTutorial = ref(false)
+
+const tutorialSteps = [
+    {
+        target: 'sidebar',
+        placement: 'right',
+        title: 'Bienvenue sur UpcycleConnect !',
+        description: 'Ce menu latéral vous donne accès à toutes les sections de la plateforme. Faisons un rapide tour ensemble.',
+    },
+    {
+        target: 'stats',
+        placement: 'bottom',
+        title: 'Votre tableau de bord',
+        description: 'Ces indicateurs résument votre activité : score upcycling, annonces actives, dépôts en attente et événements à venir.',
+    },
+    {
+        target: 'nav-annonces',
+        placement: 'right',
+        title: 'Annonces',
+        description: 'Parcourez les objets disponibles à l\'adoption ou à la vente, et publiez vos propres annonces pour donner une seconde vie à vos objets.',
+    },
+    {
+        target: 'nav-depot',
+        placement: 'right',
+        title: 'Dépôt d\'objet',
+        description: 'Une fois votre objet vendu, demandez l\'attribution d\'un casier. L\'acheteur recevra un code d\'accès pour venir le récupérer.',
+    },
+    {
+        target: 'nav-projets',
+        placement: 'right',
+        title: 'Projets collaboratifs',
+        description: 'Rejoignez ou créez des projets de création et de réparation avec d\'autres membres de la communauté.',
+    },
+    {
+        target: 'nav-forum',
+        placement: 'right',
+        title: 'Forum',
+        description: 'Échangez avec la communauté, posez vos questions, partagez vos astuces et participez aux discussions autour de l\'upcycling.',
+    },
+    {
+        target: 'nav-formations',
+        placement: 'right',
+        title: 'Formations',
+        description: 'Accédez à des formations pratiques pour apprendre à réparer, transformer et revaloriser vos objets.',
+    },
+    {
+        target: 'nav-evenements',
+        placement: 'right',
+        title: 'Événements',
+        description: 'Découvrez et inscrivez-vous aux ateliers, marchés et rencontres organisés près de chez vous.',
+    },
+    {
+        target: 'nav-conseils',
+        placement: 'right',
+        title: 'Conseils',
+        description: 'Retrouvez des guides et astuces pour prendre soin de vos objets, les réparer et leur donner une nouvelle vie.',
+    },
+    {
+        target: 'quick-actions',
+        placement: 'left',
+        title: 'Actions rapides',
+        description: 'Depuis votre accueil, accédez directement aux actions les plus courantes sans passer par les menus.',
+    },
+]
+
+function finishTutorial() {
+    showTutorial.value = false
+    localStorage.setItem(tutorialKey(), 'done')
+}
 
 const stats = ref([
     {
@@ -164,5 +242,9 @@ onMounted(async () => {
             if (data[s.key] !== undefined) s.value = data[s.key]
         })
     } catch {}
+
+    if (!localStorage.getItem(tutorialKey())) {
+        showTutorial.value = true
+    }
 })
 </script>

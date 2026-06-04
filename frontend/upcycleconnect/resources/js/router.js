@@ -21,6 +21,7 @@ import AdminScore from './Pages/Admin/Score.vue'
 import Reports from './Pages/Admin/Reports.vue'
 import Lockers from './Pages/Admin/Lockers.vue'
 import AdminProjets from './Pages/Admin/Projets.vue'
+import Categories from './Pages/Admin/Categories.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
@@ -54,6 +55,7 @@ const router = createRouter({
         { path: '/admin/lockers', component: Lockers, meta: { requiresAdmin: true } },
         { path: '/admin/score', component: AdminScore, meta: { requiresAdmin: true } },
         { path: '/admin/projets', component: AdminProjets, meta: { requiresAdmin: true } },
+        { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
 
         { path: '/:pathMatch(.*)*', redirect: '/accueil' },
     ],

@@ -9,7 +9,6 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
-	"upcycle_connect-api/internal/sse"
 )
 
 func SubmitReport(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +103,7 @@ func GetAdminReports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 20)
-	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), limit, offset)
+	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), r.URL.Query().Get("content_type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetAdminReports error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -257,13 +256,6 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 	if msg == "" {
 		msg = defaultMessages[body.Type]
 	}
-	ssePayload, _ := json.Marshal(map[string]string{
-		"type":          "sanction",
-		"sanction_type": body.Type,
-		"message":       msg,
-	})
-	sse.Default.Notify(userID, string(ssePayload))
-
 	if body.Type == "ban" {
 		if err := db.UpdateUserStatus(userID, "blacklisted"); err != nil {
 			fmt.Println("CreateSanction ban UpdateUserStatus error:", err)

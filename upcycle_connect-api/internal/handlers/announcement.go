@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -19,7 +20,7 @@ func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 12)
-	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), limit, offset)
+	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), r.URL.Query().Get("type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -417,6 +418,11 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.ClaimAnnouncement(id, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce a déjà été acquise"})
+			return
+		}
 		fmt.Println("ClaimAnnouncement error:", err)
 		http.Error(w, "erreur serveur", http.StatusInternalServerError)
 		return

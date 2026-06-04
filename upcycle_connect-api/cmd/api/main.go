@@ -14,6 +14,7 @@ import (
 
 func main() {
 	godotenv.Load()
+	config.ValidateEnv()
 
 	config.Conn = config.NewDB()
 
@@ -26,6 +27,7 @@ func main() {
 
 	router.InitRoutes()
 
-	fmt.Println("Listening at http://localhost:8084")
-	http.ListenAndServe(":8084", middleware.CORS(http.DefaultServeMux))
+	port := os.Getenv("PORT")
+	fmt.Println("Listening at http://localhost:" + port)
+	http.ListenAndServe(":"+port, middleware.CORS(http.DefaultServeMux))
 }

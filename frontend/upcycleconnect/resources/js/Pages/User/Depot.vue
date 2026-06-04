@@ -5,22 +5,6 @@
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Dépôt d'objet</h1>
         </div>
 
-        <div
-            v-if="toast"
-            :class="[
-                'fixed top-5 right-5 z-50 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all max-w-sm',
-                toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-            ]"
-        >
-            <svg v-if="toast.type === 'success'" class="w-5 h-5 flex-shrink-0 mt-0.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-            </svg>
-            <svg v-else class="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            <span>{{ toast.message }}</span>
-        </div>
-
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
             <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Mes demandes de dépôt</h2>
             <p class="text-xs text-gray-400 mb-4">Statut de vos demandes d'assignation de casier</p>
@@ -50,22 +34,16 @@
                     </div>
 
                     <div class="flex items-center gap-6 flex-shrink-0">
-                        <div v-if="req.status === 'validated'" class="text-right">
+                        <div v-if="req.locker_number" class="text-right">
                             <p class="text-xs text-gray-400">Casier assigné</p>
                             <p class="text-sm font-semibold text-gray-800">N° {{ req.locker_number }}</p>
                         </div>
 
-                        <span
-                            :class="req.status === 'validated'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-yellow-100 text-yellow-700'"
-                            class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap"
-                        >
-                            {{ req.status === 'validated' ? 'Validé' : 'En attente' }}
+                        <span class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-yellow-100 text-yellow-700">
+                            En attente de validation
                         </span>
 
                         <button
-                            v-if="req.status === 'pending'"
                             @click="cancelRequest(req.announcement_id)"
                             class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Annuler la demande"
@@ -143,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
@@ -157,16 +135,6 @@ const loadingMine = ref(true)
 const loadingPending = ref(true)
 const validating = ref(null)
 const rejecting = ref(null)
-const toast = ref(null)
-
-let toastTimer = null
-let sseAbort = null
-
-function showToast(message, type = 'success') {
-    clearTimeout(toastTimer)
-    toast.value = { message, type }
-    toastTimer = setTimeout(() => { toast.value = null }, 5000)
-}
 
 async function loadMyRequests() {
     loadingMine.value = true
@@ -196,52 +164,6 @@ async function loadPendingRequests() {
     }
 }
 
-async function connectSSE() {
-    const token = sessionStorage.getItem('token')
-    if (!token) return
-
-    sseAbort = new AbortController()
-
-    let reader = null
-    try {
-        const response = await fetch('http://localhost:8084/sse', {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: sseAbort.signal,
-        })
-
-        if (!response.ok || !response.body) {
-            setTimeout(connectSSE, 5000)
-            return
-        }
-
-        reader = response.body.getReader()
-        const decoder = new TextDecoder()
-
-        while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            const lines = decoder.decode(value).split('\n')
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) continue
-                try {
-                    const data = JSON.parse(line.slice(6))
-                    if (data.type === 'deposit_validated') {
-                        loadMyRequests()
-                        showToast(`Demande validée — Casier n° ${data.locker_number}`, 'success')
-                    } else if (data.type === 'deposit_rejected') {
-                        loadMyRequests()
-                        showToast('Votre demande de dépôt a été refusée.', 'error')
-                    }
-                } catch {}
-            }
-        }
-    } catch (e) {
-        if (e?.name === 'AbortError') return
-    }
-
-    setTimeout(connectSSE, 5000)
-}
 
 async function cancelRequest(announcementId) {
     try {
@@ -283,11 +205,5 @@ async function rejectRequest(announcementId) {
 onMounted(() => {
     loadMyRequests()
     loadPendingRequests()
-    connectSSE()
-})
-
-onUnmounted(() => {
-    clearTimeout(toastTimer)
-    if (sseAbort) sseAbort.abort()
 })
 </script>

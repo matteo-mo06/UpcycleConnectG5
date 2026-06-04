@@ -52,9 +52,6 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:8084"
-	}
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"url": fmt.Sprintf("%s/uploads/%s", baseURL, filename)})

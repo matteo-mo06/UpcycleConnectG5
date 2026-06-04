@@ -73,6 +73,7 @@
                     </svg>
                     <input
                         v-model="search"
+                        @input="onSearchInput"
                         type="text"
                         placeholder="Rechercher un événement…"
                         class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
@@ -80,19 +81,20 @@
                 </div>
                 <select
                     v-model="filterStatus"
+                    @change="resetAndFetch"
                     class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                     <option value="">Tous les événements</option>
                     <option value="upcoming">À venir</option>
                     <option value="registered">Mes inscriptions</option>
                 </select>
                 <span class="text-xs text-gray-400 whitespace-nowrap ml-auto">
-                    {{ filteredEvents.length }} résultat(s)
+                    {{ total }} résultat(s)
                 </span>
             </div>
 
             <div class="divide-y divide-gray-50">
                 <div
-                    v-for="event in filteredEvents"
+                    v-for="event in events"
                     :key="event.id"
                     class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
 
@@ -156,7 +158,7 @@
                     </div>
                 </div>
 
-                <div v-if="filteredEvents.length === 0" class="px-6 py-16 text-center text-gray-400 text-sm">
+                <div v-if="events.length === 0" class="px-6 py-16 text-center text-gray-400 text-sm">
                     Aucun événement disponible pour le moment.
                 </div>
             </div>
@@ -407,15 +409,16 @@ const calendarOptions = computed(() => ({
     height: 'auto',
 }))
 
-const filteredEvents = computed(() => {
-    return events.value.filter(e => {
-        const q = search.value.toLowerCase()
-        if (q && !e.title.toLowerCase().includes(q) && !e.location.toLowerCase().includes(q)) return false
-        if (filterStatus.value === 'upcoming' && e.isPast) return false
-        if (filterStatus.value === 'registered' && !e.isRegistered) return false
-        return true
-    })
-})
+let searchDebounce = null
+function onSearchInput() {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(resetAndFetch, 300)
+}
+
+function resetAndFetch() {
+    page.value = 1
+    fetchEvents()
+}
 
 function isFull(event) {
     return event.capacity > 0 && event.registered >= event.capacity
@@ -525,7 +528,10 @@ async function submitCreate() {
 
 async function fetchEvents() {
     try {
-        const { data } = await api.get('/events', { params: { page: page.value, limit: 15 } })
+        const params = { page: page.value, limit: 15 }
+        if (search.value) params.search = search.value
+        if (filterStatus.value) params.status = filterStatus.value
+        const { data } = await api.get('/events', { params })
         events.value = (data.data ?? []).map(mapEvent)
         total.value = data.total ?? 0
     } catch (e) {

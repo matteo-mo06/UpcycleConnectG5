@@ -46,6 +46,18 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie <span class="text-red-400">*</span></label>
+                    <select
+                        v-model="form.id_category"
+                        class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        :class="{ 'border-red-300': !form.id_category && error }"
+                    >
+                        <option value="">Sélectionner une catégorie…</option>
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">État de l'objet</label>
                     <div class="flex gap-2">
                         <button
@@ -173,7 +185,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import api from '@/api.js'
 
 const props = defineProps({ modelValue: Boolean })
@@ -182,6 +194,7 @@ const emit = defineEmits(['update:modelValue', 'created'])
 const loading = ref(false)
 const error = ref('')
 const photos = ref([])
+const categories = ref([])
 
 const form = reactive({
     type: 'don',
@@ -193,6 +206,7 @@ const form = reactive({
     postal: '',
     price: 0,
     availability_date: '',
+    id_category: '',
 })
 
 const types = [
@@ -245,6 +259,7 @@ async function uploadPhotos() {
 async function submit() {
     error.value = ''
     if (!form.title.trim()) { error.value = 'Le titre est requis.'; return }
+    if (!form.id_category) { error.value = 'La catégorie est requise.'; return }
     if (!form.availability_date) { error.value = 'La date de disponibilité est requise.'; return }
     if (form.type === 'vente' && (!form.price || form.price < 0.01)) { error.value = 'Le prix minimum pour une vente est 0.01 €.'; return }
 
@@ -265,8 +280,15 @@ async function submit() {
     }
 }
 
+onMounted(async () => {
+    try {
+        const { data } = await api.get('/categories')
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch {}
+})
+
 function resetForm() {
-    Object.assign(form, { type: 'don', title: '', condition: 'bon_etat', description: '', address: '', city: '', postal: '', price: 0, availability_date: '' })
+    Object.assign(form, { type: 'don', title: '', condition: 'bon_etat', description: '', address: '', city: '', postal: '', price: 0, availability_date: '', id_category: '' })
     photos.value.forEach(p => URL.revokeObjectURL(p.preview))
     photos.value = []
     error.value = ''

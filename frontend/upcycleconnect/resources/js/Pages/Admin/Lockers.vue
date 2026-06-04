@@ -16,13 +16,14 @@
         <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex gap-3 items-center">
             <select
                 v-model="filterStatus"
+                @change="fetchLockers"
                 class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
                 <option value="">Tous les statuts</option>
                 <option value="free">Libre</option>
                 <option value="occupied">Occupé</option>
             </select>
-            <span class="text-xs text-gray-400 ml-auto">{{ filteredLockers.length }} casier(s)</span>
+            <span class="text-xs text-gray-400 ml-auto">{{ lockers.length }} casier(s)</span>
             <button
                 @click="addLocker"
                 :disabled="adding"
@@ -54,7 +55,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="(locker, i) in filteredLockers"
+                            v-for="(locker, i) in lockers"
                             :key="locker.id"
                             :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
                         >
@@ -103,7 +104,7 @@
                             </td>
                         </tr>
 
-                        <tr v-if="filteredLockers.length === 0">
+                        <tr v-if="lockers.length === 0">
                             <td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">
                                 Aucun casier ne correspond à vos filtres.
                             </td>
@@ -194,13 +195,6 @@ const toEditCode = ref(null)
 const newAccessCode = ref('')
 const savingCode = ref(false)
 
-const filteredLockers = computed(() => {
-    if (!filterStatus.value) return lockers.value
-    if (filterStatus.value === 'free') return lockers.value.filter(l => !l.occupied)
-    if (filterStatus.value === 'occupied') return lockers.value.filter(l => l.occupied)
-    return lockers.value
-})
-
 const stats = computed(() => [
     {
         label: 'Total casiers',
@@ -227,7 +221,9 @@ const stats = computed(() => [
 
 async function fetchLockers() {
     try {
-        const { data } = await api.get('/admin/lockers')
+        const params = {}
+        if (filterStatus.value) params.status = filterStatus.value
+        const { data } = await api.get('/admin/lockers', { params })
         lockers.value = data ?? []
     } catch {
         error.value = 'Impossible de charger les casiers.'
