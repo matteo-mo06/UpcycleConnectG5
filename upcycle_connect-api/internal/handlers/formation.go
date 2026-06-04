@@ -366,6 +366,10 @@ func RegisterForFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := db.AwardScore(userID, "formation_registration", id); err != nil {
+		fmt.Println("AwardScore formation_registration error:", err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "inscription réussie"})
 }

@@ -8,8 +8,8 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
-func CreateReport(idReporter, idReportedUser, idAnnouncement, idTopic, idPost, reason string) error {
-	var ann, topic, post, reported interface{}
+func CreateReport(idReporter, idReportedUser, idAnnouncement, idTopic, idPost, idProject, reason string) error {
+	var ann, topic, post, proj, reported interface{}
 	if idAnnouncement != "" {
 		ann = idAnnouncement
 	}
@@ -19,12 +19,15 @@ func CreateReport(idReporter, idReportedUser, idAnnouncement, idTopic, idPost, r
 	if idPost != "" {
 		post = idPost
 	}
+	if idProject != "" {
+		proj = idProject
+	}
 	if idReportedUser != "" {
 		reported = idReportedUser
 	}
 	_, err := config.Conn.Exec(
-		`INSERT INTO REPORT (id_report, id_user, id_reported_user, id_announcement, id_topic, id_post, reason, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-		uuid.New().String(), idReporter, reported, ann, topic, post, reason,
+		`INSERT INTO REPORT (id_report, id_user, id_reported_user, id_announcement, id_topic, id_post, id_project, reason, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+		uuid.New().String(), idReporter, reported, ann, topic, post, proj, reason,
 	)
 	return err
 }
@@ -32,9 +35,9 @@ func CreateReport(idReporter, idReportedUser, idAnnouncement, idTopic, idPost, r
 func GetReportByID(id string) (models.Report, error) {
 	var r models.Report
 	err := config.Conn.QueryRow(`
-		SELECT id_report, COALESCE(id_announcement, ''), COALESCE(id_topic, ''), COALESCE(id_post, ''), status
+		SELECT id_report, COALESCE(id_announcement, ''), COALESCE(id_topic, ''), COALESCE(id_post, ''), COALESCE(id_project, ''), status
 		FROM REPORT WHERE id_report = ?`, id,
-	).Scan(&r.IdReport, &r.IdAnnouncement, &r.IdTopic, &r.IdPost, &r.Status)
+	).Scan(&r.IdReport, &r.IdAnnouncement, &r.IdTopic, &r.IdPost, &r.IdProject, &r.Status)
 	return r, err
 }
 
@@ -65,12 +68,12 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := config.Conn.Query(`
-		SELECT r.id_report, r.id_user, COALESCE(r.id_reported_user, ''), COALESCE(r.id_announcement, ''), COALESCE(r.id_topic, ''), COALESCE(r.id_post, ''),
+		SELECT r.id_report, r.id_user, COALESCE(r.id_reported_user, ''), COALESCE(r.id_announcement, ''), COALESCE(r.id_topic, ''), COALESCE(r.id_post, ''), COALESCE(r.id_project, ''),
 		       r.reason, r.status, COALESCE(r.action_taken, ''), COALESCE(r.resolved_by, ''), COALESCE(r.resolved_at, ''), r.created_at,
 		       TRIM(CONCAT(COALESCE(rep.first_name, ''), ' ', COALESCE(rep.last_name, ''))) AS reporter_name,
 		       COALESCE(rep.email, '') AS reporter_email,
 		       TRIM(CONCAT(COALESCE(repd.first_name, ''), ' ', COALESCE(repd.last_name, ''))) AS reported_name,
-		       COALESCE(a.title_announcement, t.title_topic, LEFT(rp.body_post, 80), '') AS content_title,
+		       COALESCE(a.title_announcement, t.title_topic, LEFT(rp.body_post, 80), pr.title_project, '') AS content_title,
 		       COALESCE(LEFT(rp.body_post, 300), (SELECT LEFT(pp.body_post, 300) FROM POST pp JOIN TOPIC_POST tp ON tp.id_post = pp.id_post WHERE tp.id_topic = r.id_topic AND pp.deleted_at IS NULL ORDER BY pp.created_at ASC LIMIT 1), '') AS content_body,
 		       COALESCE((SELECT d.link FROM DOCUMENT d WHERE d.category = r.id_announcement ORDER BY d.id_document LIMIT 1), '') AS content_photo
 		FROM REPORT r
@@ -79,6 +82,7 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 		LEFT JOIN ANNOUNCEMENT a ON a.id_announcement = r.id_announcement
 		LEFT JOIN TOPIC t ON t.id_topic = r.id_topic
 		LEFT JOIN POST rp ON rp.id_post = r.id_post
+		LEFT JOIN project pr ON pr.id_project = r.id_project
 		`+where+` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`, queryArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -89,7 +93,7 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 	for rows.Next() {
 		var r models.Report
 		if err := rows.Scan(
-			&r.IdReport, &r.IdReporter, &r.IdReportedUser, &r.IdAnnouncement, &r.IdTopic, &r.IdPost,
+			&r.IdReport, &r.IdReporter, &r.IdReportedUser, &r.IdAnnouncement, &r.IdTopic, &r.IdPost, &r.IdProject,
 			&r.Reason, &r.Status, &r.ActionTaken, &r.ResolvedBy, &r.ResolvedAt, &r.CreatedAt,
 			&r.ReporterName, &r.ReporterEmail, &r.ReportedUserName, &r.ContentTitle, &r.ContentBody, &r.ContentPhoto,
 		); err != nil {
@@ -102,6 +106,8 @@ func GetReports(status, search string, limit, offset int) ([]models.Report, int,
 			r.ContentType = "topic"
 		case r.IdPost != "":
 			r.ContentType = "post"
+		case r.IdProject != "":
+			r.ContentType = "project"
 		}
 		list = append(list, r)
 	}

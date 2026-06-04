@@ -133,6 +133,9 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 			`{"type":"deposit_validated","locker_number":%d}`,
 			lockerNumber,
 		))
+		if err := db.AwardScore(ownerID, "deposit_validated", announcementID); err != nil {
+			fmt.Println("AwardScore deposit_validated error:", err)
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

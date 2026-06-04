@@ -365,6 +365,10 @@ func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := db.AwardScore(userID, "event_registration", id); err != nil {
+		fmt.Println("AwardScore event_registration error:", err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "registered successfully"})
 }

@@ -28,6 +28,7 @@ func InitRoutes() {
 
 	http.Handle("GET /user/me", auth(handlers.GetMe))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
+	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
 	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
 	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
@@ -113,6 +114,9 @@ func InitRoutes() {
 	http.Handle("POST /admin/user/{id}/sanctions", admin(handlers.CreateSanction))
 	http.Handle("GET /admin/user/{id}/history", admin(handlers.GetUserHistory))
 
+	http.Handle("GET /admin/score-actions", admin(handlers.GetScoreActions))
+	http.Handle("PUT /admin/score-action/{action_type}", admin(handlers.UpdateScoreAction))
+
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))
 	http.Handle("DELETE /admin/locker/{id}", perm("manage_lockers", handlers.DeleteLocker))
@@ -145,4 +149,29 @@ func InitRoutes() {
 	http.Handle("GET /admin/formation/{id}", admin(handlers.GetFormationByIdAdmin))
 	http.Handle("PUT /admin/formation/{id}", admin(handlers.UpdateFormationAdmin))
 	http.Handle("DELETE /admin/formation/{id}", admin(handlers.DeleteFormationAdmin))
+
+	http.Handle("GET /projects", auth(handlers.GetProjects))
+	http.Handle("GET /projects/pending", perm("manage_projects", handlers.GetPendingProjects))
+	http.Handle("GET /projects/{id}", auth(handlers.GetProjectById))
+	http.Handle("POST /projects", perm("create_project", handlers.CreateProject))
+	http.Handle("PATCH /projects/{id}", auth(handlers.UpdateMyProject))
+	http.Handle("DELETE /user/project/{id}", perm("create_project", handlers.DeleteMyProject))
+	http.Handle("PATCH /projects/{id}/approve", perm("manage_projects", handlers.ApproveProject))
+	http.Handle("PATCH /projects/{id}/reject", perm("manage_projects", handlers.RejectProject))
+	http.Handle("POST /projects/{id}/join", perm("register_project", handlers.RegisterForProject))
+	http.Handle("DELETE /projects/{id}/join", perm("register_project", handlers.UnregisterFromProject))
+	http.Handle("GET /user/projects", auth(handlers.GetUserProjects))
+	http.Handle("GET /user/my-projects", perm("create_project", handlers.GetMyCreatedProjects))
+
+	http.Handle("PUT /projects/{id}/vote", auth(handlers.VoteProject))
+	http.Handle("DELETE /projects/{id}/vote", auth(handlers.RemoveProjectVote))
+	http.Handle("DELETE /projects/{id}", auth(handlers.ModerateDeleteProject))
+
+	http.Handle("GET /admin/projects/stats", admin(handlers.GetProjectStats))
+	http.Handle("GET /admin/projects", admin(handlers.GetAllProjectsAdmin))
+	http.Handle("GET /admin/project/{id}", admin(handlers.GetProjectByIdAdmin))
+	http.Handle("PUT /admin/project/{id}", admin(handlers.UpdateProjectAdmin))
+	http.Handle("DELETE /admin/project/{id}", admin(handlers.DeleteProjectAdmin))
+	http.Handle("PATCH /admin/project/{id}/approve", admin(handlers.ApproveProject))
+	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
 }

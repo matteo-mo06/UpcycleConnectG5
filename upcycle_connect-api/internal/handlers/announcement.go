@@ -421,6 +421,16 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "erreur serveur", http.StatusInternalServerError)
 		return
 	}
+
+	if err := db.AwardScore(userID, "announcement_bought", id); err != nil {
+		fmt.Println("AwardScore announcement_bought error:", err)
+	}
+	if sellerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+		if err := db.AwardScore(sellerID, "announcement_sold", id); err != nil {
+			fmt.Println("AwardScore announcement_sold error:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 

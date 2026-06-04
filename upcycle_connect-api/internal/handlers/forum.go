@@ -118,19 +118,6 @@ func AddForumPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.GetTopicByID(topicID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusNotFound)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "topic not found"})
-			return
-		}
-		fmt.Println("AddForumPost error:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find topic"})
-		return
-	}
-
 	var req models.CreatePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -141,6 +128,18 @@ func AddForumPost(w http.ResponseWriter, r *http.Request) {
 	if req.Body == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le message est requis"})
+		return
+	}
+
+	if _, err := db.GetTopicByID(topicID); err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "topic not found"})
+			return
+		}
+		fmt.Println("AddForumPost error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find topic"})
 		return
 	}
 
@@ -223,6 +222,7 @@ func UpdateForumTopic(w http.ResponseWriter, r *http.Request) {
 		topic.Posts = []models.Post{}
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(topic)
 }
 
@@ -322,6 +322,7 @@ func UpdateForumPost(w http.ResponseWriter, r *http.Request) {
 		topic.Posts = []models.Post{}
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(topic)
 }
 
@@ -373,5 +374,6 @@ func DeleteForumPost(w http.ResponseWriter, r *http.Request) {
 		topic.Posts = []models.Post{}
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(topic)
 }
