@@ -68,3 +68,10 @@
 .fc-theme-standard .fc-scrollgrid {
   border-color: #f3f4f6;
 }
+.fc-daygrid-event { border-radius: 6px !important; }
+.fc-event-main    { padding: 0 !important; }
+.fc-custom-event  { padding: 3px 7px 4px; overflow: hidden; }
+.fc-custom-title  { font-size: 0.75rem; font-weight: 600; line-height: 1.3;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-custom-meta   { font-size: 0.65rem; opacity: 0.82; line-height: 1.2;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
