@@ -321,7 +321,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -546,7 +547,7 @@ function changePage(p) {
 
 watch(page, fetchEvents)
 
-onMounted(async () => {
+async function fetchAll() {
     const promises = [
         fetchEvents(),
         api.get('/user/events').then(({ data }) => {
@@ -561,5 +562,7 @@ onMounted(async () => {
         )
     }
     await Promise.all(promises)
-})
+}
+
+usePolling(fetchAll)
 </script>

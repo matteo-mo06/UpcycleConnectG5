@@ -417,6 +417,18 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ann, err := db.GetAnnouncementById(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+		return
+	}
+	if ann.Price > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce est payante, utilisez le système de paiement"})
+		return
+	}
+
 	if err := db.ClaimAnnouncement(id, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			w.WriteHeader(http.StatusConflict)

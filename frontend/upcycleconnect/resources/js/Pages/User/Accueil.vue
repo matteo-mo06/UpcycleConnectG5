@@ -113,6 +113,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import { RouterLink } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
@@ -237,16 +238,20 @@ const stats = ref([
 
 const activity = []
 
-onMounted(async () => {
+async function fetchStats() {
     try {
         const { data } = await api.get('/user/stats')
         stats.value.forEach(s => {
             if (data[s.key] !== undefined) s.value = data[s.key]
         })
     } catch {}
+}
 
+onMounted(() => {
     if (!auth.user?.tutorial_done) {
         showTutorial.value = true
     }
 })
+
+usePolling(fetchStats)
 </script>

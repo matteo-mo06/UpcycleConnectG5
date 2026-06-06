@@ -23,6 +23,9 @@ func JWTSecret() []byte {
 	return []byte(os.Getenv("JWT_SECRET"))
 }
 
+func StripeSecretKey() string     { return os.Getenv("STRIPE_SECRET_KEY") }
+func StripeWebhookSecret() string { return os.Getenv("STRIPE_WEBHOOK_SECRET") }
+
 func ValidateEnv() {
 	required := []string{
 		"PORT",
@@ -34,6 +37,7 @@ func ValidateEnv() {
 		"DB_USER",
 		"DB_PASSWORD",
 		"DB_NAME",
+		"STRIPE_SECRET_KEY",
 	}
 	for _, key := range required {
 		if os.Getenv(key) == "" {

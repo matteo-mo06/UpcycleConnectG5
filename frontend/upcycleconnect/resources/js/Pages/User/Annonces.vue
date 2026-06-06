@@ -133,7 +133,7 @@
 
                             <button
                                 v-if="activeTab === 'all' && a.author_id !== auth.user?.id"
-                                @click.stop="claimAnnouncement(a)"
+                                @click.stop="handleAcquire(a)"
                                 class="px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary-dark transition-colors"
                             >
                                 {{ a.type === 'vente' ? 'Acheter' : 'Je le veux' }}
@@ -238,6 +238,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import { useRoute, useRouter } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
@@ -304,8 +305,8 @@ function switchTab(tab) {
     fetchAnnouncements()
 }
 
-async function fetchAnnouncements() {
-    loading.value = true
+async function fetchAnnouncements(silent = false) {
+    if (!silent) loading.value = true
     try {
         if (activeTab.value === 'mine') {
             const { data } = await api.get('/user/announcements')
@@ -380,6 +381,14 @@ async function deleteAnnouncement() {
     }
 }
 
+function handleAcquire(a) {
+    if (a.type === 'vente' && a.price > 0) {
+        router.push(`/paiement/${a.id}`)
+    } else {
+        claimAnnouncement(a)
+    }
+}
+
 async function claimAnnouncement(a) {
     try {
         await api.post(`/announcements/${a.id}/claim`)
@@ -432,5 +441,6 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => { fetchAnnouncements(); fetchCategories() })
+onMounted(() => fetchCategories())
+usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine')
 </script>

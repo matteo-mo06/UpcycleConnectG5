@@ -353,6 +353,32 @@ func GetAnnouncementOwnerID(announcementID string) (string, error) {
 	return userID, err
 }
 
+func MarkAnnouncementSold(announcementID, buyerID string) error {
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(
+		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Vendu', id_buyer = ? WHERE id_announcement = ? AND id_buyer IS NULL",
+		buyerID, announcementID,
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if buyerID != "" {
+		_, err = tx.Exec(
+			"INSERT IGNORE INTO USER_ANNOUNCEMENT (id_user, id_announcement) VALUES (?, ?)",
+			buyerID, announcementID,
+		)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func DeleteAnnouncement(id string) error {
 	_, err := config.Conn.Exec(
 		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Supprimée', deleted_at = NOW() WHERE id_announcement = ?",

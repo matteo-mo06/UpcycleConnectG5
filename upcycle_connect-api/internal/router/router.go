@@ -113,6 +113,9 @@ func InitRoutes() {
 	http.Handle("PATCH /forum/topics/{id}/posts/{post_id}", auth(handlers.UpdateForumPost))
 	http.Handle("DELETE /forum/topics/{id}/posts/{post_id}", auth(handlers.DeleteForumPost))
 
+	http.Handle("POST /pay/announcement/{id}", auth(handlers.CreatePaymentIntent))
+	http.HandleFunc("POST /webhooks/stripe", handlers.StripeWebhook)
+
 	http.Handle("POST /reports", auth(handlers.SubmitReport))
 
 	http.Handle("GET /admin/reports", admin(handlers.GetAdminReports))

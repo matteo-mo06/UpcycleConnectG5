@@ -350,7 +350,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import ReportModal from '@/Components/ReportModal.vue'
@@ -533,8 +534,8 @@ async function submitForm() {
     }
 }
 
-async function fetchProjects() {
-    loading.value = true
+async function fetchProjects(silent = false) {
+    if (!silent) loading.value = true
     try {
         const params = { page: page.value, limit: 15 }
         if (search.value) params.search = search.value
@@ -558,7 +559,9 @@ async function fetchMyCreated() {
 
 watch(page, fetchProjects)
 
-onMounted(async () => {
-    await Promise.all([fetchProjects(), fetchMyCreated()])
-})
+async function fetchAll(silent = false) {
+    await Promise.all([fetchProjects(silent), fetchMyCreated()])
+}
+
+usePolling(fetchAll)
 </script>
