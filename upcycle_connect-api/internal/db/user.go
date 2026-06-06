@@ -10,7 +10,7 @@ import (
 func GetUserById(id string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url
 		FROM USER
 		WHERE id_user = ? AND deleted_at IS NULL`, id,
 	).Scan(
@@ -23,6 +23,7 @@ func GetUserById(id string) (models.User, error) {
 		&user.Premium,
 		&user.Status,
 		&user.Created_at,
+		&user.Avatar_url,
 	)
 	return user, err
 }
@@ -177,6 +178,28 @@ func UpdateUser(user models.User) error {
 	return err
 }
 
+func UpdateUserAvatar(id, avatarURL string) error {
+	_, err := config.Conn.Exec(
+		`UPDATE USER SET avatar_url = ? WHERE id_user = ? AND deleted_at IS NULL`,
+		avatarURL, id)
+	return err
+}
+
+func UpdateUserPassword(id, hashedPassword string) error {
+	_, err := config.Conn.Exec(
+		`UPDATE USER SET password_user = ? WHERE id_user = ? AND deleted_at IS NULL`,
+		hashedPassword, id)
+	return err
+}
+
+func UpdateUserProfile(id, firstName, lastName, email string) error {
+	_, err := config.Conn.Exec(`
+		UPDATE USER SET first_name = ?, last_name = ?, email = ?
+		WHERE id_user = ? AND deleted_at IS NULL`,
+		firstName, lastName, email, id)
+	return err
+}
+
 func UpdateUserStatus(id string, status string) error {
 	_, err := config.Conn.Exec(`
 		UPDATE USER SET status = ? WHERE id_user = ?`,
@@ -186,8 +209,6 @@ func UpdateUserStatus(id string, status string) error {
 }
 
 func DeleteUser(id string) error {
-	// Anonymise les données personnelles et marque le compte comme supprimé.
-	// Les annonces, événements, formations et historiques restent pour la traçabilité.
 	_, err := config.Conn.Exec(`
 		UPDATE USER SET
 			email          = CONCAT('deleted_', id_user, '@deleted.invalid'),
@@ -231,7 +252,7 @@ func GetUserStats(userID string) (models.UserStats, error) {
 func GetUserByEmail(email string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url
 		FROM USER
 		WHERE email = ? AND deleted_at IS NULL`, email,
 	).Scan(
@@ -244,6 +265,7 @@ func GetUserByEmail(email string) (models.User, error) {
 		&user.Premium,
 		&user.Status,
 		&user.Created_at,
+		&user.Avatar_url,
 	)
 	return user, err
 }

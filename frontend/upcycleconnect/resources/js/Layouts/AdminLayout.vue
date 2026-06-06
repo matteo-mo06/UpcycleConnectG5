@@ -10,7 +10,8 @@
                     </div>
                     <span
                         class="text-white font-semibold text-base whitespace-nowrap"
-                        >UpcycleConnect</span
+                        style="font-family: var(--font-family-title)"
+                        >Upcycle Connect</span
                     >
                 </div>
             </div>
@@ -35,18 +36,9 @@
             </nav>
 
             <div class="p-4 border-t border-white/10 flex items-center gap-3">
-                <div
-                    class="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0"
-                >
-                    <svg
-                        class="w-5 h-5 text-gray-300"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"
-                        />
-                    </svg>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style="background-color: #f9f0ef">
+                    <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="" class="w-full h-full object-cover" />
+                    <span v-else class="text-sm font-semibold" style="color: #2D2D2D">{{ initials }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-white text-sm font-medium truncate">
@@ -78,14 +70,6 @@
         </aside>
 
         <div class="flex flex-col flex-1 overflow-hidden">
-            <header
-                class="flex items-center h-16 px-6 bg-white border-b border-gray-200 flex-shrink-0 shadow-sm"
-            >
-                <h1 class="text-xl font-semibold text-gray-800">
-                    {{ title }}
-                </h1>
-            </header>
-
             <main class="flex-1 overflow-y-auto p-6">
                 <slot />
             </main>
@@ -94,24 +78,21 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
+import { initials as getInitials } from "@/utils.js";
+
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+const initials = computed(() => getInitials(auth.user));
 
 function handleLogout() {
     auth.logout()
     router.push('/login')
 }
-
-defineProps({
-    title: {
-        type: String,
-        default: "Administration",
-    },
-});
-
-const route = useRoute();
 
 const navItems = [
     {

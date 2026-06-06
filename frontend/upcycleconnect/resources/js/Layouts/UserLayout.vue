@@ -40,8 +40,9 @@
             </nav>
 
             <div class="p-4 border-t border-white/10 flex items-center gap-3" data-tutorial="user-profile">
-                <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                    <span class="text-white text-sm font-semibold">{{ initials }}</span>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style="background-color: #f9f0ef">
+                    <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="" class="w-full h-full object-cover" />
+                    <span v-else class="text-sm font-semibold" style="color: #2D2D2D">{{ initials }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-white text-sm font-medium truncate">{{ auth.user?.first_name }} {{ auth.user?.last_name }}</p>

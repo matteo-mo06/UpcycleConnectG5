@@ -27,6 +27,10 @@ func InitRoutes() {
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
 
+	http.Handle("PATCH /user/profile", auth(handlers.UpdateMyProfile))
+	http.Handle("PATCH /user/password", auth(handlers.UpdateMyPassword))
+	http.Handle("PATCH /user/avatar", auth(handlers.UpdateMyAvatar))
+	http.Handle("DELETE /user/account", auth(handlers.DeleteMyAccount))
 	http.Handle("GET /user/me", auth(handlers.GetMe))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
 	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))

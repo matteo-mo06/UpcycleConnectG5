@@ -3,10 +3,12 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 
 	"upcycle_connect-api/internal/db"
@@ -14,6 +16,190 @@ import (
 	"upcycle_connect-api/internal/models"
 	"upcycle_connect-api/internal/utils"
 )
+
+func DeleteMyAccount(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	if err := db.DeleteUser(userID); err != nil {
+		fmt.Println("DeleteMyAccount error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la suppression du compte"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "compte supprimé"})
+}
+
+func UpdateMyAvatar(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	var body struct {
+		AvatarURL string `json:"avatar_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps de requête invalide"})
+		return
+	}
+
+	body.AvatarURL = strings.TrimSpace(body.AvatarURL)
+	if body.AvatarURL == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "avatar_url requis"})
+		return
+	}
+
+	if err := db.UpdateUserAvatar(userID, body.AvatarURL); err != nil {
+		fmt.Println("UpdateMyAvatar error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la mise à jour de l'avatar"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "avatar mis à jour", "avatar_url": body.AvatarURL})
+}
+
+func UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	var body struct {
+		Current string `json:"current"`
+		New     string `json:"new"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps de requête invalide"})
+		return
+	}
+
+	if body.Current == "" || body.New == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "mot de passe actuel et nouveau requis"})
+		return
+	}
+
+	if len(body.New) < 8 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le nouveau mot de passe doit contenir au moins 8 caractères"})
+		return
+	}
+
+	user, err := db.GetUserById(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "utilisateur non trouvé"})
+			return
+		}
+		fmt.Println("UpdateMyPassword error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la récupération de l'utilisateur"})
+		return
+	}
+
+	if err := utils.CheckPassword(body.Current, user.Password_user); err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "mot de passe actuel incorrect"})
+		return
+	}
+
+	hashed, err := utils.HashPassword(body.New)
+	if err != nil {
+		fmt.Println("UpdateMyPassword hash error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec du hachage du mot de passe"})
+		return
+	}
+
+	if err := db.UpdateUserPassword(userID, hashed); err != nil {
+		fmt.Println("UpdateMyPassword error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la mise à jour du mot de passe"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "mot de passe mis à jour"})
+}
+
+func UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	var body struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps de requête invalide"})
+		return
+	}
+
+	body.FirstName = strings.TrimSpace(body.FirstName)
+	body.LastName = strings.TrimSpace(body.LastName)
+	body.Email = strings.TrimSpace(body.Email)
+
+	if body.FirstName == "" || body.LastName == "" || body.Email == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "prénom, nom et email sont requis"})
+		return
+	}
+
+	current, err := db.GetUserById(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "utilisateur non trouvé"})
+			return
+		}
+		fmt.Println("UpdateMyProfile error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la récupération de l'utilisateur"})
+		return
+	}
+
+	if body.Email != current.Email {
+		_, err := db.GetUserByEmail(body.Email)
+		if err == nil {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "cet email est déjà utilisé"})
+			return
+		}
+		if err != sql.ErrNoRows {
+			fmt.Println("UpdateMyProfile email check error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la vérification de l'email"})
+			return
+		}
+	}
+
+	if err := db.UpdateUserProfile(userID, body.FirstName, body.LastName, body.Email); err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "cet email est déjà utilisé"})
+			return
+		}
+		fmt.Println("UpdateMyProfile error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "échec de la mise à jour du profil"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "profil mis à jour"})
+}
 
 func GetMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

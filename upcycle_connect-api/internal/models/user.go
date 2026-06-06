@@ -1,27 +1,29 @@
 package models
 
 type User struct {
-	Id_user         string `json:"id"`
-	Email           string `json:"email"`
-	Password_user   string `json:"password_user"`
-	First_name      string `json:"first_name"`
-	Last_name       string `json:"last_name"`
-	Upcycling_score int    `json:"upcycling_score"`
-	Premium         int    `json:"premium"`
-	Status          string `json:"status"`
-	Created_at      string `json:"created_at"`
-	Profile         string `json:"profile"`
+	Id_user         string  `json:"id"`
+	Email           string  `json:"email"`
+	Password_user   string  `json:"password_user"`
+	First_name      string  `json:"first_name"`
+	Last_name       string  `json:"last_name"`
+	Upcycling_score int     `json:"upcycling_score"`
+	Premium         int     `json:"premium"`
+	Status          string  `json:"status"`
+	Created_at      string  `json:"created_at"`
+	Profile         string  `json:"profile"`
+	Avatar_url      *string `json:"avatar_url"`
 }
 
 type UserResponse struct {
-	Id_user         string `json:"id"`
-	Email           string `json:"email"`
-	First_name      string `json:"first_name"`
-	Last_name       string `json:"last_name"`
-	Upcycling_score int    `json:"upcycling_score"`
-	Premium         int    `json:"premium"`
-	Status          string `json:"status"`
-	Created_at      string `json:"created_at"`
+	Id_user         string  `json:"id"`
+	Email           string  `json:"email"`
+	First_name      string  `json:"first_name"`
+	Last_name       string  `json:"last_name"`
+	Upcycling_score int     `json:"upcycling_score"`
+	Premium         int     `json:"premium"`
+	Status          string  `json:"status"`
+	Created_at      string  `json:"created_at"`
+	Avatar_url      *string `json:"avatar_url"`
 }
 
 type UserListItem struct {
@@ -47,6 +49,7 @@ type LoginUserResponse struct {
 	Created_at      string   `json:"created_at"`
 	Roles           []string `json:"roles"`
 	Permissions     []string `json:"permissions"`
+	Avatar_url      *string  `json:"avatar_url"`
 }
 
 func (u User) ToResponse() UserResponse {
@@ -59,6 +62,7 @@ func (u User) ToResponse() UserResponse {
 		Premium:         u.Premium,
 		Status:          u.Status,
 		Created_at:      u.Created_at,
+		Avatar_url:      u.Avatar_url,
 	}
 }
 
@@ -74,5 +78,6 @@ func (u User) ToLoginResponse(roles []string, permissions []string) LoginUserRes
 		Created_at:      u.Created_at,
 		Roles:           roles,
 		Permissions:     permissions,
+		Avatar_url:      u.Avatar_url,
 	}
 }

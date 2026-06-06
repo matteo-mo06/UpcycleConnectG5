@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Rôles & Permissions">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Rôles & Permissions</h1>
+        </div>
 
         <div class="flex items-center justify-between mb-6">
             <p class="text-sm text-gray-500">{{roles.length}} rôle(s)</p>

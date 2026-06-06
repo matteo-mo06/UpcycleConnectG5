@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Signalements">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Signalements</h1>
+        </div>
 
         <div class="grid grid-cols-3 gap-5 mb-8">
             <div

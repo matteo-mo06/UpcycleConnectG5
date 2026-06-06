@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Upcycling Score">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Upcycling Score</h1>
+        </div>
 
         <div class="grid grid-cols-3 gap-5 mb-8">
             <div v-for="stat in stats" :key="stat.label" class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">

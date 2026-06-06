@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Catégories">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Catégories</h1>
+        </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex gap-3 items-center">
             <span class="text-xs text-gray-400 ml-auto">{{ categories.length }} catégorie(s)</span>
