@@ -74,21 +74,21 @@ func createEvent(w http.ResponseWriter, r *http.Request, defaultStatus string) {
 		return
 	}
 
-	if e.Title_event == "" {
+	if e.TitleEvent == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "title is required"})
 		return
 	}
 
-	if e.Date_event == nil || *e.Date_event == "" {
+	if e.DateEvent == nil || *e.DateEvent == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "date is required"})
 		return
 	}
 
-	parsed, err := time.Parse("2006-01-02T15:04:05", *e.Date_event)
+	parsed, err := time.Parse("2006-01-02T15:04:05", *e.DateEvent)
 	if err != nil {
-		parsed, err = time.Parse("2006-01-02T15:04", *e.Date_event)
+		parsed, err = time.Parse("2006-01-02T15:04", *e.DateEvent)
 	}
 	if err != nil || parsed.Before(time.Now()) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -96,9 +96,9 @@ func createEvent(w http.ResponseWriter, r *http.Request, defaultStatus string) {
 		return
 	}
 
-	e.Id_event = uuid.New().String()
-	if e.Id_creator == nil && userID != "" {
-		e.Id_creator = &userID
+	e.IdEvent = uuid.New().String()
+	if e.IdCreator == nil && userID != "" {
+		e.IdCreator = &userID
 	}
 	e.Status = defaultStatus
 
@@ -183,7 +183,7 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e.Id_event = id
+	e.IdEvent = id
 
 	err = db.UpdateEvent(e)
 	if err != nil {
@@ -250,7 +250,7 @@ func DeleteMyEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if event.Id_creator == nil || *event.Id_creator != userID {
+	if event.IdCreator == nil || *event.IdCreator != userID {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cet événement"})
 		return

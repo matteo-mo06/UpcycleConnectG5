@@ -13,9 +13,9 @@ var nameRegex = regexp.MustCompile(`^[a-zA-ZÀ-ÿ' -]{2,150}$`)
 
 func ValidateUserCreation(user models.User) error {
 	user.Email = strings.TrimSpace(user.Email)
-	user.Password_user = strings.TrimSpace(user.Password_user)
-	user.First_name = strings.TrimSpace(user.First_name)
-	user.Last_name = strings.TrimSpace(user.Last_name)
+	user.PasswordUser = strings.TrimSpace(user.PasswordUser)
+	user.FirstName = strings.TrimSpace(user.FirstName)
+	user.LastName = strings.TrimSpace(user.LastName)
 
 	if user.Email == "" {
 		return errors.New("email is required")
@@ -25,35 +25,35 @@ func ValidateUserCreation(user models.User) error {
 		return errors.New("invalid email format")
 	}
 
-	if user.Password_user == "" {
+	if user.PasswordUser == "" {
 		return errors.New("password is required")
 	}
 
-	if len(user.Password_user) < 8 {
+	if len(user.PasswordUser) < 8 {
 		return errors.New("password must be at least 8 characters")
 	}
 
-	if len(user.Password_user) > 72 {
+	if len(user.PasswordUser) > 72 {
 		return errors.New("password must be at most 72 characters")
 	}
 
-	if user.First_name == "" {
+	if user.FirstName == "" {
 		return errors.New("first_name is required")
 	}
 
-	if !nameRegex.MatchString(user.First_name) {
+	if !nameRegex.MatchString(user.FirstName) {
 		return errors.New("invalid first_name format")
 	}
 
-	if user.Last_name == "" {
+	if user.LastName == "" {
 		return errors.New("last_name is required")
 	}
 
-	if !nameRegex.MatchString(user.Last_name) {
+	if !nameRegex.MatchString(user.LastName) {
 		return errors.New("invalid last_name format")
 	}
 
-	if user.Upcycling_score < 0 {
+	if user.UpcyclingScore < 0 {
 		return errors.New("upcycling_score cannot be negative")
 	}
 

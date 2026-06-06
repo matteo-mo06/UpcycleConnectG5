@@ -102,17 +102,17 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a := models.Announcement{
-		Id_announcement:         uuid.New().String(),
-		Id_category:             body.IdCategory,
-		Title_announcement:      body.Title,
-		Address_annoucement:     body.Address,
+		IdAnnouncement:          uuid.New().String(),
+		IdCategory:              body.IdCategory,
+		TitleAnnouncement:       body.Title,
+		AddressAnnouncement:     body.Address,
 		City:                    body.City,
 		Postal:                  body.Postal,
-		Description_annoucement: body.Description,
-		Availability_date:       body.AvailDate,
+		DescriptionAnnouncement: body.Description,
+		AvailabilityDate:        body.AvailDate,
 		Price:                   body.Price,
 		Request:                 0,
-		State_annoucement:       state,
+		StateAnnouncement:       state,
 		TypeAnnouncement:        typ,
 		ConditionAnnouncement:   body.Condition,
 	}
@@ -338,13 +338,13 @@ func CreateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.Availability_date == "" {
+	if a.AvailabilityDate == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "availability_date is required"})
 		return
 	}
 
-	a.Id_announcement = uuid.New().String()
+	a.IdAnnouncement = uuid.New().String()
 
 	if err = db.CreateUserAnnouncement(a, userID, nil); err != nil {
 		fmt.Println("CreateAnnouncement error:", err)
@@ -388,7 +388,7 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.Id_announcement = id
+	a.IdAnnouncement = id
 
 	err = db.UpdateAnnouncement(a)
 	if err != nil {

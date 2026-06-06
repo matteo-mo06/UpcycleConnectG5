@@ -57,7 +57,7 @@ func GetProjectById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isOwner := project.Id_creator != nil && *project.Id_creator == userID
+	isOwner := project.IdCreator != nil && *project.IdCreator == userID
 
 	if !db.IsPublicProject(project.Status) && !isOwner {
 		w.WriteHeader(http.StatusForbidden)
@@ -88,14 +88,14 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := models.Project{
-		Id_project:          uuid.New().String(),
-		Title_project:       req.Title,
-		Description_project: req.Description,
-		Start_date_project:  req.StartDate,
-		End_date:            req.EndDate,
-		Location_project:    req.Location,
-		Capacity:            req.Capacity,
-		Id_creator:          &userID,
+		IdProject:          uuid.New().String(),
+		TitleProject:       req.Title,
+		DescriptionProject: req.Description,
+		StartDateProject:   req.StartDate,
+		EndDate:            req.EndDate,
+		LocationProject:    req.Location,
+		Capacity:           req.Capacity,
+		IdCreator:          &userID,
 	}
 
 	if err := db.CreateProject(p); err != nil {
@@ -105,7 +105,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.AwardScore(userID, "project_created", p.Id_project); err != nil {
+	if err := db.AwardScore(userID, "project_created", p.IdProject); err != nil {
 		fmt.Println("AwardScore project_created error:", err)
 	}
 
@@ -132,7 +132,7 @@ func UpdateMyProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if project.Id_creator == nil || *project.Id_creator != userID {
+	if project.IdCreator == nil || *project.IdCreator != userID {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de ce projet"})
 		return
@@ -157,11 +157,11 @@ func UpdateMyProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project.Title_project = req.Title
-	project.Description_project = req.Description
-	project.Start_date_project = req.StartDate
-	project.End_date = req.EndDate
-	project.Location_project = req.Location
+	project.TitleProject = req.Title
+	project.DescriptionProject = req.Description
+	project.StartDateProject = req.StartDate
+	project.EndDate = req.EndDate
+	project.LocationProject = req.Location
 	project.Capacity = req.Capacity
 
 	if err := db.UpdateProject(project); err != nil {
@@ -194,7 +194,7 @@ func DeleteMyProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if project.Id_creator == nil || *project.Id_creator != userID {
+	if project.IdCreator == nil || *project.IdCreator != userID {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de ce projet"})
 		return
@@ -483,7 +483,7 @@ func ModerateDeleteProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isCreator := project.Id_creator != nil && *project.Id_creator == userID
+	isCreator := project.IdCreator != nil && *project.IdCreator == userID
 	isAdmin := slices.Contains(roles, config.RoleAdmin)
 	canModerate := slices.Contains(perms, "moderate_projects")
 
@@ -587,14 +587,14 @@ func UpdateProjectAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := models.Project{
-		Id_project:          id,
-		Title_project:       req.Title,
-		Description_project: req.Description,
-		Start_date_project:  req.StartDate,
-		End_date:            req.EndDate,
-		Location_project:    req.Location,
-		Capacity:            req.Capacity,
-		Status:              req.Status,
+		IdProject:          id,
+		TitleProject:       req.Title,
+		DescriptionProject: req.Description,
+		StartDateProject:   req.StartDate,
+		EndDate:            req.EndDate,
+		LocationProject:    req.Location,
+		Capacity:           req.Capacity,
+		Status:             req.Status,
 	}
 	if p.Status == "" {
 		p.Status = existing.Status

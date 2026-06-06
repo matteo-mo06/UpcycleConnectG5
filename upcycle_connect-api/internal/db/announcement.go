@@ -19,16 +19,16 @@ func scanAnnouncement(row interface{ Scan(...any) error }) (models.Announcement,
 	var a models.Announcement
 	var idCat, authorId, firstName, lastName, typ, cond, firstPhoto, createdAt, deletedAt, rejReason sql.NullString
 	err := row.Scan(
-		&a.Id_announcement, &idCat, &a.Title_announcement,
-		&a.Address_annoucement, &a.City, &a.Postal,
-		&a.Description_annoucement, &a.Availability_date, &a.Price,
-		&a.Request, &a.State_annoucement, &rejReason,
+		&a.IdAnnouncement, &idCat, &a.TitleAnnouncement,
+		&a.AddressAnnouncement, &a.City, &a.Postal,
+		&a.DescriptionAnnouncement, &a.AvailabilityDate, &a.Price,
+		&a.Request, &a.StateAnnouncement, &rejReason,
 		&authorId, &firstName, &lastName, &typ, &cond, &firstPhoto, &createdAt, &deletedAt,
 	)
 	if err != nil {
 		return a, err
 	}
-	a.Id_category = idCat.String
+	a.IdCategory = idCat.String
 	a.AuthorId = authorId.String
 	a.AuthorName = strings.TrimSpace(firstName.String + " " + lastName.String)
 	a.TypeAnnouncement = typ.String
@@ -175,7 +175,7 @@ func GetUserAnnouncements(userID string) ([]models.Announcement, error) {
 		_ = config.Conn.QueryRow(`
 			SELECT l.locker_number FROM ANNOUNCEMENT_LOCKER al
 			JOIN LOCKER l ON l.id_locker = al.id_locker
-			WHERE al.id_announcement = ?`, list[i].Id_announcement,
+			WHERE al.id_announcement = ?`, list[i].IdAnnouncement,
 		).Scan(&num)
 		list[i].LockerNumber = int(num.Int64)
 	}
@@ -233,8 +233,8 @@ func GetAnnouncementById(id string) (models.Announcement, error) {
 
 func CreateAnnouncement(a models.Announcement) error {
 	var idCategory interface{}
-	if a.Id_category != "" {
-		idCategory = a.Id_category
+	if a.IdCategory != "" {
+		idCategory = a.IdCategory
 	}
 	_, err := config.Conn.Exec(`
 		INSERT INTO ANNOUNCEMENT (
@@ -242,9 +242,9 @@ func CreateAnnouncement(a models.Announcement) error {
 			city, postal, description_annoucement, availability_date, price,
 			request, state_annoucement, type_announcement, condition_announcement
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.Id_announcement, idCategory, a.Title_announcement, a.Address_annoucement,
-		a.City, a.Postal, a.Description_annoucement, a.Availability_date, a.Price,
-		a.Request, a.State_annoucement, a.TypeAnnouncement, a.ConditionAnnouncement,
+		a.IdAnnouncement, idCategory, a.TitleAnnouncement, a.AddressAnnouncement,
+		a.City, a.Postal, a.DescriptionAnnouncement, a.AvailabilityDate, a.Price,
+		a.Request, a.StateAnnouncement, a.TypeAnnouncement, a.ConditionAnnouncement,
 	)
 	return err
 }
@@ -255,14 +255,14 @@ func CreateUserAnnouncement(a models.Announcement, userID string, photoURLs []st
 	}
 	if _, err := config.Conn.Exec(
 		"INSERT INTO USER_ANNOUNCEMENT (id_user, id_announcement) VALUES (?, ?)",
-		userID, a.Id_announcement,
+		userID, a.IdAnnouncement,
 	); err != nil {
 		return err
 	}
 	for _, url := range photoURLs {
 		if _, err := config.Conn.Exec(
 			"INSERT INTO DOCUMENT (id_document, id_user, category, link) VALUES (?, ?, ?, ?)",
-			uuid.New().String(), userID, a.Id_announcement, url,
+			uuid.New().String(), userID, a.IdAnnouncement, url,
 		); err != nil {
 			return err
 		}
@@ -314,7 +314,7 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 		_ = config.Conn.QueryRow(`
 			SELECT l.access_code, l.locker_number FROM ANNOUNCEMENT_LOCKER al
 			JOIN LOCKER l ON l.id_locker = al.id_locker
-			WHERE al.id_announcement = ?`, list[i].Id_announcement,
+			WHERE al.id_announcement = ?`, list[i].IdAnnouncement,
 		).Scan(&code, &num)
 		list[i].AccessCode = code.String
 		list[i].LockerNumber = int(num.Int64)
@@ -325,8 +325,8 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 
 func UpdateAnnouncement(a models.Announcement) error {
 	var idCategory interface{}
-	if a.Id_category != "" {
-		idCategory = a.Id_category
+	if a.IdCategory != "" {
+		idCategory = a.IdCategory
 	}
 	_, err := config.Conn.Exec(`
 		UPDATE ANNOUNCEMENT SET
@@ -335,11 +335,11 @@ func UpdateAnnouncement(a models.Announcement) error {
 			availability_date = ?, price = ?, request = ?, state_annoucement = ?,
 			type_announcement = ?, condition_announcement = ?
 		WHERE id_announcement = ?`,
-		idCategory, a.Title_announcement, a.Address_annoucement,
-		a.City, a.Postal, a.Description_annoucement,
-		a.Availability_date, a.Price, a.Request, a.State_annoucement,
+		idCategory, a.TitleAnnouncement, a.AddressAnnouncement,
+		a.City, a.Postal, a.DescriptionAnnouncement,
+		a.AvailabilityDate, a.Price, a.Request, a.StateAnnouncement,
 		a.TypeAnnouncement, a.ConditionAnnouncement,
-		a.Id_announcement,
+		a.IdAnnouncement,
 	)
 	return err
 }

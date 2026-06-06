@@ -31,14 +31,14 @@ func GetProfessionalRequests(status string) ([]models.ProfessionalRequestDetail,
 	for rows.Next() {
 		var req models.ProfessionalRequestDetail
 		err := rows.Scan(
-			&req.Id_request,
-			&req.Id_user,
+			&req.IdRequest,
+			&req.IdUser,
 			&req.Status,
 			&req.CreatedAt,
 			&req.ProcessedAt,
 			&req.Email,
-			&req.First_name,
-			&req.Last_name,
+			&req.FirstName,
+			&req.LastName,
 		)
 		if err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ func GetProfessionalRequestById(id string) (models.ProfessionalRequest, error) {
 		FROM PROFESSIONAL_REQUEST
 		WHERE id_request = ?`, id)
 
-	err := row.Scan(&req.Id_request, &req.Id_user, &req.Status, &req.CreatedAt, &req.ProcessedAt)
+	err := row.Scan(&req.IdRequest, &req.IdUser, &req.Status, &req.CreatedAt, &req.ProcessedAt)
 	return req, err
 }
 
@@ -63,7 +63,7 @@ func CreateProfessionalRequest(req models.ProfessionalRequest) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO PROFESSIONAL_REQUEST (id_request, id_user, status)
 		VALUES (?, ?, 'pending')`,
-		req.Id_request, req.Id_user,
+		req.IdRequest, req.IdUser,
 	)
 	return err
 }
@@ -85,7 +85,7 @@ func GetPendingRequestByUser(userID string) (models.ProfessionalRequest, error) 
 		FROM PROFESSIONAL_REQUEST
 		WHERE id_user = ? AND status = 'pending'`, userID)
 
-	err := row.Scan(&req.Id_request, &req.Id_user, &req.Status, &req.CreatedAt, &req.ProcessedAt)
+	err := row.Scan(&req.IdRequest, &req.IdUser, &req.Status, &req.CreatedAt, &req.ProcessedAt)
 	if err == sql.ErrNoRows {
 		return req, sql.ErrNoRows
 	}

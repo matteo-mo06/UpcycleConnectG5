@@ -60,11 +60,11 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 	for rows.Next() {
 		var f models.Formation
 		err := rows.Scan(
-			&f.Id_formation, &f.Title_formation, &f.Description_formation, &f.Date_formation,
-			&f.Location_formation, &f.Capacity, &f.Level, &f.Duration_hours, &f.Status,
-			&f.RejectionReason, &f.Id_category, &f.CategoryName,
-			&f.Id_creator, &f.CreatorName,
-			&f.Id_formateur, &f.FormateurName,
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount, &f.IsRegistered,
 			&f.CreatedAt,
 		)
@@ -128,11 +128,11 @@ func GetAllFormations(search, status string, limit, offset int) ([]models.Format
 	for rows.Next() {
 		var f models.Formation
 		err := rows.Scan(
-			&f.Id_formation, &f.Title_formation, &f.Description_formation, &f.Date_formation,
-			&f.Location_formation, &f.Capacity, &f.Level, &f.Duration_hours, &f.Status,
-			&f.RejectionReason, &f.Id_category, &f.CategoryName,
-			&f.Id_creator, &f.CreatorName,
-			&f.Id_formateur, &f.FormateurName,
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
 			&f.CreatedAt,
 		)
@@ -160,11 +160,11 @@ func GetFormationById(id string) (models.Formation, error) {
 		LEFT JOIN user fmt ON fmt.id_user = f.id_formateur
 		WHERE f.id_formation = ? AND f.deleted_at IS NULL`, id,
 	).Scan(
-		&f.Id_formation, &f.Title_formation, &f.Description_formation, &f.Date_formation,
-		&f.Location_formation, &f.Capacity, &f.Level, &f.Duration_hours, &f.Status,
-		&f.RejectionReason, &f.Id_category, &f.CategoryName,
-		&f.Id_creator, &f.CreatorName,
-		&f.Id_formateur, &f.FormateurName,
+		&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+		&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+		&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+		&f.IdCreator, &f.CreatorName,
+		&f.IdFormateur, &f.FormateurName,
 		&f.CreatedAt,
 	)
 	return f, err
@@ -177,9 +177,9 @@ func CreateFormation(f models.Formation) error {
 			location_formation, capacity, level, duration_hours, status,
 			id_category, id_creator, id_formateur, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
-		f.Id_formation, f.Title_formation, f.Description_formation, f.Date_formation,
-		f.Location_formation, f.Capacity, f.Level, f.Duration_hours,
-		f.Id_category, f.Id_creator, f.Id_formateur,
+		f.IdFormation, f.TitleFormation, f.DescriptionFormation, f.DateFormation,
+		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
+		f.IdCategory, f.IdCreator, f.IdFormateur,
 	)
 	return err
 }
@@ -198,9 +198,9 @@ func UpdateFormation(f models.Formation) error {
 			status = 'pending',
 			rejection_reason = NULL
 		WHERE id_formation = ?`,
-		f.Title_formation, f.Description_formation, f.Date_formation,
-		f.Location_formation, f.Capacity, f.Level, f.Duration_hours,
-		f.Id_category, f.Id_formation,
+		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
+		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
+		f.IdCategory, f.IdFormation,
 	)
 	return err
 }
@@ -218,9 +218,9 @@ func UpdateFormationAdmin(f models.Formation) error {
 			id_category = ?,
 			status = ?
 		WHERE id_formation = ?`,
-		f.Title_formation, f.Description_formation, f.Date_formation,
-		f.Location_formation, f.Capacity, f.Level, f.Duration_hours,
-		f.Id_category, f.Status, f.Id_formation,
+		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
+		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
+		f.IdCategory, f.Status, f.IdFormation,
 	)
 	return err
 }
@@ -290,11 +290,11 @@ func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 		var f models.Formation
 		f.IsRegistered = true
 		err := rows.Scan(
-			&f.Id_formation, &f.Title_formation, &f.Description_formation, &f.Date_formation,
-			&f.Location_formation, &f.Capacity, &f.Level, &f.Duration_hours, &f.Status,
-			&f.RejectionReason, &f.Id_category, &f.CategoryName,
-			&f.Id_creator, &f.CreatorName,
-			&f.Id_formateur, &f.FormateurName,
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
 			&f.CreatedAt,
 		)
@@ -333,11 +333,11 @@ func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 	for rows.Next() {
 		var f models.Formation
 		err := rows.Scan(
-			&f.Id_formation, &f.Title_formation, &f.Description_formation, &f.Date_formation,
-			&f.Location_formation, &f.Capacity, &f.Level, &f.Duration_hours, &f.Status,
-			&f.RejectionReason, &f.Id_category, &f.CategoryName,
-			&f.Id_creator, &f.CreatorName,
-			&f.Id_formateur, &f.FormateurName,
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
 			&f.CreatedAt,
 		)

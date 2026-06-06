@@ -18,7 +18,7 @@ func GetAllRoles() ([]models.Role, error) {
 	var roles []models.Role
 	for rows.Next() {
 		var r models.Role
-		err := rows.Scan(&r.Id_role, &r.Name_role)
+		err := rows.Scan(&r.IdRole, &r.NameRole)
 		if err != nil {
 			return nil, err
 		}
@@ -29,7 +29,7 @@ func GetAllRoles() ([]models.Role, error) {
 
 func GetRoleByName(name string) (models.Role, error) {
 	var r models.Role
-	err := config.Conn.QueryRow("SELECT id_role, name_role FROM ROLE WHERE name_role = ?", name).Scan(&r.Id_role, &r.Name_role)
+	err := config.Conn.QueryRow("SELECT id_role, name_role FROM ROLE WHERE name_role = ?", name).Scan(&r.IdRole, &r.NameRole)
 	return r, err
 }
 
@@ -47,7 +47,7 @@ func GetUserRoles(userID string) ([]models.Role, error) {
 	var roles []models.Role
 	for rows.Next() {
 		var r models.Role
-		err := rows.Scan(&r.Id_role, &r.Name_role)
+		err := rows.Scan(&r.IdRole, &r.NameRole)
 		if err != nil {
 			return nil, err
 		}
@@ -107,12 +107,12 @@ func RemoveUserRole(userID, roleID string) (bool, error) {
 
 func CreateRole(name string) (models.Role, error) {
 	r := models.Role{
-		Id_role:   uuid.New().String(),
-		Name_role: name,
+		IdRole:   uuid.New().String(),
+		NameRole: name,
 	}
 	_, err := config.Conn.Exec(
 		"INSERT INTO ROLE (id_role, name_role) VALUES (?, ?)",
-		r.Id_role, r.Name_role,
+		r.IdRole, r.NameRole,
 	)
 	return r, err
 }

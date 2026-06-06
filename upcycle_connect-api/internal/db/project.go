@@ -59,9 +59,9 @@ func GetProjects(userID, search string, limit, offset int) ([]models.Project, in
 		var p models.Project
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&p.Id_project, &p.Title_project, &p.Description_project, &p.Start_date_project,
-			&p.End_date, &p.Location_project, &p.Capacity, &p.Status, &rejReason,
-			&p.Id_creator, &p.CreatorName, &p.MembersCount, &p.IsRegistered,
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount, &p.IsRegistered,
 			&p.CreatedAt, &p.UpVotes, &p.DownVotes, &p.UserVote,
 		)
 		if err != nil {
@@ -125,9 +125,9 @@ func GetAllProjectsAdmin(search, status string, limit, offset int) ([]models.Pro
 		var p models.Project
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&p.Id_project, &p.Title_project, &p.Description_project, &p.Start_date_project,
-			&p.End_date, &p.Location_project, &p.Capacity, &p.Status, &rejReason,
-			&p.Id_creator, &p.CreatorName, &p.MembersCount,
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount,
 			&p.CreatedAt, &p.UpVotes, &p.DownVotes,
 		)
 		if err != nil {
@@ -156,9 +156,9 @@ func GetProjectById(id string) (models.Project, error) {
 		WHERE p.id_project = ?
 		GROUP BY p.id_project`, id,
 	).Scan(
-		&p.Id_project, &p.Title_project, &p.Description_project, &p.Start_date_project,
-		&p.End_date, &p.Location_project, &p.Capacity, &p.Status, &rejReason,
-		&p.Id_creator, &p.CreatorName, &p.MembersCount,
+		&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+		&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+		&p.IdCreator, &p.CreatorName, &p.MembersCount,
 		&p.CreatedAt,
 	)
 	if rejReason.Valid {
@@ -184,8 +184,8 @@ func CreateProject(p models.Project) error {
 			id_project, title_project, description_project, start_date_project,
 			end_date, location_project, capacity, status, id_creator, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())`,
-		p.Id_project, p.Title_project, p.Description_project, p.Start_date_project,
-		p.End_date, p.Location_project, p.Capacity, p.Id_creator,
+		p.IdProject, p.TitleProject, p.DescriptionProject, p.StartDateProject,
+		p.EndDate, p.LocationProject, p.Capacity, p.IdCreator,
 	)
 	return err
 }
@@ -202,8 +202,8 @@ func UpdateProject(p models.Project) error {
 			status = 'pending',
 			rejection_reason = NULL
 		WHERE id_project = ?`,
-		p.Title_project, p.Description_project, p.Start_date_project,
-		p.End_date, p.Location_project, p.Capacity, p.Id_project,
+		p.TitleProject, p.DescriptionProject, p.StartDateProject,
+		p.EndDate, p.LocationProject, p.Capacity, p.IdProject,
 	)
 	return err
 }
@@ -219,8 +219,8 @@ func UpdateProjectAdmin(p models.Project) error {
 			capacity = ?,
 			status = ?
 		WHERE id_project = ?`,
-		p.Title_project, p.Description_project, p.Start_date_project,
-		p.End_date, p.Location_project, p.Capacity, p.Status, p.Id_project,
+		p.TitleProject, p.DescriptionProject, p.StartDateProject,
+		p.EndDate, p.LocationProject, p.Capacity, p.Status, p.IdProject,
 	)
 	return err
 }
@@ -310,9 +310,9 @@ func GetMyCreatedProjects(creatorID string) ([]models.Project, error) {
 		var p models.Project
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&p.Id_project, &p.Title_project, &p.Description_project, &p.Start_date_project,
-			&p.End_date, &p.Location_project, &p.Capacity, &p.Status, &rejReason,
-			&p.Id_creator, &p.CreatorName, &p.MembersCount,
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount,
 			&p.CreatedAt, &p.UpVotes, &p.DownVotes,
 		)
 		if err != nil {
@@ -366,9 +366,9 @@ func GetUserRegisteredProjects(userID string) ([]models.Project, error) {
 		var p models.Project
 		p.IsRegistered = true
 		err := rows.Scan(
-			&p.Id_project, &p.Title_project, &p.Description_project, &p.Start_date_project,
-			&p.End_date, &p.Location_project, &p.Capacity, &p.Status,
-			&p.Id_creator, &p.CreatorName, &p.MembersCount,
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount,
 			&p.CreatedAt,
 		)
 		if err != nil {

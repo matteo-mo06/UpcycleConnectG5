@@ -63,8 +63,8 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 		var e models.Event
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
-			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.Status, &rejReason,
 		)
 		if err != nil {
@@ -86,8 +86,8 @@ func GetEventById(id string) (models.Event, error) {
 		       capacity, price_cents, id_creator, status, rejection_reason
 		FROM EVENT WHERE id_event = ? AND deleted_at IS NULL`, id,
 	).Scan(
-		&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
-		&e.Capacity, &e.Price_cents, &e.Id_creator, &e.Status, &rejReason,
+		&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+		&e.Capacity, &e.PriceCents, &e.IdCreator, &e.Status, &rejReason,
 	)
 	if rejReason.Valid && rejReason.String != "" {
 		e.RejectionReason = &rejReason.String
@@ -107,8 +107,8 @@ func CreateEvent(e models.Event) error {
 		)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
-		e.Id_event, e.Title_event, e.Description_event, e.Date_event,
-		e.Location_event, e.Capacity, e.Price_cents, e.Id_creator, status,
+		e.IdEvent, e.TitleEvent, e.DescriptionEvent, e.DateEvent,
+		e.LocationEvent, e.Capacity, e.PriceCents, e.IdCreator, status,
 	)
 	return err
 }
@@ -125,8 +125,8 @@ func UpdateEvent(e models.Event) error {
 			id_creator = ?
 		WHERE id_event = ?
 	`,
-		e.Title_event, e.Description_event, e.Date_event, e.Location_event,
-		e.Capacity, e.Price_cents, e.Id_creator, e.Id_event,
+		e.TitleEvent, e.DescriptionEvent, e.DateEvent, e.LocationEvent,
+		e.Capacity, e.PriceCents, e.IdCreator, e.IdEvent,
 	)
 	return err
 }
@@ -198,8 +198,8 @@ func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([
 	for rows.Next() {
 		var e models.Event
 		err := rows.Scan(
-			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
-			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.IsRegistered, &e.Status,
 		)
 		if err != nil {
@@ -234,8 +234,8 @@ func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 		var e models.Event
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
-			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.Status, &rejReason,
 		)
 		if err != nil {
@@ -275,8 +275,8 @@ func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 		e.IsRegistered = true
 		e.Status = "approved"
 		err := rows.Scan(
-			&e.Id_event, &e.Title_event, &e.Description_event, &e.Date_event, &e.Location_event,
-			&e.Capacity, &e.Price_cents, &e.Id_creator, &e.CreatorName, &e.InscriptionCount,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 		)
 		if err != nil {
 			return nil, err

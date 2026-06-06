@@ -32,6 +32,7 @@ func InitRoutes() {
 	http.Handle("PATCH /user/avatar", auth(handlers.UpdateMyAvatar))
 	http.Handle("DELETE /user/account", auth(handlers.DeleteMyAccount))
 	http.Handle("GET /user/me", auth(handlers.GetMe))
+	http.Handle("POST /user/tutorial-done", auth(handlers.MarkTutorialDone))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
 	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))

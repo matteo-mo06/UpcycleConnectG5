@@ -123,7 +123,6 @@ import api from '@/api.js'
 const auth = useAuthStore()
 const showDepot = ref(false)
 
-const tutorialKey = () => `tutorial_done_${auth.user?.id}`
 const showTutorial = ref(false)
 
 const tutorialSteps = [
@@ -189,9 +188,12 @@ const tutorialSteps = [
     },
 ]
 
-function finishTutorial() {
+async function finishTutorial() {
     showTutorial.value = false
-    localStorage.setItem(tutorialKey(), 'done')
+    try {
+        await api.post('/user/tutorial-done')
+        auth.setTutorialDone()
+    } catch {}
 }
 
 const stats = ref([
@@ -243,7 +245,7 @@ onMounted(async () => {
         })
     } catch {}
 
-    if (!localStorage.getItem(tutorialKey())) {
+    if (!auth.user?.tutorial_done) {
         showTutorial.value = true
     }
 })

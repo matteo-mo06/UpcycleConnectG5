@@ -105,7 +105,7 @@ func UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.CheckPassword(body.Current, user.Password_user); err != nil {
+	if err := utils.CheckPassword(body.Current, user.PasswordUser); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "mot de passe actuel incorrect"})
 		return
@@ -226,6 +226,22 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(user.ToLoginResponse(roles, []string{}))
+}
+
+func MarkTutorialDone(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	if err := db.MarkTutorialDone(userID); err != nil {
+		fmt.Println("MarkTutorialDone error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update tutorial status"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "tutorial marked as done"})
 }
 
 func GetMyStats(w http.ResponseWriter, r *http.Request) {
@@ -399,7 +415,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.Id_user = id
+	user.IdUser = id
 
 	err = db.UpdateUser(user)
 	if err != nil {
@@ -425,8 +441,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.Email = strings.TrimSpace(user.Email)
-	user.First_name = strings.TrimSpace(user.First_name)
-	user.Last_name = strings.TrimSpace(user.Last_name)
+	user.FirstName = strings.TrimSpace(user.FirstName)
+	user.LastName = strings.TrimSpace(user.LastName)
 
 	err = utils.ValidateUserCreation(user)
 	if err != nil {
@@ -435,7 +451,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, err := utils.HashPassword(user.Password_user)
+	hashedPassword, err := utils.HashPassword(user.PasswordUser)
 	if err != nil {
 		fmt.Println("CreateUser hash error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -443,12 +459,12 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.Id_user = uuid.New().String()
-	user.Password_user = hashedPassword
+	user.IdUser = uuid.New().String()
+	user.PasswordUser = hashedPassword
 
 	profileToRole := map[string]string{
-		"particulier":  "user",
-		"artisan":      "artisan",
+		"particulier":   "user",
+		"artisan":       "artisan",
 		"professionnel": "artisan",
 	}
 	profile := strings.TrimSpace(user.Profile)
@@ -471,7 +487,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("CreateUser GetRoleByName error:", err)
 	} else {
-		if err = db.AddUserRole(user.Id_user, role.Id_role); err != nil {
+		if err = db.AddUserRole(user.IdUser, role.IdRole); err != nil {
 			fmt.Println("CreateUser AddUserRole error:", err)
 		}
 	}
@@ -496,7 +512,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	payload.Email = strings.TrimSpace(payload.Email)
 
-	if payload.Email == "" || payload.Password_user == "" {
+	if payload.Email == "" || payload.PasswordUser == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "email and password are required"})
 		return
@@ -515,7 +531,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = utils.CheckPassword(payload.Password_user, user.Password_user)
+	err = utils.CheckPassword(payload.PasswordUser, user.PasswordUser)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid credentials"})
@@ -529,12 +545,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Status == "suspended" {
-		expired, err := db.IsSuspensionExpired(user.Id_user)
+		expired, err := db.IsSuspensionExpired(user.IdUser)
 		if err != nil {
 			fmt.Println("Login IsSuspensionExpired error:", err)
 		}
 		if expired {
-			_ = db.UpdateUserStatus(user.Id_user, "active")
+			_ = db.UpdateUserStatus(user.IdUser, "active")
 		} else {
 			w.WriteHeader(http.StatusForbidden)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "compte suspendu"})
@@ -542,17 +558,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	roles, _ := db.GetUserRoleNames(user.Id_user)
+	roles, _ := db.GetUserRoleNames(user.IdUser)
 	if roles == nil {
 		roles = []string{}
 	}
 
-	permissions, _ := db.GetUserPermissions(user.Id_user)
+	permissions, _ := db.GetUserPermissions(user.IdUser)
 	if permissions == nil {
 		permissions = []string{}
 	}
 
-	token, err := utils.GenerateToken(user.Id_user, roles, permissions)
+	token, err := utils.GenerateToken(user.IdUser, roles, permissions)
 	if err != nil {
 		fmt.Println("Login GenerateToken error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
