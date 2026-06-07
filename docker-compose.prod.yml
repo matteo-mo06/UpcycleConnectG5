@@ -16,6 +16,7 @@ services:
       dockerfile: docker/nginx/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
     container_name: upcycle-nginx
     ports:
       - "80:80"
