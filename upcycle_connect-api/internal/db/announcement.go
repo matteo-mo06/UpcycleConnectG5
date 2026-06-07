@@ -366,16 +366,6 @@ func MarkAnnouncementSold(announcementID, buyerID string) error {
 		tx.Rollback()
 		return err
 	}
-	if buyerID != "" {
-		_, err = tx.Exec(
-			"INSERT IGNORE INTO USER_ANNOUNCEMENT (id_user, id_announcement) VALUES (?, ?)",
-			buyerID, announcementID,
-		)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
 	return tx.Commit()
 }
 
