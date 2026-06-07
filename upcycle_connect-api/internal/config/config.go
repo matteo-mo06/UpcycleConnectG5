@@ -26,6 +26,13 @@ func JWTSecret() []byte {
 func StripeSecretKey() string     { return os.Getenv("STRIPE_SECRET_KEY") }
 func StripeWebhookSecret() string { return os.Getenv("STRIPE_WEBHOOK_SECRET") }
 
+func InvoicesDir() string {
+	if d := os.Getenv("INVOICES_DIR"); d != "" {
+		return d
+	}
+	return "./invoices"
+}
+
 func ValidateEnv() {
 	required := []string{
 		"PORT",

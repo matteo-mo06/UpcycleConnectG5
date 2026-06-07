@@ -318,9 +318,42 @@ func GetUserAcquisitions(userID string) ([]models.Announcement, error) {
 		).Scan(&code, &num)
 		list[i].AccessCode = code.String
 		list[i].LockerNumber = int(num.Int64)
+
+		var invoicePath sql.NullString
+		_ = config.Conn.QueryRow(
+			"SELECT invoice_path FROM ANNOUNCEMENT WHERE id_announcement = ?",
+			list[i].IdAnnouncement,
+		).Scan(&invoicePath)
+		list[i].InvoicePath = invoicePath.String
 	}
 
 	return list, nil
+}
+
+func StoreInvoicePath(announcementID, path string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE ANNOUNCEMENT SET invoice_path = ? WHERE id_announcement = ?",
+		path, announcementID,
+	)
+	return err
+}
+
+func GetInvoicePath(announcementID string) (string, error) {
+	var path sql.NullString
+	err := config.Conn.QueryRow(
+		"SELECT invoice_path FROM ANNOUNCEMENT WHERE id_announcement = ?",
+		announcementID,
+	).Scan(&path)
+	return path.String, err
+}
+
+func IsAnnouncementBuyer(announcementID, userID string) (bool, error) {
+	var count int
+	err := config.Conn.QueryRow(
+		"SELECT COUNT(*) FROM ANNOUNCEMENT WHERE id_announcement = ? AND id_buyer = ?",
+		announcementID, userID,
+	).Scan(&count)
+	return count > 0, err
 }
 
 func UpdateAnnouncement(a models.Announcement) error {

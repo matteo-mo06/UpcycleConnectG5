@@ -120,6 +120,22 @@
                                 class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium"
                             >Casier N° {{ a.locker_number }}</span>
 
+                            <span
+                                v-if="activeTab === 'acquisitions' && a.locker_number"
+                                class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium"
+                            >Casier N° {{ a.locker_number }}</span>
+
+                            <button
+                                v-if="activeTab === 'acquisitions' && a.invoice_path"
+                                @click.stop="downloadInvoice(a)"
+                                class="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Télécharger la facture"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                </svg>
+                            </button>
+
                             <button
                                 v-if="canDelete(a)"
                                 @click.stop="confirmDelete(a)"
@@ -210,10 +226,13 @@
                         <button @click="openReport(selected)" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Signaler ce contenu</button>
                     </div>
 
-                    <div v-if="activeTab === 'acquisitions' && selected.access_code" class="pt-2 border-t border-gray-100 space-y-2">
+                    <div v-if="activeTab === 'acquisitions' && selected.locker_number" class="pt-2 border-t border-gray-100 space-y-2">
                         <p class="text-xs text-gray-500"><span class="font-medium text-gray-700">Casier :</span> N° {{ selected.locker_number }}</p>
-                        <p class="text-xs text-gray-400">Scannez ce code pour ouvrir le casier</p>
-                        <svg ref="barcodeEl" class="mx-auto" />
+                        <template v-if="selected.access_code">
+                            <p class="text-xs text-gray-400">Scannez ce code pour ouvrir le casier</p>
+                            <svg ref="barcodeEl" class="mx-auto" />
+                        </template>
+                        <p v-else class="text-xs text-yellow-600">Code d'accès non encore disponible</p>
                     </div>
                 </div>
             </div>
@@ -401,6 +420,20 @@ async function claimAnnouncement(a) {
 function openReport(a) {
     reportTarget.value = { id: a.id, title: a.title }
     showReport.value = true
+}
+
+async function downloadInvoice(a) {
+    try {
+        const { data } = await api.get(`/user/announcement/${a.id}/invoice`, { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `facture-${a.id}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+    } catch {
+        alert('Facture non disponible.')
+    }
 }
 
 async function requestDeposit(a) {

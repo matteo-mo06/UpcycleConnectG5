@@ -1,16 +1,20 @@
-package handlers
+﻿package handlers
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -501,4 +505,35 @@ func DeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "announcement deleted successfully"})
+}
+
+func GetMyInvoice(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	announcementID := r.PathValue("id")
+
+	isBuyer, err := db.IsAnnouncementBuyer(announcementID, userID)
+	if err != nil || !isBuyer {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	invoicePath, err := db.GetInvoicePath(announcementID)
+	if err != nil || invoicePath == "" {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "facture non disponible"})
+		return
+	}
+
+	fullPath := filepath.Join(config.InvoicesDir(), invoicePath)
+	f, err := os.Open(fullPath)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "fichier introuvable"})
+		return
+	}
+	defer f.Close()
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="facture.pdf"`)
+	_, _ = io.Copy(w, f)
 }
