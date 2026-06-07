@@ -245,22 +245,22 @@
                     class="flex items-center gap-3 px-6 py-4 border-b border-gray-100 flex-shrink-0"
                 >
                     <div class="flex-1 min-w-0 flex items-center gap-2">
-                        <template v-if="editingTopic">
+                        <template v-if="editTopic">
                             <input
-                                v-model="editTopicTitle"
+                                v-model="editTitle"
                                 @keydown.enter="saveTopicTitle"
-                                @keydown.escape="editingTopic = false"
+                                @keydown.escape="editTopic = false"
                                 class="flex-1 px-2 py-1 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                             />
                             <button
                                 @click="saveTopicTitle"
-                                :disabled="!editTopicTitle.trim()"
+                                :disabled="!editTitle.trim()"
                                 class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 flex-shrink-0"
                             >
                                 Sauvegarder
                             </button>
                             <button
-                                @click="editingTopic = false"
+                                @click="editTopic = false"
                                 class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0"
                             >
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -354,23 +354,23 @@
                                             >· {{ formatDate(topicBody.created_at) }}</span
                                         >
                                     </div>
-                                    <template v-if="editingPost === topicBody.id">
+                                    <template v-if="editPost === topicBody.id">
                                         <textarea
-                                            v-model="editPostBody"
+                                            v-model="editBody"
                                             rows="4"
-                                            @keydown.escape="editingPost = null"
+                                            @keydown.escape="editPost = null"
                                             class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                                         />
                                         <div class="flex gap-2 mt-2">
                                             <button
-                                                @click="editingPost = null"
+                                                @click="editPost = null"
                                                 class="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
                                             >
                                                 Annuler
                                             </button>
                                             <button
                                                 @click="savePostBody(topicBody)"
-                                                :disabled="!editPostBody.trim()"
+                                                :disabled="!editBody.trim()"
                                                 class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
                                             >
                                                 Sauvegarder
@@ -385,7 +385,7 @@
                                     </p>
                                 </div>
                                 <div
-                                    v-if="editingPost !== topicBody.id"
+                                    v-if="editPost !== topicBody.id"
                                     class="flex items-center gap-0.5 flex-shrink-0 pt-0.5"
                                 >
                                     <button
@@ -484,23 +484,23 @@
                                                 }}</span
                                             >
                                         </div>
-                                        <template v-if="editingPost === post.id">
+                                        <template v-if="editPost === post.id">
                                             <textarea
-                                                v-model="editPostBody"
+                                                v-model="editBody"
                                                 rows="3"
-                                                @keydown.escape="editingPost = null"
+                                                @keydown.escape="editPost = null"
                                                 class="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                                             />
                                             <div class="flex gap-2 mt-2">
                                                 <button
-                                                    @click="editingPost = null"
+                                                    @click="editPost = null"
                                                     class="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
                                                 >
                                                     Annuler
                                                 </button>
                                                 <button
                                                     @click="savePostBody(post)"
-                                                    :disabled="!editPostBody.trim()"
+                                                    :disabled="!editBody.trim()"
                                                     class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
                                                 >
                                                     Sauvegarder
@@ -515,7 +515,7 @@
                                         </p>
                                     </div>
                                     <div
-                                        v-if="editingPost !== post.id"
+                                        v-if="editPost !== post.id"
                                         class="flex items-center gap-2 flex-shrink-0 pt-0.5"
                                     >
                                         <button
@@ -658,10 +658,10 @@ const replyBody = ref("");
 const replyLoading = ref(false);
 const replyingTo = ref(null);
 
-const editingTopic = ref(false);
-const editTopicTitle = ref("");
-const editingPost = ref(null);
-const editPostBody = ref("");
+const editTopic = ref(false);
+const editTitle = ref("");
+const editPost = ref(null);
+const editBody = ref("");
 
 const showReport = ref(false);
 const reportTarget = ref(null);
@@ -745,7 +745,6 @@ async function openTopic(topic) {
         const { data } = await api.get(`/forum/topics/${topic.id}`);
         openedTopic.value = data;
     } catch {
-        openedTopicLoading.value = false;
     } finally {
         openedTopicLoading.value = false;
     }
@@ -756,10 +755,10 @@ function closeTopic() {
     openedTopicLoading.value = false;
     replyingTo.value = null;
     replyBody.value = "";
-    editingTopic.value = false;
-    editTopicTitle.value = "";
-    editingPost.value = null;
-    editPostBody.value = "";
+    editTopic.value = false;
+    editTitle.value = "";
+    editPost.value = null;
+    editBody.value = "";
 }
 
 function startReply(post) {
@@ -771,13 +770,13 @@ function cancelReply() {
 }
 
 function startEditTopic() {
-    editTopicTitle.value = openedTopic.value?.title ?? "";
-    editingTopic.value = true;
+    editTitle.value = openedTopic.value?.title ?? "";
+    editTopic.value = true;
 }
 
 function startEditPost(post) {
-    editingPost.value = post.id;
-    editPostBody.value = post.body;
+    editPost.value = post.id;
+    editBody.value = post.body;
 }
 
 async function createTopic() {
@@ -802,18 +801,17 @@ async function createTopic() {
 }
 
 async function saveTopicTitle() {
-    if (!editTopicTitle.value.trim() || !openedTopic.value) return;
+    if (!editTitle.value.trim() || !openedTopic.value) return;
     try {
         const { data } = await api.patch(
             `/forum/topics/${openedTopic.value.id}`,
-            { title: editTopicTitle.value.trim() }
+            { title: editTitle.value.trim() }
         );
         openedTopic.value = data;
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.title = data.title;
-        editingTopic.value = false;
-    } catch (e) {
-        console.error("saveTopicTitle error:", e);
+        editTopic.value = false;
+    } catch {
     }
 }
 
@@ -825,23 +823,21 @@ async function deleteTopic() {
         topics.value = topics.value.filter((t) => t.id !== id);
         total.value = Math.max(total.value - 1, 0);
         closeTopic();
-    } catch (e) {
-        console.error("deleteTopic error:", e);
+    } catch {
     }
 }
 
 async function savePostBody(post) {
-    if (!editPostBody.value.trim() || !openedTopic.value) return;
+    if (!editBody.value.trim() || !openedTopic.value) return;
     try {
         const { data } = await api.patch(
             `/forum/topics/${openedTopic.value.id}/posts/${post.id}`,
-            { body: editPostBody.value.trim() }
+            { body: editBody.value.trim() }
         );
         openedTopic.value = data;
-        editingPost.value = null;
-        editPostBody.value = "";
-    } catch (e) {
-        console.error("savePostBody error:", e);
+        editPost.value = null;
+        editBody.value = "";
+    } catch {
     }
 }
 
@@ -854,8 +850,7 @@ async function deletePost(post) {
         openedTopic.value = data;
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.replies_count = Math.max((data.posts?.length ?? 1) - 1, 0);
-    } catch (e) {
-        console.error("deletePost error:", e);
+    } catch {
     }
 }
 
@@ -874,8 +869,7 @@ async function submitReply() {
         replyingTo.value = null;
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.replies_count = Math.max((data.posts?.length ?? 1) - 1, 0);
-    } catch (e) {
-        console.error("submitReply error:", e);
+    } catch {
     } finally {
         replyLoading.value = false;
     }

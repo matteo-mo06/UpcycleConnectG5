@@ -1,17 +1,17 @@
 package models
 
 type Event struct {
-	Id_event          string  `json:"id"`
-	Title_event       string  `json:"title"`
-	Description_event *string `json:"description"`
-	Date_event        *string `json:"date"`
-	Location_event    *string `json:"location"`
-	Capacity          *int    `json:"capacity"`
-	Price_cents       int     `json:"price_cents"`
-	Id_creator        *string `json:"id_creator"`
-	CreatorName       *string `json:"creator_name"`
-	InscriptionCount  int     `json:"inscription_count"`
-	IsRegistered      bool    `json:"is_registered"`
-	Status            string  `json:"status"`
-	RejectionReason   *string `json:"rejection_reason"`
+	IdEvent          string  `json:"id"`
+	TitleEvent       string  `json:"title"`
+	DescriptionEvent *string `json:"description"`
+	DateEvent        *string `json:"date"`
+	LocationEvent    *string `json:"location"`
+	Capacity         *int    `json:"capacity"`
+	PriceCents       int     `json:"price_cents"`
+	IdCreator        *string `json:"id_creator"`
+	CreatorName      *string `json:"creator_name"`
+	InscriptionCount int     `json:"inscription_count"`
+	IsRegistered     bool    `json:"is_registered"`
+	Status           string  `json:"status"`
+	RejectionReason  *string `json:"rejection_reason"`
 }

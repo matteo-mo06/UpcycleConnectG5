@@ -8,8 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var JWTSecret = os.Getenv("JWT_SECRET")
-
 const RoleAdmin   = "admin"
 const RoleArtisan = "artisan"
 const RoleSalarie = "salarie"
@@ -19,6 +17,35 @@ const AdminRoleName   = RoleAdmin
 const ArtisanRoleName = RoleArtisan
 
 var Conn *sql.DB
+
+// JWTSecret lit la variable au moment de l'appel (après godotenv.Load).
+func JWTSecret() []byte {
+	return []byte(os.Getenv("JWT_SECRET"))
+}
+
+func StripeSecretKey() string     { return os.Getenv("STRIPE_SECRET_KEY") }
+func StripeWebhookSecret() string { return os.Getenv("STRIPE_WEBHOOK_SECRET") }
+
+func ValidateEnv() {
+	required := []string{
+		"PORT",
+		"JWT_SECRET",
+		"CORS_ORIGIN",
+		"BASE_URL",
+		"DB_HOST",
+		"DB_PORT",
+		"DB_USER",
+		"DB_PASSWORD",
+		"DB_NAME",
+		"STRIPE_SECRET_KEY",
+	}
+	for _, key := range required {
+		if os.Getenv(key) == "" {
+			fmt.Fprintf(os.Stderr, "FATAL: variable %s manquante dans le .env\n", key)
+			os.Exit(1)
+		}
+	}
+}
 
 func NewDB() *sql.DB {
 	host     := os.Getenv("DB_HOST")

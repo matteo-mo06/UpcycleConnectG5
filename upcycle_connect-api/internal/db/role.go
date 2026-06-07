@@ -1,6 +1,9 @@
 package db
 
 import (
+	"errors"
+
+	"github.com/google/uuid"
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/models"
 )
@@ -15,7 +18,7 @@ func GetAllRoles() ([]models.Role, error) {
 	var roles []models.Role
 	for rows.Next() {
 		var r models.Role
-		err := rows.Scan(&r.Id_role, &r.Name_role)
+		err := rows.Scan(&r.IdRole, &r.NameRole)
 		if err != nil {
 			return nil, err
 		}
@@ -26,7 +29,7 @@ func GetAllRoles() ([]models.Role, error) {
 
 func GetRoleByName(name string) (models.Role, error) {
 	var r models.Role
-	err := config.Conn.QueryRow("SELECT id_role, name_role FROM ROLE WHERE name_role = ?", name).Scan(&r.Id_role, &r.Name_role)
+	err := config.Conn.QueryRow("SELECT id_role, name_role FROM ROLE WHERE name_role = ?", name).Scan(&r.IdRole, &r.NameRole)
 	return r, err
 }
 
@@ -44,7 +47,7 @@ func GetUserRoles(userID string) ([]models.Role, error) {
 	var roles []models.Role
 	for rows.Next() {
 		var r models.Role
-		err := rows.Scan(&r.Id_role, &r.Name_role)
+		err := rows.Scan(&r.IdRole, &r.NameRole)
 		if err != nil {
 			return nil, err
 		}
@@ -100,4 +103,56 @@ func RemoveUserRole(userID, roleID string) (bool, error) {
 	}
 	rows, err := result.RowsAffected()
 	return rows > 0, err
+}
+
+func CreateRole(name string) (models.Role, error) {
+	r := models.Role{
+		IdRole:   uuid.New().String(),
+		NameRole: name,
+	}
+	_, err := config.Conn.Exec(
+		"INSERT INTO ROLE (id_role, name_role) VALUES (?, ?)",
+		r.IdRole, r.NameRole,
+	)
+	return r, err
+}
+
+func UpdateRole(id, name string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE ROLE SET name_role = ? WHERE id_role = ?",
+		name, id,
+	)
+	return err
+}
+
+var protectedRoles = map[string]bool{"admin": true, "artisan": true, "salarie": true, "user": true}
+
+func DeleteRole(id string) error {
+	var name string
+	if err := config.Conn.QueryRow("SELECT name_role FROM ROLE WHERE id_role = ?", id).Scan(&name); err != nil {
+		return err
+	}
+	if protectedRoles[name] {
+		return errors.New("ce rôle est protégé et ne peut pas être supprimé")
+	}
+
+	var count int
+	if err := config.Conn.QueryRow(
+		"SELECT COUNT(*) FROM USER_ROLE WHERE id_role = ?", id,
+	).Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("ce rôle est assigné à des utilisateurs")
+	}
+	if err := config.Conn.QueryRow(
+		"SELECT COUNT(*) FROM ROLE_PERMISSION WHERE role_id = ?", id,
+	).Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return errors.New("ce rôle possède des permissions, retirez-les d'abord")
+	}
+	_, err := config.Conn.Exec("DELETE FROM ROLE WHERE id_role = ?", id)
+	return err
 }

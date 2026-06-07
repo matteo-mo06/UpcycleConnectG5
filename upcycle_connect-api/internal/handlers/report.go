@@ -9,7 +9,6 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
-	"upcycle_connect-api/internal/sse"
 )
 
 func SubmitReport(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +19,7 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 		IdAnnouncement string `json:"id_announcement"`
 		IdTopic        string `json:"id_topic"`
 		IdPost         string `json:"id_post"`
+		IdProject      string `json:"id_project"`
 		Reason         string `json:"reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -36,6 +36,9 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 		count++
 	}
 	if body.IdPost != "" {
+		count++
+	}
+	if body.IdProject != "" {
 		count++
 	}
 	if count != 1 {
@@ -59,6 +62,7 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 		{body.IdAnnouncement, db.GetAnnouncementOwnerID, "annonce introuvable"},
 		{body.IdTopic, db.GetTopicAuthor, "topic introuvable"},
 		{body.IdPost, db.GetPostAuthor, "post introuvable"},
+		{body.IdProject, db.GetProjectOwnerID, "projet introuvable"},
 	} {
 		if l.id == "" {
 			continue
@@ -84,7 +88,7 @@ func SubmitReport(w http.ResponseWriter, r *http.Request) {
 		break
 	}
 
-	if err := db.CreateReport(reporterID, reportedUserID, body.IdAnnouncement, body.IdTopic, body.IdPost, body.Reason); err != nil {
+	if err := db.CreateReport(reporterID, reportedUserID, body.IdAnnouncement, body.IdTopic, body.IdPost, body.IdProject, body.Reason); err != nil {
 		fmt.Println("SubmitReport error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création du signalement"})
@@ -99,7 +103,7 @@ func GetAdminReports(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 20)
-	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), limit, offset)
+	list, total, err := db.GetReports(r.URL.Query().Get("status"), r.URL.Query().Get("search"), r.URL.Query().Get("content_type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetAdminReports error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -225,11 +229,22 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.CreateSanction(userID, adminID, body.IdReport, body.Type, body.Reason, body.DurationDays); err != nil {
+	sanctionID, err := db.CreateSanction(userID, adminID, body.IdReport, body.Type, body.Reason, body.DurationDays)
+	if err != nil {
 		fmt.Println("CreateSanction error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création de la sanction"})
 		return
+	}
+
+	if body.Type == "warning" {
+		if err := db.AwardScore(userID, "sanction_warning", sanctionID); err != nil {
+			fmt.Println("AwardScore sanction_warning error:", err)
+		}
+	} else if body.Type == "suspension" {
+		if err := db.AwardScore(userID, "sanction_suspension", sanctionID); err != nil {
+			fmt.Println("AwardScore sanction_suspension error:", err)
+		}
 	}
 
 	defaultMessages := map[string]string{
@@ -241,13 +256,6 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 	if msg == "" {
 		msg = defaultMessages[body.Type]
 	}
-	ssePayload, _ := json.Marshal(map[string]string{
-		"type":          "sanction",
-		"sanction_type": body.Type,
-		"message":       msg,
-	})
-	sse.Default.Notify(userID, string(ssePayload))
-
 	if body.Type == "ban" {
 		if err := db.UpdateUserStatus(userID, "blacklisted"); err != nil {
 			fmt.Println("CreateSanction ban UpdateUserStatus error:", err)

@@ -1,0 +1,11 @@
+# Contexte de build pour le service backend Go
+# Seuls les sources Go, go.mod/go.sum, db/migrations/ et docker/entrypoint.sh sont necessaires
+
+# Artefacts de build
+tmp/
+*.log
+
+# Variables d'environnement
+.env
+.env.*
+!.env.prod.example

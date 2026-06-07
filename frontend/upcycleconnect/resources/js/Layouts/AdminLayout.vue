@@ -10,7 +10,8 @@
                     </div>
                     <span
                         class="text-white font-semibold text-base whitespace-nowrap"
-                        >UpcycleConnect</span
+                        style="font-family: var(--font-family-title)"
+                        >Upcycle Connect</span
                     >
                 </div>
             </div>
@@ -35,18 +36,9 @@
             </nav>
 
             <div class="p-4 border-t border-white/10 flex items-center gap-3">
-                <div
-                    class="w-9 h-9 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0"
-                >
-                    <svg
-                        class="w-5 h-5 text-gray-300"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"
-                        />
-                    </svg>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style="background-color: #f9f0ef">
+                    <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="" class="w-full h-full object-cover" />
+                    <span v-else class="text-sm font-semibold" style="color: #2D2D2D">{{ initials }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-white text-sm font-medium truncate">
@@ -78,14 +70,6 @@
         </aside>
 
         <div class="flex flex-col flex-1 overflow-hidden">
-            <header
-                class="flex items-center h-16 px-6 bg-white border-b border-gray-200 flex-shrink-0 shadow-sm"
-            >
-                <h1 class="text-xl font-semibold text-gray-800">
-                    {{ title }}
-                </h1>
-            </header>
-
             <main class="flex-1 overflow-y-auto p-6">
                 <slot />
             </main>
@@ -94,24 +78,21 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
+import { initials as getInitials } from "@/utils.js";
+
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+const initials = computed(() => getInitials(auth.user));
 
 function handleLogout() {
     auth.logout()
     router.push('/login')
 }
-
-defineProps({
-    title: {
-        type: String,
-        default: "Administration",
-    },
-});
-
-const route = useRoute();
 
 const navItems = [
     {
@@ -145,6 +126,11 @@ const navItems = [
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
     },
     {
+        label: "Projets",
+        href: "/admin/projets",
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+    },
+    {
         label: "Signalements",
         href: "/admin/reports",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
@@ -153,6 +139,16 @@ const navItems = [
         label: "Casiers",
         href: "/admin/lockers",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
+    },
+    {
+        label: "Score",
+        href: "/admin/score",
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+    },
+    {
+        label: "Catégories",
+        href: "/admin/categories",
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>`,
     },
 ];
 

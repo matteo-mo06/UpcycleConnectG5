@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Signalements">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Signalements</h1>
+        </div>
 
         <div class="grid grid-cols-3 gap-5 mb-8">
             <div
@@ -69,7 +73,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="(report, i) in filteredReports"
+                            v-for="(report, i) in reports"
                             :key="report.id"
                             :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']">
                             <td class="px-5 py-3">
@@ -123,7 +127,7 @@
                             </td>
                         </tr>
 
-                        <tr v-if="filteredReports.length === 0">
+                        <tr v-if="reports.length === 0">
                             <td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">
                                 Aucun signalement ne correspond à vos filtres.
                             </td>
@@ -458,7 +462,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -501,10 +505,6 @@ const histoUsers = ref([])
 const histoLoading = ref(false)
 const histoUser = ref(null)
 
-const filteredReports = computed(() => {
-    if (!filterType.value) return reports.value
-    return reports.value.filter(r => r.type === filterType.value)
-})
 
 function changePage(p) { page.value = p }
 
@@ -550,6 +550,10 @@ async function fetchReports() {
             const statusMap = { 'À traiter': 'pending', 'Résolu': 'resolved' }
             params.status = statusMap[filterStatus.value] ?? filterStatus.value
         }
+        if (filterType.value) {
+            const typeMap = { 'Annonce': 'announcement', 'Sujet': 'topic', 'Message': 'post' }
+            params.content_type = typeMap[filterType.value] ?? filterType.value
+        }
         const { data } = await api.get('/admin/reports', { params })
         reports.value = data.data.map(mapReport)
         total.value = data.total
@@ -566,6 +570,7 @@ watch(search, () => {
     debounce = setTimeout(() => { page.value = 1; fetchReports() }, 300)
 })
 watch(filterStatus, () => { page.value = 1; fetchReports() })
+watch(filterType, () => { page.value = 1; fetchReports() })
 watch(page, fetchReports)
 
 let histoTimer = null

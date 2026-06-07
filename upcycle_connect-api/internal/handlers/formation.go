@@ -21,7 +21,7 @@ func GetFormations(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	page, limit, offset := parsePage(r, 15)
 
-	formations, total, err := db.GetFormations(userID, limit, offset)
+	formations, total, err := db.GetFormations(userID, r.URL.Query().Get("search"), r.URL.Query().Get("level"), r.URL.Query().Get("id_category"), limit, offset)
 	if err != nil {
 		fmt.Println("GetFormations error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -58,7 +58,7 @@ func GetFormationById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canSee := formation.Status == "approved" ||
-		(formation.Id_creator != nil && *formation.Id_creator == userID) ||
+		(formation.IdCreator != nil && *formation.IdCreator == userID) ||
 		slices.Contains(perms, "manage_formations")
 
 	if !canSee {
@@ -112,17 +112,17 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := models.Formation{
-		Id_formation:          uuid.New().String(),
-		Title_formation:       req.Title,
-		Description_formation: req.Description,
-		Date_formation:        req.Date,
-		Location_formation:    req.Location,
-		Capacity:              req.Capacity,
-		Level:                 req.Level,
-		Duration_hours:        req.DurationH,
-		Id_category:           req.IdCategory,
-		Id_creator:            &userID,
-		Id_formateur:          &userID,
+		IdFormation:          uuid.New().String(),
+		TitleFormation:       req.Title,
+		DescriptionFormation: req.Description,
+		DateFormation:        req.Date,
+		LocationFormation:    req.Location,
+		Capacity:             req.Capacity,
+		Level:                req.Level,
+		DurationHours:        req.DurationH,
+		IdCategory:           req.IdCategory,
+		IdCreator:            &userID,
+		IdFormateur:          &userID,
 	}
 
 	if err := db.CreateFormation(f); err != nil {
@@ -154,7 +154,7 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if formation.Id_creator == nil || *formation.Id_creator != userID {
+	if formation.IdCreator == nil || *formation.IdCreator != userID {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cette formation"})
 		return
@@ -191,14 +191,14 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	formation.Title_formation = req.Title
-	formation.Description_formation = req.Description
-	formation.Date_formation = req.Date
-	formation.Location_formation = req.Location
+	formation.TitleFormation = req.Title
+	formation.DescriptionFormation = req.Description
+	formation.DateFormation = req.Date
+	formation.LocationFormation = req.Location
 	formation.Capacity = req.Capacity
 	formation.Level = req.Level
-	formation.Duration_hours = req.DurationH
-	formation.Id_category = req.IdCategory
+	formation.DurationHours = req.DurationH
+	formation.IdCategory = req.IdCategory
 
 	if err := db.UpdateFormation(formation); err != nil {
 		fmt.Println("UpdateMyFormation error:", err)
@@ -230,7 +230,7 @@ func DeleteMyFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isOwner := formation.Id_creator != nil && *formation.Id_creator == userID
+	isOwner := formation.IdCreator != nil && *formation.IdCreator == userID
 	canManage := slices.Contains(perms, "manage_formations")
 
 	if !isOwner && !canManage {
@@ -316,7 +316,7 @@ func RejectFormation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.RejectFormationRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	json.NewDecoder(r.Body).Decode(&req)
 
 	if err := db.RejectFormation(id, req.Reason); err != nil {
 		fmt.Println("RejectFormation error:", err)
@@ -364,6 +364,10 @@ func RegisterForFormation(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to register for formation"})
 		return
+	}
+
+	if err := db.AwardScore(userID, "formation_registration", id); err != nil {
+		fmt.Println("AwardScore formation_registration error:", err)
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -498,7 +502,7 @@ func UpdateFormationAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f.Id_formation = id
+	f.IdFormation = id
 	if f.Status == "" {
 		f.Status = existing.Status
 	}

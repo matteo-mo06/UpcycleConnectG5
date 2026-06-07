@@ -9,7 +9,8 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
-func CreateSanction(idUser, idAdmin, idReport, sanctionType, reason string, durationDays int) error {
+func CreateSanction(idUser, idAdmin, idReport, sanctionType, reason string, durationDays int) (string, error) {
+	id := uuid.New().String()
 	var idReportVal interface{}
 	if idReport != "" {
 		idReportVal = idReport
@@ -20,9 +21,9 @@ func CreateSanction(idUser, idAdmin, idReport, sanctionType, reason string, dura
 	}
 	_, err := config.Conn.Exec(
 		`INSERT INTO USER_SANCTIONS (id_sanction, id_user, id_admin, id_report, type, reason, duration_days, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		uuid.New().String(), idUser, idAdmin, idReportVal, sanctionType, reason, durationDays, expiresAt,
+		id, idUser, idAdmin, idReportVal, sanctionType, reason, durationDays, expiresAt,
 	)
-	return err
+	return id, err
 }
 
 func IsSuspensionExpired(userId string) (bool, error) {

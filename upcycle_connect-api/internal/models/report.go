@@ -7,6 +7,7 @@ type Report struct {
 	IdAnnouncement   string `json:"id_announcement"`
 	IdTopic          string `json:"id_topic"`
 	IdPost           string `json:"id_post"`
+	IdProject        string `json:"id_project"`
 	Reason           string `json:"reason"`
 	Status           string `json:"status"`
 	ActionTaken      string `json:"action_taken"`

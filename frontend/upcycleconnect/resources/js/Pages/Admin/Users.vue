@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Gestion des utilisateurs">
+    <AdminLayout>
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Gestion des utilisateurs</h1>
+        </div>
+
         <div
             v-if="proRequests.length"
             class="bg-white rounded-xl shadow-sm overflow-hidden mb-6"

@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -19,7 +20,7 @@ func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 12)
-	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), limit, offset)
+	list, total, err := db.GetPublicAnnouncements(r.URL.Query().Get("search"), r.URL.Query().Get("id_category"), r.URL.Query().Get("type"), limit, offset)
 	if err != nil {
 		fmt.Println("GetPublicAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -101,17 +102,17 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a := models.Announcement{
-		Id_announcement:         uuid.New().String(),
-		Id_category:             body.IdCategory,
-		Title_announcement:      body.Title,
-		Address_annoucement:     body.Address,
+		IdAnnouncement:          uuid.New().String(),
+		IdCategory:              body.IdCategory,
+		TitleAnnouncement:       body.Title,
+		AddressAnnouncement:     body.Address,
 		City:                    body.City,
 		Postal:                  body.Postal,
-		Description_annoucement: body.Description,
-		Availability_date:       body.AvailDate,
+		DescriptionAnnouncement: body.Description,
+		AvailabilityDate:        body.AvailDate,
 		Price:                   body.Price,
 		Request:                 0,
-		State_annoucement:       state,
+		StateAnnouncement:       state,
 		TypeAnnouncement:        typ,
 		ConditionAnnouncement:   body.Condition,
 	}
@@ -337,13 +338,13 @@ func CreateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.Availability_date == "" {
+	if a.AvailabilityDate == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "availability_date is required"})
 		return
 	}
 
-	a.Id_announcement = uuid.New().String()
+	a.IdAnnouncement = uuid.New().String()
 
 	if err = db.CreateUserAnnouncement(a, userID, nil); err != nil {
 		fmt.Println("CreateAnnouncement error:", err)
@@ -387,7 +388,7 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.Id_announcement = id
+	a.IdAnnouncement = id
 
 	err = db.UpdateAnnouncement(a)
 	if err != nil {
@@ -416,11 +417,38 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ann, err := db.GetAnnouncementById(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+		return
+	}
+	if ann.Price > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce est payante, utilisez le système de paiement"})
+		return
+	}
+
 	if err := db.ClaimAnnouncement(id, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce a déjà été acquise"})
+			return
+		}
 		fmt.Println("ClaimAnnouncement error:", err)
 		http.Error(w, "erreur serveur", http.StatusInternalServerError)
 		return
 	}
+
+	if err := db.AwardScore(userID, "announcement_bought", id); err != nil {
+		fmt.Println("AwardScore announcement_bought error:", err)
+	}
+	if sellerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+		if err := db.AwardScore(sellerID, "announcement_sold", id); err != nil {
+			fmt.Println("AwardScore announcement_sold error:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 

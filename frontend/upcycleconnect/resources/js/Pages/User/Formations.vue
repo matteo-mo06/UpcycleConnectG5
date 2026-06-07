@@ -112,24 +112,29 @@
                     </svg>
                     <input
                         v-model="search"
+                        @input="onSearchInput"
                         type="text"
                         placeholder="Rechercher une formation…"
                         class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
                 </div>
-                <select
-                    v-model="filterLevel"
+                <select v-model="filterLevel" @change="resetAndFetch"
                     class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30">
                     <option value="">Tous les niveaux</option>
                     <option value="beginner">Débutant</option>
                     <option value="intermediate">Intermédiaire</option>
                     <option value="advanced">Avancé</option>
                 </select>
-                <span class="text-xs text-gray-400 whitespace-nowrap">{{ filteredFormations.length }} résultat(s)</span>
+                <select v-if="categories.length" v-model="filterCategory" @change="resetAndFetch"
+                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                    <option value="">Toutes les thématiques</option>
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ total }} résultat(s)</span>
             </div>
 
             <div v-if="loading" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
 
-            <div v-else-if="approvedFormations.length === 0" class="py-12 text-center">
+            <div v-else-if="formations.length === 0" class="py-12 text-center">
                 <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                 </svg>
@@ -138,7 +143,7 @@
 
             <div v-else class="grid grid-cols-3 gap-5 p-6">
                 <div
-                    v-for="f in filteredFormations"
+                    v-for="f in formations"
                     :key="f.id"
                     class="bg-gray-50 rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col border border-gray-100"
                     @click="openDetail(f)">
@@ -347,8 +352,8 @@
                             <select v-model="form.id_category"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
                                 <option value="">Aucune</option>
-                                <option v-for="cat in categories" :key="cat.id_category" :value="cat.id_category">
-                                    {{ cat.name_category }}
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                                    {{ cat.name }}
                                 </option>
                             </select>
                         </div>
@@ -370,7 +375,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -388,6 +394,7 @@ const loading = ref(false)
 const loadingPending = ref(false)
 const search = ref('')
 const filterLevel = ref('')
+const filterCategory = ref('')
 const detailFormation = ref(null)
 const rejectModal = ref(null)
 const rejectReason = ref('')
@@ -409,16 +416,16 @@ const minDateTime = computed(() => {
     return now.toISOString().slice(0, 16)
 })
 
-const approvedFormations = computed(() => formations.value.filter(f => f.status === 'approved'))
+let searchDebounce = null
+function onSearchInput() {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(resetAndFetch, 300)
+}
 
-const filteredFormations = computed(() => {
-    return approvedFormations.value.filter(f => {
-        const q = search.value.toLowerCase()
-        if (q && !f.title.toLowerCase().includes(q)) return false
-        if (filterLevel.value && f.level !== filterLevel.value) return false
-        return true
-    })
-})
+function resetAndFetch() {
+    page.value = 1
+    fetchFormations()
+}
 
 function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
@@ -577,10 +584,14 @@ function changePage(p) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-async function fetchFormations() {
-    loading.value = true
+async function fetchFormations(silent = false) {
+    if (!silent) loading.value = true
     try {
-        const { data } = await api.get('/formations', { params: { page: page.value, limit: 15 } })
+        const params = { page: page.value, limit: 15 }
+        if (search.value) params.search = search.value
+        if (filterLevel.value) params.level = filterLevel.value
+        if (filterCategory.value) params.id_category = filterCategory.value
+        const { data } = await api.get('/formations', { params })
         formations.value = data.data ?? []
         total.value = data.total ?? 0
     } catch (e) {
@@ -615,17 +626,19 @@ async function fetchPending() {
 
 async function fetchCategories() {
     try {
-        const { data } = await api.get('/admin/categories')
-        categories.value = data.data ?? data ?? []
+        const { data } = await api.get('/categories')
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
     } catch {}
 }
 
-onMounted(async () => {
+async function fetchAll(silent = false) {
     await Promise.all([
-        fetchFormations(),
+        fetchFormations(silent),
         fetchMyCreated(),
         fetchPending(),
         fetchCategories(),
     ])
-})
+}
+
+usePolling(fetchAll)
 </script>

@@ -1,0 +1,34 @@
+# Contexte de build pour le service nginx (frontend)
+# Seuls frontend/upcycleconnect/ et docker/nginx/ sont necessaires
+
+# Backend Go (inutile pour le build frontend)
+upcycle_connect-api/
+
+# Scripts et fichiers de base de donnees
+db/
+test_docker_bdd/
+
+# Fichiers projet / documentation
+misc/
+tmp/
+*.pdf
+*.docx
+*.zip
+exec_migration_temporaire.txt
+
+# Git
+.git/
+.gitignore
+
+# Docker Compose
+docker-compose.yml
+docker-compose.prod.yml
+
+# Variables d'environnement
+.env
+.env.*
+!.env.prod.example
+
+# Artefacts frontend
+frontend/upcycleconnect/node_modules/
+frontend/upcycleconnect/dist/

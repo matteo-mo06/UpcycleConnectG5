@@ -65,13 +65,13 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if category.Name_category == "" {
+	if category.NameCategory == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "name is required"})
 		return
 	}
 
-	category.Id_category = uuid.New().String()
+	category.IdCategory = uuid.New().String()
 
 	err = db.CreateCategory(category)
 	if err != nil {
@@ -116,7 +116,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category.Id_category = id
+	category.IdCategory = id
 
 	err = db.UpdateCategory(category)
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
-	"upcycle_connect-api/internal/sse"
 )
 
 func GetMyDepositRequests(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +47,35 @@ func CreateDepositRequest(w http.ResponseWriter, r *http.Request) {
 	if !owner {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "forbidden"})
+		return
+	}
+
+	ann, err := db.GetAnnouncementById(announcementID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if ann.StateAnnouncement != "Vendu" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "seules les annonces vendues peuvent faire l'objet d'une demande de dépôt"})
+		return
+	}
+
+	assigned, err := db.IsLockerAssigned(announcementID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if assigned {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "un casier est déjà assigné à cette annonce"})
 		return
 	}
 
@@ -125,16 +153,10 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ownerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
-		lockerNumber := 0
-		if a, err := db.GetAnnouncementById(announcementID); err == nil {
-			lockerNumber = a.LockerNumber
+		if err := db.AwardScore(ownerID, "deposit_validated", announcementID); err != nil {
+			fmt.Println("AwardScore deposit_validated error:", err)
 		}
-		sse.Default.Notify(ownerID, fmt.Sprintf(
-			`{"type":"deposit_validated","locker_number":%d}`,
-			lockerNumber,
-		))
 	}
-
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -147,10 +169,6 @@ func RejectDepositRequest(w http.ResponseWriter, r *http.Request) {
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
 		http.Error(w, "RejectDepositRequest error: "+err.Error(), http.StatusInternalServerError)
 		return
-	}
-
-	if ownerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
-		sse.Default.Notify(ownerID, `{"type":"deposit_rejected"}`)
 	}
 
 	w.WriteHeader(http.StatusNoContent)

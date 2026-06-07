@@ -1,5 +1,9 @@
 <template>
-    <AdminLayout title="Événements">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Événements</h1>
+        </div>
 
         <div v-if="loading" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
         <div v-else-if="error" class="py-12 text-center text-sm text-red-500">{{ error }}</div>

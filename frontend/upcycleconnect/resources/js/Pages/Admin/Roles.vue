@@ -1,10 +1,20 @@
 <template>
-    <AdminLayout title="Rôles & Permissions">
+    <AdminLayout>
+
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Rôles & Permissions</h1>
+        </div>
 
         <div class="flex items-center justify-between mb-6">
-            <p class="text-sm text-gray-500">
-                {{roles.length}} rôle(s)
-            </p>
+            <p class="text-sm text-gray-500">{{roles.length}} rôle(s)</p>
+            <button
+                @click="openCreate"
+                class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Créer un rôle
+            </button>
         </div>
 
         <div v-if="loading" class="text-sm text-gray-400 py-10 text-center">Chargement…</div>
@@ -23,14 +33,24 @@
                         </div>
                         <h2 class="text-sm font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{role.name}}</h2>
                     </div>
-                    <button
-                        @click="openEdit(role)"
-                        title="Modifier les permissions"
-                        class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors duration-150">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                        </svg>
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button
+                            @click="openEdit(role)"
+                            title="Modifier les permissions"
+                            class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors duration-150">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                            </svg>
+                        </button>
+                        <button
+                            @click="confirmDelete(role)"
+                            title="Supprimer le rôle"
+                            class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-150">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="px-5 py-4">
@@ -120,6 +140,56 @@
             </div>
         </div>
 
+        <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">Créer un rôle</h3>
+                <input
+                    v-model="formModal.name"
+                    type="text"
+                    placeholder="Nom du rôle"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary mb-4"
+                    @keyup.enter="saveForm"
+                />
+                <p v-if="formModal.error" class="text-xs text-red-500 mb-3">{{ formModal.error }}</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="formModal.open = false"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveForm"
+                        :disabled="formModal.saving"
+                        class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ formModal.saving ? 'Enregistrement…' : 'Créer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="deleteModal.role" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="deleteModal.role = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">Supprimer le rôle ?</h3>
+                <p class="text-sm text-gray-500 mb-5">« {{ deleteModal.role.name }} » sera définitivement supprimé.</p>
+                <p v-if="deleteModal.error" class="text-xs text-red-500 mb-3">{{ deleteModal.error }}</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="deleteModal.role = null"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button
+                        @click="deleteRole"
+                        :disabled="deleteModal.deleting"
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+                        {{ deleteModal.deleting ? 'Suppression…' : 'Supprimer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -144,6 +214,9 @@ const loading = ref(true)
 const saving = ref(false)
 const roles = ref([])
 const allPermissions = ref([])
+
+const formModal = ref({ open: false, name: '', saving: false, error: '' })
+const deleteModal = ref({ role: null, deleting: false, error: '' })
 
 const permissionCategories = computed(() => {
     const map = {}
@@ -182,6 +255,44 @@ onMounted(async () => {
         loading.value = false
     }
 })
+
+function openCreate() {
+    formModal.value = { open: true, name: '', saving: false, error: '' }
+}
+
+async function saveForm() {
+    const name = formModal.value.name.trim()
+    if (!name) { formModal.value.error = 'Le nom est requis.'; return }
+    formModal.value.saving = true
+    formModal.value.error = ''
+    try {
+        const { data } = await api.post('/admin/roles', { name })
+        roles.value.push({ ...data, permIds: [] })
+        formModal.value.open = false
+    } catch (e) {
+        formModal.value.error = e.response?.data?.error ?? 'Erreur lors de la création.'
+    } finally {
+        formModal.value.saving = false
+    }
+}
+
+function confirmDelete(role) {
+    deleteModal.value = { role, deleting: false, error: '' }
+}
+
+async function deleteRole() {
+    deleteModal.value.deleting = true
+    deleteModal.value.error = ''
+    try {
+        await api.delete(`/admin/role/${deleteModal.value.role.id}`)
+        roles.value = roles.value.filter(r => r.id !== deleteModal.value.role.id)
+        deleteModal.value.role = null
+    } catch (e) {
+        deleteModal.value.error = e.response?.data?.error ?? 'Erreur lors de la suppression.'
+    } finally {
+        deleteModal.value.deleting = false
+    }
+}
 
 function openEdit(role) {
     modal.value = {

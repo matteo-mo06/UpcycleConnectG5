@@ -6,7 +6,7 @@ import (
 )
 
 func GetAllCategories() ([]models.Category, error) {
-	rows, err := config.Conn.Query(`SELECT id_category, name_category, description_category FROM CATEGORY`)
+	rows, err := config.Conn.Query(`SELECT id_category, name_category, description_category FROM CATEGORY WHERE deleted_at IS NULL`)
 	if err != nil {
 		return nil, err
 	}
@@ -15,7 +15,7 @@ func GetAllCategories() ([]models.Category, error) {
 	var categories []models.Category
 	for rows.Next() {
 		var c models.Category
-		err := rows.Scan(&c.Id_category, &c.Name_category, &c.Description_category)
+		err := rows.Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
 		if err != nil {
 			return nil, err
 		}
@@ -27,8 +27,8 @@ func GetAllCategories() ([]models.Category, error) {
 func GetCategoryById(id string) (models.Category, error) {
 	var c models.Category
 	err := config.Conn.QueryRow(
-		`SELECT id_category, name_category, description_category FROM CATEGORY WHERE id_category = ?`, id,
-	).Scan(&c.Id_category, &c.Name_category, &c.Description_category)
+		`SELECT id_category, name_category, description_category FROM CATEGORY WHERE id_category = ? AND deleted_at IS NULL`, id,
+	).Scan(&c.IdCategory, &c.NameCategory, &c.DescriptionCategory)
 	return c, err
 }
 
@@ -41,9 +41,9 @@ func CreateCategory(c models.Category) error {
 		)
 		VALUES (?, ?, ?)
 	`,
-		c.Id_category,
-		c.Name_category,
-		c.Description_category,
+		c.IdCategory,
+		c.NameCategory,
+		c.DescriptionCategory,
 	)
 	return err
 }
@@ -55,18 +55,14 @@ func UpdateCategory(c models.Category) error {
 			description_category = ?
 		WHERE id_category = ?
 	`,
-		c.Name_category,
-		c.Description_category,
-		c.Id_category,
+		c.NameCategory,
+		c.DescriptionCategory,
+		c.IdCategory,
 	)
 	return err
 }
 
 func DeleteCategory(id string) error {
-	_, err := config.Conn.Exec("UPDATE ANNOUNCEMENT SET id_category = NULL WHERE id_category = ?", id)
-	if err != nil {
-		return err
-	}
-	_, err = config.Conn.Exec("DELETE FROM CATEGORY WHERE id_category = ?", id)
+	_, err := config.Conn.Exec("UPDATE CATEGORY SET deleted_at = NOW() WHERE id_category = ?", id)
 	return err
 }

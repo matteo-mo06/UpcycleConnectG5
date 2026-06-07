@@ -10,14 +10,21 @@ import Forum from './Pages/User/Forum.vue'
 import Formations from './Pages/User/Formations.vue'
 import Conseils from './Pages/User/Conseils.vue'
 import Parametres from './Pages/User/Parametres.vue'
+import Score from './Pages/User/Score.vue'
+import Calendrier from './Pages/User/Calendrier.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
 import Users from './Pages/Admin/Users.vue'
 import Roles from './Pages/Admin/Roles.vue'
 import Listings from './Pages/Admin/Listings.vue'
 import Events from './Pages/Admin/Events.vue'
 import AdminFormations from './Pages/Admin/Formations.vue'
+import AdminScore from './Pages/Admin/Score.vue'
 import Reports from './Pages/Admin/Reports.vue'
 import Lockers from './Pages/Admin/Lockers.vue'
+import AdminProjets from './Pages/Admin/Projets.vue'
+import Categories from './Pages/Admin/Categories.vue'
+import Paiement from './Pages/User/Paiement.vue'
+import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
@@ -39,6 +46,10 @@ const router = createRouter({
         { path: '/formations',  component: Formations,  meta: { requiresAuth: true } },
         { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
+        { path: '/score',       component: Score,       meta: { requiresAuth: true } },
+        { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
+        { path: '/paiement/:id',     component: Paiement,              meta: { requiresAuth: true } },
+        { path: '/paiement-confirmation', component: PaiementConfirmation, meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
@@ -48,6 +59,9 @@ const router = createRouter({
         { path: '/admin/formations', component: AdminFormations, meta: { requiresAdmin: true } },
         { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
         { path: '/admin/lockers', component: Lockers, meta: { requiresAdmin: true } },
+        { path: '/admin/score', component: AdminScore, meta: { requiresAdmin: true } },
+        { path: '/admin/projets', component: AdminProjets, meta: { requiresAdmin: true } },
+        { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
 
         { path: '/:pathMatch(.*)*', redirect: '/accueil' },
     ],
