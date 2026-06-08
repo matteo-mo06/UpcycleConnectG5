@@ -27,6 +27,14 @@ import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
+const ArtisanDashboard  = () => import('./Pages/Artisan/Dashboard.vue')
+const ArtisanAnnonces   = () => import('./Pages/Artisan/Annonces.vue')
+const ArtisanDepot      = () => import('./Pages/Artisan/Depot.vue')
+const ArtisanEvenements = () => import('./Pages/Artisan/Evenements.vue')
+const ArtisanFormations = () => import('./Pages/Artisan/Formations.vue')
+const ArtisanProjets    = () => import('./Pages/Artisan/Projets.vue')
+const ArtisanCalendrier = () => import('./Pages/Artisan/Calendrier.vue')
+
 const router = createRouter({
     history: createWebHistory(),
     routes: [
@@ -61,6 +69,14 @@ const router = createRouter({
         { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
 
+        { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
+        { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },
+        { path: '/artisan/depot',      component: ArtisanDepot,      meta: { requiresArtisan: true } },
+        { path: '/artisan/evenements', component: ArtisanEvenements, meta: { requiresArtisan: true } },
+        { path: '/artisan/formations', component: ArtisanFormations, meta: { requiresArtisan: true } },
+        { path: '/artisan/projets',    component: ArtisanProjets,    meta: { requiresArtisan: true } },
+        { path: '/artisan/calendrier', component: ArtisanCalendrier, meta: { requiresArtisan: true } },
+
         { path: '/:pathMatch(.*)*', redirect: '/accueil' },
     ],
 })
@@ -69,6 +85,7 @@ router.beforeEach((to) => {
     const auth = useAuthStore()
 
     if (to.meta.requiresAdmin && !auth.isAdmin) return '/login'
+    if (to.meta.requiresArtisan && !auth.isArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
 })
 

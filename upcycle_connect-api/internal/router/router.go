@@ -37,6 +37,7 @@ func InitRoutes() {
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
 	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
 	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
+	http.Handle("PATCH /user/announcement/{id}", auth(handlers.UpdateMyAnnouncement))
 
 	http.Handle("POST /upload", auth(handlers.UploadFile))
 
@@ -101,6 +102,7 @@ func InitRoutes() {
 	http.Handle("POST /events", perm("create_event", handlers.CreateEvent))
 	http.Handle("GET /user/events", auth(handlers.GetUserEvents))
 	http.Handle("DELETE /user/event/{id}", perm("create_event", handlers.DeleteMyEvent))
+	http.Handle("PATCH /user/event/{id}", perm("create_event", handlers.UpdateMyEvent))
 	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))
 	http.Handle("DELETE /user/event/{id}/unregister", perm("register_event", handlers.UnregisterFromEvent))
 

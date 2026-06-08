@@ -1,11 +1,10 @@
 <template>
-    <UserLayout @openDepot="showDepot = true">
+    <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Annonces</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes annonces</h1>
             <button
-                v-if="auth.hasPermission('create_announcement')"
-                @click="showDepot = true"
+                @click="showCreate = true"
                 class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -15,48 +14,10 @@
             </button>
         </div>
 
-        <div class="flex items-center gap-4 mb-6">
-            <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.value"
-                    @click="switchTab(tab.value)"
-                    :class="[
-                        'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                        activeTab === tab.value ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                    ]"
-                >{{ tab.label }}</button>
-            </div>
-
-            <template v-if="activeTab === 'all'">
-                <div class="relative flex-1">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-                    </svg>
-                    <input
-                        v-model="search"
-                        @input="debouncedFetch"
-                        type="text"
-                        placeholder="Rechercher une annonce…"
-                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    />
-                </div>
-                <select v-model="filterType" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
-                    <option value="">Tous les types</option>
-                    <option value="vente">Vente</option>
-                    <option value="don">Don</option>
-                </select>
-                <select v-model="filterCategory" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
-                    <option value="">Toutes les catégories</option>
-                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                </select>
-            </template>
-        </div>
-
         <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400 text-sm">
-            {{ activeTab === 'mine' ? 'Vous n\'avez aucune annonce.' : 'Aucune annonce disponible.' }}
+        <div v-else-if="announcements.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+            Vous n'avez aucune annonce publiée.
         </div>
 
         <div v-else class="grid grid-cols-3 gap-5">
@@ -79,97 +40,54 @@
                 <div class="p-4">
                     <h3 class="font-semibold text-gray-800 truncate">{{ a.title }}</h3>
                     <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ a.description }}</p>
-
-                    <div class="mt-3 flex items-center gap-2">
-                        <span v-if="a.condition" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{{ conditionLabel(a.condition) }}</span>
-                    </div>
-
                     <p class="text-xs text-gray-400 mt-2">Disponible le {{ formatDate(a.availability_date) }}</p>
 
                     <div class="mt-3 flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold">
-                                {{ a.author_name?.[0] ?? '?' }}
-                            </div>
-                            <span class="text-xs text-gray-500">{{ a.author_name || 'Inconnu' }}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <template v-if="activeTab === 'mine'">
-                                <span v-if="a.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente de validation</span>
-                                <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Validée</span>
-                                <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium" :title="a.rejection_reason ?? ''">Refusée{{ a.rejection_reason ? ' — voir détail' : '' }}</span>
-                                <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
-                            </template>
-
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span v-if="a.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente</span>
+                            <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                            <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">Refusée</span>
+                            <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
                             <button
-                                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 0 && !a.locker_number"
+                                v-if="a.state === 'Vendu' && a.request === 0 && !a.locker_number"
                                 @click.stop="requestDeposit(a)"
                                 class="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Déposer l'objet dans un casier"
+                                title="Déposer dans un casier"
                             >
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                 </svg>
                             </button>
-                            <span
-                                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.request === 1 && !a.locker_number"
-                                class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium"
-                                title="En attente d'assignation de casier"
-                            >En attente de casier</span>
-                            <span
-                                v-if="activeTab === 'mine' && a.state === 'Vendu' && a.locker_number"
-                                class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium"
-                            >Casier N° {{ a.locker_number }}</span>
-
-                            <button
-                                v-if="canDelete(a)"
-                                @click.stop="confirmDelete(a)"
-                                class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Supprimer"
-                            >
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-
-                            <button
-                                v-if="activeTab === 'all' && a.author_id !== auth.user?.id"
-                                @click.stop="claimAnnouncement(a)"
-                                class="px-3 py-1 bg-secondary text-white text-xs font-medium rounded-lg hover:bg-secondary-dark transition-colors"
-                            >
-                                {{ a.type === 'vente' ? 'Acheter' : 'Je le veux' }}
-                            </button>
-
-                            <button
-                                v-if="activeTab === 'all' && a.author_id !== auth.user?.id"
-                                @click.stop="openReport(a)"
-                                class="px-3 py-1 border border-gray-200 text-gray-500 text-xs font-medium rounded-lg hover:border-red-300 hover:text-red-500 transition-colors"
-                            >
-                                Signaler
-                            </button>
-
+                            <span v-if="a.state === 'Vendu' && a.request === 1 && !a.locker_number" class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Casier en attente</span>
+                            <span v-if="a.state === 'Vendu' && a.locker_number" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Casier N° {{ a.locker_number }}</span>
                         </div>
+                        <button
+                            v-if="a.state === 'Active'"
+                            @click.stop="toDelete = a"
+                            class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Supprimer"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <Pagination v-if="activeTab === 'all' && total > 12" :page="page" :total="total" :limit="12" @update:page="changePage" />
-
-        <CreateAnnouncementModal v-model="showDepot" @created="onCreated" />
-        <ReportModal v-model="showReport" contentType="announcement" :contentId="reportTarget?.id" :contentTitle="reportTarget?.title ?? ''" />
-
+        <!-- Modale de détail -->
         <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
             <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selected.title }}</h3>
                     <button @click="closeDetail" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
-                <div v-if="selectedPhotos.length" class="relative bg-gray-100">
+                <div v-if="selectedPhotos.length" class="relative bg-gray-100 flex-shrink-0">
                     <img :src="selectedPhotos[photoIndex]" class="w-full h-56 object-cover" :alt="selected.title" />
                     <template v-if="selectedPhotos.length > 1">
                         <button @click="photoIndex = (photoIndex - 1 + selectedPhotos.length) % selectedPhotos.length"
@@ -187,52 +105,38 @@
                     </template>
                 </div>
 
-                <div class="px-6 py-5 space-y-3 text-sm text-gray-700 overflow-y-auto">
-                    <div class="flex gap-2">
+                <div class="px-6 py-5 space-y-3 text-sm text-gray-700 overflow-y-auto flex-1">
+                    <div class="flex gap-2 flex-wrap">
                         <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold text-white', selected.type === 'vente' ? 'bg-primary' : 'bg-secondary']">{{ selected.type === 'vente' ? 'Vente' : 'Don' }}</span>
                         <span v-if="selected.condition" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{{ conditionLabel(selected.condition) }}</span>
+                        <span v-if="selected.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente</span>
+                        <span v-else-if="selected.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                        <span v-else-if="selected.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">Refusée</span>
+                        <span v-else-if="selected.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ selected.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
                     </div>
                     <p class="leading-relaxed">{{ selected.description }}</p>
                     <div class="grid grid-cols-2 gap-4 text-xs text-gray-500">
                         <div><span class="font-medium text-gray-700">Ville :</span> {{ selected.city }}</div>
                         <div><span class="font-medium text-gray-700">Prix :</span> {{ selected.price ? Number(selected.price).toFixed(2) + ' €' : 'Gratuit' }}</div>
                         <div><span class="font-medium text-gray-700">Disponible :</span> {{ formatDate(selected.availability_date) }}</div>
-                        <div><span class="font-medium text-gray-700">Par :</span> {{ selected.author_name || 'Inconnu' }}</div>
                     </div>
-                    <div v-if="activeTab === 'mine' && selected.state === 'Refusée' && selected.rejection_reason" class="p-3 rounded-xl bg-red-50 border border-red-100">
+                    <div v-if="selected.state === 'Refusée' && selected.rejection_reason" class="p-3 rounded-xl bg-red-50 border border-red-100">
                         <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
                         <p class="text-sm text-red-700">{{ selected.rejection_reason }}</p>
                     </div>
-
-                    <div v-if="activeTab === 'all' && selected.author_id !== auth.user?.id" class="pt-2 flex justify-end">
-                        <button @click="openReport(selected)" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Signaler ce contenu</button>
-                    </div>
-
-                    <div v-if="activeTab === 'acquisitions' && selected.access_code" class="pt-2 border-t border-gray-100 space-y-2">
-                        <p class="text-xs text-gray-500"><span class="font-medium text-gray-700">Casier :</span> N° {{ selected.locker_number }}</p>
-                        <p class="text-xs text-gray-400">Scannez ce code pour ouvrir le casier</p>
-                        <svg ref="barcodeEl" class="mx-auto" />
-                    </div>
                 </div>
-                <div v-if="canEdit(selected)" class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
+
+                <div v-if="canEdit(selected) || selected.state === 'Active'" class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
                     <button
+                        v-if="selected.state === 'Active'"
+                        @click="toDelete = selected; closeDetail()"
+                        class="px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                    >Supprimer</button>
+                    <button
+                        v-if="canEdit(selected)"
                         @click="openEdit(selected)"
                         class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                     >Modifier</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <h3 class="font-semibold text-gray-800 mb-2">Supprimer l'annonce ?</h3>
-                <p class="text-sm text-gray-500 mb-5">« {{ toDelete.title }} » sera définitivement supprimée.</p>
-                <div class="flex gap-3">
-                    <button @click="toDelete = null" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
-                    <button @click="deleteAnnouncement" :disabled="deleting" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
-                        {{ deleting ? 'Suppression…' : 'Supprimer' }}
-                    </button>
                 </div>
             </div>
         </div>
@@ -327,100 +231,55 @@
             </div>
         </div>
 
-    </UserLayout>
+        <!-- Confirmation de suppression -->
+        <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">Supprimer l'annonce ?</h3>
+                <p class="text-sm text-gray-500 mb-5">« {{ toDelete.title }} » sera définitivement supprimée.</p>
+                <div class="flex gap-3">
+                    <button @click="toDelete = null" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
+                    <button @click="deleteAnnouncement" :disabled="deleting" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
+                        {{ deleting ? 'Suppression…' : 'Supprimer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <CreateAnnouncementModal v-model="showCreate" @created="fetchAnnouncements" />
+
+    </ArtisanLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import UserLayout from '@/Layouts/UserLayout.vue'
-import Pagination from '@/Components/Pagination.vue'
+import { ref, onMounted } from 'vue'
+import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
-import ReportModal from '@/Components/ReportModal.vue'
-import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 import { formatDate, conditionLabel } from '@/utils.js'
-import JsBarcode from 'jsbarcode'
 
-const auth = useAuthStore()
-const route = useRoute()
-const router = useRouter()
 const announcements = ref([])
-const loading = ref(true)
-const search = ref('')
-const filterType = ref('')
-const filterCategory = ref('')
 const categories = ref([])
-const page = ref(1)
-const total = ref(0)
-const showDepot = ref(false)
+const loading = ref(true)
+const showCreate = ref(false)
 const selected = ref(null)
 const selectedPhotos = ref([])
 const photoIndex = ref(0)
 const toDelete = ref(null)
 const deleting = ref(false)
-const reportTarget = ref(null)
-const showReport = ref(false)
-
-const validTabs = ['all', 'mine', 'acquisitions']
-const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'all')
-
-const tabs = [
-    { label: 'Toutes', value: 'all' },
-    { label: 'Mes annonces', value: 'mine' },
-    { label: 'Mes acquisitions', value: 'acquisitions' },
-]
-
-let debounceTimer = null
-function debouncedFetch() {
-    clearTimeout(debounceTimer)
-    page.value = 1
-    debounceTimer = setTimeout(fetchAnnouncements, 300)
-}
-
-function changePage(p) {
-    page.value = p
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-function resetAndFetch() {
-    page.value = 1
-    fetchAnnouncements()
-}
-
-function switchTab(tab) {
-    activeTab.value = tab
-    search.value = ''
-    filterType.value = ''
-    filterCategory.value = ''
-    page.value = 1
-    router.replace({ query: { tab } })
-    fetchAnnouncements()
-}
+const editModal = ref(false)
+const editSubmitting = ref(false)
+const editError = ref('')
+const editTarget = ref(null)
+const editForm = ref({ type: 'don', title: '', id_category: '', condition: 'bon_etat', description: '', address: '', city: '', postal: '', price: 0, availability_date: '' })
 
 async function fetchAnnouncements() {
     loading.value = true
     try {
-        if (activeTab.value === 'mine') {
-            const { data } = await api.get('/user/announcements')
-            announcements.value = data
-            total.value = 0
-        } else if (activeTab.value === 'acquisitions') {
-            const { data } = await api.get('/user/acquisitions')
-            announcements.value = data
-            total.value = 0
-        } else {
-            const params = { page: page.value, limit: 12 }
-            if (search.value) params.search = search.value
-            if (filterType.value) params.type = filterType.value
-            if (filterCategory.value) params.id_category = filterCategory.value
-            const { data } = await api.get('/announcements', { params })
-            announcements.value = data.data ?? []
-            total.value = data.total ?? 0
-        }
+        const { data } = await api.get('/user/announcements')
+        announcements.value = Array.isArray(data) ? data : (data.data ?? [])
     } catch {
         announcements.value = []
-        total.value = 0
     } finally {
         loading.value = false
     }
@@ -443,72 +302,8 @@ function closeDetail() {
     photoIndex.value = 0
 }
 
-function canDelete(a) {
-    if (a?.state !== 'Active') return false
-    if (a.author_id === auth.user?.id) return true
-    return auth.isAdmin || auth.hasPermission('manage_announcements')
-}
-
-function confirmDelete(a) {
-    toDelete.value = a
-}
-
-async function deleteAnnouncement() {
-    if (!toDelete.value) return
-    deleting.value = true
-    try {
-        const isOwner = toDelete.value.author_id === auth.user?.id
-        if (isOwner) {
-            await api.delete(`/user/announcement/${toDelete.value.id}`)
-        } else if (auth.isAdmin) {
-            await api.delete(`/admin/announcement/${toDelete.value.id}`)
-        } else {
-            await api.delete(`/announcements/${toDelete.value.id}`)
-        }
-        announcements.value = announcements.value.filter(a => a.id !== toDelete.value.id)
-        toDelete.value = null
-    } catch (e) {
-        alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
-    } finally {
-        deleting.value = false
-    }
-}
-
-async function claimAnnouncement(a) {
-    try {
-        await api.post(`/announcements/${a.id}/claim`)
-        announcements.value = announcements.value.filter(x => x.id !== a.id)
-    } catch (e) {
-        alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')
-    }
-}
-
-function openReport(a) {
-    reportTarget.value = { id: a.id, title: a.title }
-    showReport.value = true
-}
-
-async function requestDeposit(a) {
-    try {
-        const { data } = await api.post(`/announcements/${a.id}/deposit-request`)
-        a.request = 1
-        if (data?.locker_number) {
-            a.locker_number = data.locker_number
-        }
-    } catch (e) {
-        const msg = e.response?.data?.error ?? 'Erreur lors de la demande de dépôt.'
-        alert(msg)
-    }
-}
-
-const editModal = ref(false)
-const editSubmitting = ref(false)
-const editError = ref('')
-const editTarget = ref(null)
-const editForm = ref({ type: 'don', title: '', id_category: '', condition: 'bon_etat', description: '', address: '', city: '', postal: '', price: 0, availability_date: '' })
-
 function canEdit(a) {
-    return activeTab.value === 'mine' && (a?.state === 'En attente' || a?.state === 'Refusée')
+    return a?.state === 'En attente' || a?.state === 'Refusée'
 }
 
 function openEdit(a) {
@@ -556,23 +351,29 @@ async function submitEdit() {
     }
 }
 
-const barcodeEl = ref(null)
-
-watch(() => selected.value?.access_code, (code) => {
-    if (!code) return
-    nextTick(() => {
-        if (barcodeEl.value) {
-            JsBarcode(barcodeEl.value, code, { format: 'CODE128', width: 2, height: 50, displayValue: true, fontSize: 12 })
-        }
-    })
-})
-
-function onCreated() {
-    switchTab('mine')
+async function deleteAnnouncement() {
+    if (!toDelete.value) return
+    deleting.value = true
+    try {
+        await api.delete(`/user/announcement/${toDelete.value.id}`)
+        announcements.value = announcements.value.filter(a => a.id !== toDelete.value.id)
+        toDelete.value = null
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
+    } finally {
+        deleting.value = false
+    }
 }
 
-
-watch(page, () => { if (activeTab.value === 'all') fetchAnnouncements() })
+async function requestDeposit(a) {
+    try {
+        const { data } = await api.post(`/announcements/${a.id}/deposit-request`)
+        a.request = 1
+        if (data?.locker_number) a.locker_number = data.locker_number
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur lors de la demande de dépôt.')
+    }
+}
 
 async function fetchCategories() {
     try {
@@ -581,5 +382,5 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => { fetchAnnouncements(); fetchCategories() })
+onMounted(() => Promise.all([fetchAnnouncements(), fetchCategories()]))
 </script>

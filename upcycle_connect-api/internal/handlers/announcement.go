@@ -402,6 +402,70 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"message": "announcement updated successfully", "announcement": a})
 }
 
+func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	ann, err := db.GetAnnouncementById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+			return
+		}
+		fmt.Println("UpdateMyAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find announcement"})
+		return
+	}
+
+	ownerID, err := db.GetAnnouncementOwnerID(id)
+	if err != nil || ownerID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas propriétaire de cette annonce"})
+		return
+	}
+
+	if ann.State_annoucement == "Vendu" || ann.State_annoucement == "Supprimée" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce ne peut plus être modifiée"})
+		return
+	}
+
+	var body models.Announcement
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// Champs de contenu uniquement — state_annoucement, request, id_buyer préservés
+	ann.Title_announcement = body.Title_announcement
+	ann.Description_annoucement = body.Description_annoucement
+	ann.Price = body.Price
+	ann.Availability_date = body.Availability_date
+	ann.ConditionAnnouncement = body.ConditionAnnouncement
+	ann.TypeAnnouncement = body.TypeAnnouncement
+	ann.Address_annoucement = body.Address_annoucement
+	ann.City = body.City
+	ann.Postal = body.Postal
+	if body.Id_category != "" {
+		ann.Id_category = body.Id_category
+	}
+
+	if err := db.UpdateAnnouncement(ann); err != nil {
+		fmt.Println("UpdateMyAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update announcement"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce mise à jour"})
+}
+
 func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	id := r.PathValue("id")

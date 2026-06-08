@@ -267,6 +267,63 @@ func DeleteMyEvent(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement supprimé"})
 }
 
+func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	event, err := db.GetEventById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "événement introuvable"})
+			return
+		}
+		fmt.Println("UpdateMyEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find event"})
+		return
+	}
+
+	if event.Id_creator == nil || *event.Id_creator != userID {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cet événement"})
+		return
+	}
+
+	if event.Status == "approved" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "un événement approuvé ne peut pas être modifié directement"})
+		return
+	}
+
+	var body models.Event
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// Champs de contenu uniquement — Id_creator et Status préservés
+	event.Title_event = body.Title_event
+	event.Description_event = body.Description_event
+	event.Date_event = body.Date_event
+	event.Location_event = body.Location_event
+	event.Capacity = body.Capacity
+	event.Price_cents = body.Price_cents
+
+	if err := db.UpdateEvent(event); err != nil {
+		fmt.Println("UpdateMyEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update event"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement mis à jour"})
+}
+
 func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

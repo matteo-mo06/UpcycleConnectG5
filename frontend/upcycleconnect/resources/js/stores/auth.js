@@ -10,6 +10,9 @@ export const useAuthStore = defineStore("auth", () => {
     const isAdmin = computed(
         () => user.value?.roles?.includes("admin") ?? false,
     );
+    const isArtisan = computed(
+        () => user.value?.roles?.includes("artisan") ?? false,
+    );
 
     async function login(email, password) {
         const { data } = await api.post("/auth/login", {
@@ -51,6 +54,7 @@ export const useAuthStore = defineStore("auth", () => {
         user,
         isLoggedIn,
         isAdmin,
+        isArtisan,
         hasPermission,
         login,
         logout,
