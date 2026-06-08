@@ -1,83 +1,88 @@
 package models
 
 type User struct {
-	Id_user         string  `json:"id"`
-	Email           string  `json:"email"`
-	Password_user   string  `json:"password_user"`
-	First_name      string  `json:"first_name"`
-	Last_name       string  `json:"last_name"`
-	Upcycling_score int     `json:"upcycling_score"`
-	Premium         int     `json:"premium"`
-	Status          string  `json:"status"`
-	Created_at      string  `json:"created_at"`
-	Profile         string  `json:"profile"`
-	Avatar_url      *string `json:"avatar_url"`
+	IdUser         string  `json:"id"`
+	Email          string  `json:"email"`
+	PasswordUser   string  `json:"password_user"`
+	FirstName      string  `json:"first_name"`
+	LastName       string  `json:"last_name"`
+	UpcyclingScore int     `json:"upcycling_score"`
+	Premium        int     `json:"premium"`
+	Status         string  `json:"status"`
+	CreatedAt      string  `json:"created_at"`
+	Profile        string  `json:"profile"`
+	AvatarUrl      *string `json:"avatar_url"`
+	TutorialDone   bool    `json:"tutorial_done"`
 }
 
 type UserResponse struct {
-	Id_user         string  `json:"id"`
-	Email           string  `json:"email"`
-	First_name      string  `json:"first_name"`
-	Last_name       string  `json:"last_name"`
-	Upcycling_score int     `json:"upcycling_score"`
-	Premium         int     `json:"premium"`
-	Status          string  `json:"status"`
-	Created_at      string  `json:"created_at"`
-	Avatar_url      *string `json:"avatar_url"`
+	IdUser         string  `json:"id"`
+	Email          string  `json:"email"`
+	FirstName      string  `json:"first_name"`
+	LastName       string  `json:"last_name"`
+	UpcyclingScore int     `json:"upcycling_score"`
+	Premium        int     `json:"premium"`
+	Status         string  `json:"status"`
+	CreatedAt      string  `json:"created_at"`
+	AvatarUrl      *string `json:"avatar_url"`
+	TutorialDone   bool    `json:"tutorial_done"`
 }
 
 type UserListItem struct {
-	Id_user         string   `json:"id"`
-	Email           string   `json:"email"`
-	First_name      string   `json:"first_name"`
-	Last_name       string   `json:"last_name"`
-	Upcycling_score int      `json:"upcycling_score"`
-	Premium         int      `json:"premium"`
-	Status          string   `json:"status"`
-	Created_at      string   `json:"created_at"`
-	Roles           []string `json:"roles"`
+	IdUser         string   `json:"id"`
+	Email          string   `json:"email"`
+	FirstName      string   `json:"first_name"`
+	LastName       string   `json:"last_name"`
+	UpcyclingScore int      `json:"upcycling_score"`
+	Premium        int      `json:"premium"`
+	Status         string   `json:"status"`
+	CreatedAt      string   `json:"created_at"`
+	Roles          []string `json:"roles"`
 }
 
 type LoginUserResponse struct {
-	Id_user         string   `json:"id"`
-	Email           string   `json:"email"`
-	First_name      string   `json:"first_name"`
-	Last_name       string   `json:"last_name"`
-	Upcycling_score int      `json:"upcycling_score"`
-	Premium         int      `json:"premium"`
-	Status          string   `json:"status"`
-	Created_at      string   `json:"created_at"`
-	Roles           []string `json:"roles"`
-	Permissions     []string `json:"permissions"`
-	Avatar_url      *string  `json:"avatar_url"`
+	IdUser         string   `json:"id"`
+	Email          string   `json:"email"`
+	FirstName      string   `json:"first_name"`
+	LastName       string   `json:"last_name"`
+	UpcyclingScore int      `json:"upcycling_score"`
+	Premium        int      `json:"premium"`
+	Status         string   `json:"status"`
+	CreatedAt      string   `json:"created_at"`
+	Roles          []string `json:"roles"`
+	Permissions    []string `json:"permissions"`
+	AvatarUrl      *string  `json:"avatar_url"`
+	TutorialDone   bool     `json:"tutorial_done"`
 }
 
 func (u User) ToResponse() UserResponse {
 	return UserResponse{
-		Id_user:         u.Id_user,
-		Email:           u.Email,
-		First_name:      u.First_name,
-		Last_name:       u.Last_name,
-		Upcycling_score: u.Upcycling_score,
-		Premium:         u.Premium,
-		Status:          u.Status,
-		Created_at:      u.Created_at,
-		Avatar_url:      u.Avatar_url,
+		IdUser:         u.IdUser,
+		Email:          u.Email,
+		FirstName:      u.FirstName,
+		LastName:       u.LastName,
+		UpcyclingScore: u.UpcyclingScore,
+		Premium:        u.Premium,
+		Status:         u.Status,
+		CreatedAt:      u.CreatedAt,
+		AvatarUrl:      u.AvatarUrl,
+		TutorialDone:   u.TutorialDone,
 	}
 }
 
 func (u User) ToLoginResponse(roles []string, permissions []string) LoginUserResponse {
 	return LoginUserResponse{
-		Id_user:         u.Id_user,
-		Email:           u.Email,
-		First_name:      u.First_name,
-		Last_name:       u.Last_name,
-		Upcycling_score: u.Upcycling_score,
-		Premium:         u.Premium,
-		Status:          u.Status,
-		Created_at:      u.Created_at,
-		Roles:           roles,
-		Permissions:     permissions,
-		Avatar_url:      u.Avatar_url,
+		IdUser:         u.IdUser,
+		Email:          u.Email,
+		FirstName:      u.FirstName,
+		LastName:       u.LastName,
+		UpcyclingScore: u.UpcyclingScore,
+		Premium:        u.Premium,
+		Status:         u.Status,
+		CreatedAt:      u.CreatedAt,
+		Roles:          roles,
+		Permissions:    permissions,
+		AvatarUrl:      u.AvatarUrl,
+		TutorialDone:   u.TutorialDone,
 	}
 }

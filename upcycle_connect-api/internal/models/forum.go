@@ -1,30 +1,30 @@
 package models
 
 type Topic struct {
-	Id_topic     string `json:"id"`
-	Title_topic  string `json:"title"`
-	Id_author    string `json:"id_author"`
+	IdTopic      string `json:"id"`
+	TitleTopic   string `json:"title"`
+	IdAuthor     string `json:"id_author"`
 	AuthorName   string `json:"author_name"`
 	RepliesCount int    `json:"replies_count"`
 	CreatedAt    string `json:"created_at"`
 }
 
 type TopicDetail struct {
-	Id_topic    string `json:"id"`
-	Title_topic string `json:"title"`
-	Id_author   string `json:"id_author"`
-	AuthorName  string `json:"author_name"`
-	CreatedAt   string `json:"created_at"`
-	Posts       []Post `json:"posts"`
+	IdTopic    string `json:"id"`
+	TitleTopic string `json:"title"`
+	IdAuthor   string `json:"id_author"`
+	AuthorName string `json:"author_name"`
+	CreatedAt  string `json:"created_at"`
+	Posts      []Post `json:"posts"`
 }
 
 type Post struct {
-	Id_post        string  `json:"id"`
-	Body_post      string  `json:"body"`
-	Id_author      string  `json:"id_author"`
-	AuthorName     string  `json:"author_name"`
-	Id_parent_post *string `json:"id_parent_post"`
-	CreatedAt      string  `json:"created_at"`
+	IdPost       string  `json:"id"`
+	BodyPost     string  `json:"body"`
+	IdAuthor     string  `json:"id_author"`
+	AuthorName   string  `json:"author_name"`
+	IdParentPost *string `json:"id_parent_post"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 type CreateTopicRequest struct {

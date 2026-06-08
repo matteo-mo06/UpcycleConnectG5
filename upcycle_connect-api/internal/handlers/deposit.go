@@ -61,7 +61,7 @@ func CreateDepositRequest(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
 		return
 	}
-	if ann.State_annoucement != "Vendu" {
+	if ann.StateAnnouncement != "Vendu" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "seules les annonces vendues peuvent faire l'objet d'une demande de dépôt"})
 		return

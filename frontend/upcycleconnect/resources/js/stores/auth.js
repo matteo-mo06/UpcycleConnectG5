@@ -49,6 +49,13 @@ export const useAuthStore = defineStore("auth", () => {
         return user.value?.permissions?.includes(permission) ?? false;
     }
 
+    function setTutorialDone() {
+        if (user.value) {
+            user.value.tutorial_done = true;
+            sessionStorage.setItem("user", JSON.stringify(user.value));
+        }
+    }
+
     return {
         token,
         user,
@@ -59,5 +66,6 @@ export const useAuthStore = defineStore("auth", () => {
         login,
         logout,
         init,
+        setTutorialDone,
     };
 });

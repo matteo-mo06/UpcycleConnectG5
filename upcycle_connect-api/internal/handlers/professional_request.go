@@ -33,8 +33,8 @@ func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := models.ProfessionalRequest{
-		Id_request: uuid.New().String(),
-		Id_user:    userID,
+		IdRequest: uuid.New().String(),
+		IdUser:    userID,
 	}
 
 	if err := db.CreateProfessionalRequest(req); err != nil {
@@ -125,7 +125,7 @@ func ValidateProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 
 	artisanRole, err := db.GetRoleByName(config.ArtisanRoleName)
 	if err == nil {
-		_ = db.AddUserRole(req.Id_user, artisanRole.Id_role)
+		_ = db.AddUserRole(req.IdUser, artisanRole.IdRole)
 	}
 
 	w.WriteHeader(http.StatusOK)

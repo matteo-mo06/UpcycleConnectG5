@@ -32,10 +32,12 @@ func InitRoutes() {
 	http.Handle("PATCH /user/avatar", auth(handlers.UpdateMyAvatar))
 	http.Handle("DELETE /user/account", auth(handlers.DeleteMyAccount))
 	http.Handle("GET /user/me", auth(handlers.GetMe))
+	http.Handle("POST /user/tutorial-done", auth(handlers.MarkTutorialDone))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
 	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
 	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
+	http.Handle("GET /user/announcement/{id}/invoice", auth(handlers.GetMyInvoice))
 	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
 	http.Handle("PATCH /user/announcement/{id}", auth(handlers.UpdateMyAnnouncement))
 
@@ -114,6 +116,9 @@ func InitRoutes() {
 	http.Handle("POST /forum/topics/{id}/posts", perm("create_post", handlers.AddForumPost))
 	http.Handle("PATCH /forum/topics/{id}/posts/{post_id}", auth(handlers.UpdateForumPost))
 	http.Handle("DELETE /forum/topics/{id}/posts/{post_id}", auth(handlers.DeleteForumPost))
+
+	http.Handle("POST /pay/announcement/{id}", auth(handlers.CreatePaymentIntent))
+	http.HandleFunc("POST /webhooks/stripe", handlers.StripeWebhook)
 
 	http.Handle("POST /reports", auth(handlers.SubmitReport))
 

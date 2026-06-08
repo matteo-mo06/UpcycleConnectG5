@@ -121,7 +121,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
@@ -136,8 +137,8 @@ const loadingPending = ref(true)
 const validating = ref(null)
 const rejecting = ref(null)
 
-async function loadMyRequests() {
-    loadingMine.value = true
+async function loadMyRequests(silent = false) {
+    if (!silent) loadingMine.value = true
     try {
         const { data } = await api.get('/user/deposit-requests')
         myRequests.value = data ?? []
@@ -148,12 +149,12 @@ async function loadMyRequests() {
     }
 }
 
-async function loadPendingRequests() {
+async function loadPendingRequests(silent = false) {
     if (!auth.hasPermission('validate_deposit')) {
-        loadingPending.value = false
+        if (!silent) loadingPending.value = false
         return
     }
-    loadingPending.value = true
+    if (!silent) loadingPending.value = true
     try {
         const { data } = await api.get('/deposit-requests/pending')
         pendingRequests.value = data ?? []
@@ -202,8 +203,9 @@ async function rejectRequest(announcementId) {
     }
 }
 
-onMounted(() => {
-    loadMyRequests()
-    loadPendingRequests()
-})
+async function fetchAll(silent = false) {
+    await Promise.all([loadMyRequests(silent), loadPendingRequests(silent)])
+}
+
+usePolling(fetchAll)
 </script>

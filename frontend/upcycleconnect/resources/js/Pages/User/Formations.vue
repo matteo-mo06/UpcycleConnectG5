@@ -375,7 +375,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -583,8 +584,8 @@ function changePage(p) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-async function fetchFormations() {
-    loading.value = true
+async function fetchFormations(silent = false) {
+    if (!silent) loading.value = true
     try {
         const params = { page: page.value, limit: 15 }
         if (search.value) params.search = search.value
@@ -596,7 +597,7 @@ async function fetchFormations() {
     } catch (e) {
         console.error('fetchFormations error:', e)
     } finally {
-        loading.value = false
+        if (!silent) loading.value = false
     }
 }
 
@@ -610,16 +611,16 @@ async function fetchMyCreated() {
     }
 }
 
-async function fetchPending() {
+async function fetchPending(silent = false) {
     if (!canManage.value) return
-    loadingPending.value = true
+    if (!silent) loadingPending.value = true
     try {
         const { data } = await api.get('/formations/pending')
         pendingFormations.value = data.data ?? []
     } catch (e) {
         console.error('fetchPending error:', e)
     } finally {
-        loadingPending.value = false
+        if (!silent) loadingPending.value = false
     }
 }
 
@@ -630,12 +631,14 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(async () => {
+async function fetchAll(silent = false) {
     await Promise.all([
-        fetchFormations(),
+        fetchFormations(silent),
         fetchMyCreated(),
-        fetchPending(),
+        fetchPending(silent),
         fetchCategories(),
     ])
-})
+}
+
+usePolling(fetchAll)
 </script>

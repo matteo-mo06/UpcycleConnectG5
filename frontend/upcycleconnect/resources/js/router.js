@@ -24,6 +24,8 @@ import Lockers from './Pages/Admin/Lockers.vue'
 import AdminProjets from './Pages/Admin/Projets.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
+import Paiement from './Pages/User/Paiement.vue'
+import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 
@@ -54,7 +56,9 @@ const router = createRouter({
         { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
         { path: '/score',       component: Score,       meta: { requiresAuth: true } },
-        { path: '/calendrier',  component: Calendrier,  meta: { requiresAuth: true } },
+        { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
+        { path: '/paiement/:id',     component: Paiement,              meta: { requiresAuth: true } },
+        { path: '/paiement-confirmation', component: PaiementConfirmation, meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },

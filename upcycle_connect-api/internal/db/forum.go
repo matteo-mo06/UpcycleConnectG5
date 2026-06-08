@@ -11,12 +11,12 @@ import (
 func scanPost(row interface{ Scan(...any) error }) (models.Post, error) {
 	var p models.Post
 	var idParentPost sql.NullString
-	err := row.Scan(&p.Id_post, &p.Body_post, &p.Id_author, &p.AuthorName, &idParentPost, &p.CreatedAt)
+	err := row.Scan(&p.IdPost, &p.BodyPost, &p.IdAuthor, &p.AuthorName, &idParentPost, &p.CreatedAt)
 	if err != nil {
 		return p, err
 	}
 	if idParentPost.Valid {
-		p.Id_parent_post = &idParentPost.String
+		p.IdParentPost = &idParentPost.String
 	}
 	return p, nil
 }
@@ -62,7 +62,7 @@ func GetTopics(search string, limit, offset int) ([]models.Topic, int, error) {
 	for rows.Next() {
 		var t models.Topic
 		if err := rows.Scan(
-			&t.Id_topic, &t.Title_topic, &t.Id_author, &t.AuthorName, &t.RepliesCount, &t.CreatedAt,
+			&t.IdTopic, &t.TitleTopic, &t.IdAuthor, &t.AuthorName, &t.RepliesCount, &t.CreatedAt,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -80,7 +80,7 @@ func GetTopicByID(id string) (models.TopicDetail, error) {
 		FROM TOPIC t
 		LEFT JOIN USER u ON u.id_user = t.id_author
 		WHERE t.id_topic = ? AND t.deleted_at IS NULL`, id,
-	).Scan(&t.Id_topic, &t.Title_topic, &t.Id_author, &t.AuthorName, &t.CreatedAt)
+	).Scan(&t.IdTopic, &t.TitleTopic, &t.IdAuthor, &t.AuthorName, &t.CreatedAt)
 	if err != nil {
 		return t, err
 	}

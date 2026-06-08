@@ -113,6 +113,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import { RouterLink } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
@@ -123,7 +124,6 @@ import api from '@/api.js'
 const auth = useAuthStore()
 const showDepot = ref(false)
 
-const tutorialKey = () => `tutorial_done_${auth.user?.id}`
 const showTutorial = ref(false)
 
 const tutorialSteps = [
@@ -189,9 +189,12 @@ const tutorialSteps = [
     },
 ]
 
-function finishTutorial() {
+async function finishTutorial() {
     showTutorial.value = false
-    localStorage.setItem(tutorialKey(), 'done')
+    try {
+        await api.post('/user/tutorial-done')
+        auth.setTutorialDone()
+    } catch {}
 }
 
 const stats = ref([
@@ -235,16 +238,20 @@ const stats = ref([
 
 const activity = []
 
-onMounted(async () => {
+async function fetchStats() {
     try {
         const { data } = await api.get('/user/stats')
         stats.value.forEach(s => {
             if (data[s.key] !== undefined) s.value = data[s.key]
         })
     } catch {}
+}
 
-    if (!localStorage.getItem(tutorialKey())) {
+onMounted(() => {
+    if (!auth.user?.tutorial_done) {
         showTutorial.value = true
     }
 })
+
+usePolling(fetchStats)
 </script>

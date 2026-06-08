@@ -1,8 +1,8 @@
 package models
 
 type ProfessionalRequest struct {
-	Id_request  string  `json:"id"`
-	Id_user     string  `json:"user_id"`
+	IdRequest   string  `json:"id"`
+	IdUser      string  `json:"user_id"`
 	Status      string  `json:"status"`
 	CreatedAt   string  `json:"created_at"`
 	ProcessedAt *string `json:"processed_at"`
@@ -10,7 +10,7 @@ type ProfessionalRequest struct {
 
 type ProfessionalRequestDetail struct {
 	ProfessionalRequest
-	Email      string `json:"email"`
-	First_name string `json:"first_name"`
-	Last_name  string `json:"last_name"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }

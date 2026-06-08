@@ -25,6 +25,8 @@ func main() {
 	os.MkdirAll(uploadsDir, 0755)
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
 
+	os.MkdirAll(config.InvoicesDir(), 0755)
+
 	router.InitRoutes()
 
 	port := os.Getenv("PORT")

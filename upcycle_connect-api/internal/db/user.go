@@ -10,20 +10,21 @@ import (
 func GetUserById(id string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done
 		FROM USER
 		WHERE id_user = ? AND deleted_at IS NULL`, id,
 	).Scan(
-		&user.Id_user,
+		&user.IdUser,
 		&user.Email,
-		&user.Password_user,
-		&user.First_name,
-		&user.Last_name,
-		&user.Upcycling_score,
+		&user.PasswordUser,
+		&user.FirstName,
+		&user.LastName,
+		&user.UpcyclingScore,
 		&user.Premium,
 		&user.Status,
-		&user.Created_at,
-		&user.Avatar_url,
+		&user.CreatedAt,
+		&user.AvatarUrl,
+		&user.TutorialDone,
 	)
 	return user, err
 }
@@ -55,15 +56,15 @@ func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.U
 	for rows.Next() {
 		var user models.User
 		err := rows.Scan(
-			&user.Id_user,
+			&user.IdUser,
 			&user.Email,
-			&user.Password_user,
-			&user.First_name,
-			&user.Last_name,
-			&user.Upcycling_score,
+			&user.PasswordUser,
+			&user.FirstName,
+			&user.LastName,
+			&user.UpcyclingScore,
 			&user.Premium,
 			&user.Status,
-			&user.Created_at,
+			&user.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -121,14 +122,14 @@ func GetAllUsersWithRoles(search, status, role string, limit, offset int) ([]mod
 		var item models.UserListItem
 		var rolesStr string
 		err := rows.Scan(
-			&item.Id_user,
+			&item.IdUser,
 			&item.Email,
-			&item.First_name,
-			&item.Last_name,
-			&item.Upcycling_score,
+			&item.FirstName,
+			&item.LastName,
+			&item.UpcyclingScore,
 			&item.Premium,
 			&item.Status,
-			&item.Created_at,
+			&item.CreatedAt,
 			&rolesStr,
 		)
 		if err != nil {
@@ -148,12 +149,12 @@ func CreateUser(user models.User) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO USER (id_user, email, password_user, first_name, last_name, upcycling_score, premium)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		user.Id_user,
+		user.IdUser,
 		user.Email,
-		user.Password_user,
-		user.First_name,
-		user.Last_name,
-		user.Upcycling_score,
+		user.PasswordUser,
+		user.FirstName,
+		user.LastName,
+		user.UpcyclingScore,
 		user.Premium,
 	)
 	return err
@@ -169,11 +170,11 @@ func UpdateUser(user models.User) error {
 			premium = ?
 		WHERE id_user = ?`,
 		user.Email,
-		user.First_name,
-		user.Last_name,
-		user.Upcycling_score,
+		user.FirstName,
+		user.LastName,
+		user.UpcyclingScore,
 		user.Premium,
-		user.Id_user,
+		user.IdUser,
 	)
 	return err
 }
@@ -205,6 +206,12 @@ func UpdateUserStatus(id string, status string) error {
 		UPDATE USER SET status = ? WHERE id_user = ?`,
 		status, id,
 	)
+	return err
+}
+
+func MarkTutorialDone(id string) error {
+	_, err := config.Conn.Exec(
+		`UPDATE USER SET tutorial_done = 1 WHERE id_user = ? AND deleted_at IS NULL`, id)
 	return err
 }
 
@@ -252,20 +259,21 @@ func GetUserStats(userID string) (models.UserStats, error) {
 func GetUserByEmail(email string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done
 		FROM USER
 		WHERE email = ? AND deleted_at IS NULL`, email,
 	).Scan(
-		&user.Id_user,
+		&user.IdUser,
 		&user.Email,
-		&user.Password_user,
-		&user.First_name,
-		&user.Last_name,
-		&user.Upcycling_score,
+		&user.PasswordUser,
+		&user.FirstName,
+		&user.LastName,
+		&user.UpcyclingScore,
 		&user.Premium,
 		&user.Status,
-		&user.Created_at,
-		&user.Avatar_url,
+		&user.CreatedAt,
+		&user.AvatarUrl,
+		&user.TutorialDone,
 	)
 	return user, err
 }

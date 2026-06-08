@@ -1,16 +1,20 @@
-package handlers
+﻿package handlers
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -102,17 +106,17 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a := models.Announcement{
-		Id_announcement:         uuid.New().String(),
-		Id_category:             body.IdCategory,
-		Title_announcement:      body.Title,
-		Address_annoucement:     body.Address,
+		IdAnnouncement:          uuid.New().String(),
+		IdCategory:              body.IdCategory,
+		TitleAnnouncement:       body.Title,
+		AddressAnnouncement:     body.Address,
 		City:                    body.City,
 		Postal:                  body.Postal,
-		Description_annoucement: body.Description,
-		Availability_date:       body.AvailDate,
+		DescriptionAnnouncement: body.Description,
+		AvailabilityDate:        body.AvailDate,
 		Price:                   body.Price,
 		Request:                 0,
-		State_annoucement:       state,
+		StateAnnouncement:       state,
 		TypeAnnouncement:        typ,
 		ConditionAnnouncement:   body.Condition,
 	}
@@ -338,13 +342,13 @@ func CreateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if a.Availability_date == "" {
+	if a.AvailabilityDate == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "availability_date is required"})
 		return
 	}
 
-	a.Id_announcement = uuid.New().String()
+	a.IdAnnouncement = uuid.New().String()
 
 	if err = db.CreateUserAnnouncement(a, userID, nil); err != nil {
 		fmt.Println("CreateAnnouncement error:", err)
@@ -388,7 +392,7 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.Id_announcement = id
+	a.IdAnnouncement = id
 
 	err = db.UpdateAnnouncement(a)
 	if err != nil {
@@ -481,6 +485,18 @@ func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ann, err := db.GetAnnouncementById(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+		return
+	}
+	if ann.Price > 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce est payante, utilisez le système de paiement"})
+		return
+	}
+
 	if err := db.ClaimAnnouncement(id, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			w.WriteHeader(http.StatusConflict)
@@ -553,4 +569,35 @@ func DeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "announcement deleted successfully"})
+}
+
+func GetMyInvoice(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	announcementID := r.PathValue("id")
+
+	isBuyer, err := db.IsAnnouncementBuyer(announcementID, userID)
+	if err != nil || !isBuyer {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	invoicePath, err := db.GetInvoicePath(announcementID)
+	if err != nil || invoicePath == "" {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "facture non disponible"})
+		return
+	}
+
+	fullPath := filepath.Join(config.InvoicesDir(), invoicePath)
+	f, err := os.Open(fullPath)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "fichier introuvable"})
+		return
+	}
+	defer f.Close()
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="facture.pdf"`)
+	_, _ = io.Copy(w, f)
 }
