@@ -55,6 +55,7 @@ func InitRoutes() {
 	http.Handle("GET /deposit-requests/pending", perm("validate_deposit", handlers.GetPendingDepositRequests))
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
+	http.Handle("GET /user/professional-request", auth(handlers.GetMyProfessionalRequest))
 
 	http.Handle("GET /admin/stats", admin(handlers.GetStats))
 

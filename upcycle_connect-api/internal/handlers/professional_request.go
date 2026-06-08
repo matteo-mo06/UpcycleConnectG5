@@ -48,6 +48,28 @@ func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande envoyée avec succès"})
 }
 
+func GetMyProfessionalRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	req, err := db.GetLatestRequestByUser(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucune demande trouvée"})
+			return
+		}
+		fmt.Println("GetMyProfessionalRequest error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch request"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(req)
+}
+
 func GetProfessionalRequests(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
