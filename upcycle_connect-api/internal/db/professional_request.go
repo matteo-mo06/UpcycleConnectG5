@@ -101,7 +101,7 @@ func GetLatestRequestByUser(userID string) (models.ProfessionalRequest, error) {
 		ORDER BY created_at DESC
 		LIMIT 1`, userID)
 
-	err := row.Scan(&req.Id_request, &req.Id_user, &req.Status, &req.CreatedAt, &req.ProcessedAt)
+	err := row.Scan(&req.IdRequest, &req.IdUser, &req.Status, &req.CreatedAt, &req.ProcessedAt)
 	if err == sql.ErrNoRows {
 		return req, sql.ErrNoRows
 	}

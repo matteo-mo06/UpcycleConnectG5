@@ -432,7 +432,7 @@ func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ann.State_annoucement == "Vendu" || ann.State_annoucement == "Supprimée" {
+	if ann.StateAnnouncement == "Vendu" || ann.StateAnnouncement == "Supprimée" {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce ne peut plus être modifiée"})
 		return
@@ -446,17 +446,17 @@ func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Champs de contenu uniquement — state_annoucement, request, id_buyer préservés
-	ann.Title_announcement = body.Title_announcement
-	ann.Description_annoucement = body.Description_annoucement
+	ann.TitleAnnouncement = body.TitleAnnouncement
+	ann.DescriptionAnnouncement = body.DescriptionAnnouncement
 	ann.Price = body.Price
-	ann.Availability_date = body.Availability_date
+	ann.AvailabilityDate = body.AvailabilityDate
 	ann.ConditionAnnouncement = body.ConditionAnnouncement
 	ann.TypeAnnouncement = body.TypeAnnouncement
-	ann.Address_annoucement = body.Address_annoucement
+	ann.AddressAnnouncement = body.AddressAnnouncement
 	ann.City = body.City
 	ann.Postal = body.Postal
-	if body.Id_category != "" {
-		ann.Id_category = body.Id_category
+	if body.IdCategory != "" {
+		ann.IdCategory = body.IdCategory
 	}
 
 	if err := db.UpdateAnnouncement(ann); err != nil {

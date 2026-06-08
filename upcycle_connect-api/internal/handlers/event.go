@@ -286,7 +286,7 @@ func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if event.Id_creator == nil || *event.Id_creator != userID {
+	if event.IdCreator == nil || *event.IdCreator != userID {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cet événement"})
 		return
@@ -306,12 +306,12 @@ func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Champs de contenu uniquement — Id_creator et Status préservés
-	event.Title_event = body.Title_event
-	event.Description_event = body.Description_event
-	event.Date_event = body.Date_event
-	event.Location_event = body.Location_event
+	event.TitleEvent = body.TitleEvent
+	event.DescriptionEvent = body.DescriptionEvent
+	event.DateEvent = body.DateEvent
+	event.LocationEvent = body.LocationEvent
 	event.Capacity = body.Capacity
-	event.Price_cents = body.Price_cents
+	event.PriceCents = body.PriceCents
 
 	if err := db.UpdateEvent(event); err != nil {
 		fmt.Println("UpdateMyEvent error:", err)
