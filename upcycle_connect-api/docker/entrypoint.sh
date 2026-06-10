@@ -7,4 +7,7 @@ echo "[entrypoint] Running database migrations..."
 migrate -path /app/db/migrations -database "$DB_URL" up
 echo "[entrypoint] Migrations done."
 
+echo "[entrypoint] Running seed..."
+./seed || echo "[entrypoint] Seed skipped (already applied or error ignored)."
+
 exec "$@"

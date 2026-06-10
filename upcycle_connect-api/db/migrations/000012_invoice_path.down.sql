@@ -1,0 +1,1 @@
+ALTER TABLE `ANNOUNCEMENT` DROP COLUMN `invoice_path`;

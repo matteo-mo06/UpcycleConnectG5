@@ -1,19 +1,24 @@
-package handlers
+﻿package handlers
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
@@ -226,6 +231,11 @@ func ApproveAnnouncement(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve announcement"})
 		return
 	}
+	go func() {
+		if ownerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+			utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Annonce approuvée", "Votre annonce a été approuvée et est maintenant visible.")
+		}
+	}()
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce approuvée"})
 }
@@ -243,6 +253,11 @@ func RejectAnnouncement(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject announcement"})
 		return
 	}
+	go func() {
+		if ownerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+			utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Annonce refusée", "Votre annonce n'a pas été approuvée.")
+		}
+	}()
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce rejetée"})
 }
@@ -402,6 +417,70 @@ func UpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"message": "announcement updated successfully", "announcement": a})
 }
 
+func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	ann, err := db.GetAnnouncementById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "annonce introuvable"})
+			return
+		}
+		fmt.Println("UpdateMyAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find announcement"})
+		return
+	}
+
+	ownerID, err := db.GetAnnouncementOwnerID(id)
+	if err != nil || ownerID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas propriétaire de cette annonce"})
+		return
+	}
+
+	if ann.StateAnnouncement == "Vendu" || ann.StateAnnouncement == "Supprimée" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette annonce ne peut plus être modifiée"})
+		return
+	}
+
+	var body models.Announcement
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// Champs de contenu uniquement — state_annoucement, request, id_buyer préservés
+	ann.TitleAnnouncement = body.TitleAnnouncement
+	ann.DescriptionAnnouncement = body.DescriptionAnnouncement
+	ann.Price = body.Price
+	ann.AvailabilityDate = body.AvailabilityDate
+	ann.ConditionAnnouncement = body.ConditionAnnouncement
+	ann.TypeAnnouncement = body.TypeAnnouncement
+	ann.AddressAnnouncement = body.AddressAnnouncement
+	ann.City = body.City
+	ann.Postal = body.Postal
+	if body.IdCategory != "" {
+		ann.IdCategory = body.IdCategory
+	}
+
+	if err := db.UpdateAnnouncement(ann); err != nil {
+		fmt.Println("UpdateMyAnnouncement error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update announcement"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce mise à jour"})
+}
+
 func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	id := r.PathValue("id")
@@ -501,4 +580,35 @@ func DeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "announcement deleted successfully"})
+}
+
+func GetMyInvoice(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	announcementID := r.PathValue("id")
+
+	isBuyer, err := db.IsAnnouncementBuyer(announcementID, userID)
+	if err != nil || !isBuyer {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	invoicePath, err := db.GetInvoicePath(announcementID)
+	if err != nil || invoicePath == "" {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "facture non disponible"})
+		return
+	}
+
+	fullPath := filepath.Join(config.InvoicesDir(), invoicePath)
+	f, err := os.Open(fullPath)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "fichier introuvable"})
+		return
+	}
+	defer f.Close()
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="facture.pdf"`)
+	_, _ = io.Copy(w, f)
 }

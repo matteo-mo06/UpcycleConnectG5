@@ -22,6 +22,7 @@ type Announcement struct {
 	LockerNumber          int     `json:"locker_number"`
 	CreatedAt             string  `json:"created_at"`
 	DeletedAt             string  `json:"deleted_at,omitempty"`
+	InvoicePath           string  `json:"invoice_path,omitempty"`
 }
 
 type CreateAnnouncementRequest struct {

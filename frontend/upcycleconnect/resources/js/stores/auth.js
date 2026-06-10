@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api, { setAuthToken, clearAuthToken } from "../api";
+import { useOneSignal } from "@onesignal/onesignal-vue3";
 
 export const useAuthStore = defineStore("auth", () => {
     const token = ref(sessionStorage.getItem("token") ?? null);
@@ -9,6 +10,9 @@ export const useAuthStore = defineStore("auth", () => {
     const isLoggedIn = computed(() => !!token.value);
     const isAdmin = computed(
         () => user.value?.roles?.includes("admin") ?? false,
+    );
+    const isArtisan = computed(
+        () => user.value?.roles?.includes("artisan") ?? false,
     );
 
     async function login(email, password) {
@@ -24,6 +28,8 @@ export const useAuthStore = defineStore("auth", () => {
         sessionStorage.setItem("user", JSON.stringify(data.user));
 
         setAuthToken(data.token);
+
+        registerOnesignalPlayer();
     }
 
     function logout() {
@@ -46,6 +52,25 @@ export const useAuthStore = defineStore("auth", () => {
         return user.value?.permissions?.includes(permission) ?? false;
     }
 
+    async function registerOnesignalPlayer() {
+        try {
+            const oneSignal = useOneSignal();
+            oneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+                const id = event?.current?.id;
+                if (id) {
+                    await api.post("/user/onesignal-player-id", { player_id: id });
+                }
+            });
+            await oneSignal.User.PushSubscription.optIn();
+            const playerId = oneSignal.User.PushSubscription.id;
+            if (playerId) {
+                await api.post("/user/onesignal-player-id", { player_id: playerId });
+            }
+        } catch {
+            // notifications déclinées ou navigateur non supporté — non bloquant
+        }
+    }
+
     function setTutorialDone() {
         if (user.value) {
             user.value.tutorial_done = true;
@@ -58,6 +83,7 @@ export const useAuthStore = defineStore("auth", () => {
         user,
         isLoggedIn,
         isAdmin,
+        isArtisan,
         hasPermission,
         login,
         logout,

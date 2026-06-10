@@ -37,7 +37,9 @@ func InitRoutes() {
 	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
 	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
+	http.Handle("GET /user/announcement/{id}/invoice", auth(handlers.GetMyInvoice))
 	http.Handle("DELETE /user/announcement/{id}", auth(handlers.DeleteMyAnnouncement))
+	http.Handle("PATCH /user/announcement/{id}", auth(handlers.UpdateMyAnnouncement))
 
 	http.Handle("POST /upload", auth(handlers.UploadFile))
 
@@ -56,6 +58,9 @@ func InitRoutes() {
 	http.Handle("GET /deposit-requests/pending", perm("validate_deposit", handlers.GetPendingDepositRequests))
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
+	http.Handle("GET /user/professional-request", auth(handlers.GetMyProfessionalRequest))
+	http.Handle("POST /user/onesignal-player-id", auth(handlers.SaveOnesignalPlayerID))
+	http.Handle("DELETE /user/onesignal-player-id", auth(handlers.DeleteOnesignalPlayerID))
 
 	http.Handle("GET /admin/stats", admin(handlers.GetStats))
 
@@ -101,6 +106,7 @@ func InitRoutes() {
 	http.Handle("POST /events", perm("create_event", handlers.CreateEvent))
 	http.Handle("GET /user/events", auth(handlers.GetUserEvents))
 	http.Handle("DELETE /user/event/{id}", perm("create_event", handlers.DeleteMyEvent))
+	http.Handle("PATCH /user/event/{id}", perm("create_event", handlers.UpdateMyEvent))
 	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))
 	http.Handle("DELETE /user/event/{id}/unregister", perm("register_event", handlers.UnregisterFromEvent))
 
@@ -128,6 +134,11 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/score-actions", admin(handlers.GetScoreActions))
 	http.Handle("PUT /admin/score-action/{action_type}", admin(handlers.UpdateScoreAction))
+
+	http.Handle("GET /admin/revenue/summary", admin(handlers.GetRevenueSummary))
+	http.Handle("GET /admin/revenue/transactions", admin(handlers.GetRevenueTransactions))
+	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
+	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
 
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))

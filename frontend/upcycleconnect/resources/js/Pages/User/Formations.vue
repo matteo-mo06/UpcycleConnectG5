@@ -597,7 +597,7 @@ async function fetchFormations(silent = false) {
     } catch (e) {
         console.error('fetchFormations error:', e)
     } finally {
-        loading.value = false
+        if (!silent) loading.value = false
     }
 }
 
@@ -611,16 +611,16 @@ async function fetchMyCreated() {
     }
 }
 
-async function fetchPending() {
+async function fetchPending(silent = false) {
     if (!canManage.value) return
-    loadingPending.value = true
+    if (!silent) loadingPending.value = true
     try {
         const { data } = await api.get('/formations/pending')
         pendingFormations.value = data.data ?? []
     } catch (e) {
         console.error('fetchPending error:', e)
     } finally {
-        loadingPending.value = false
+        if (!silent) loadingPending.value = false
     }
 }
 
@@ -635,7 +635,7 @@ async function fetchAll(silent = false) {
     await Promise.all([
         fetchFormations(silent),
         fetchMyCreated(),
-        fetchPending(),
+        fetchPending(silent),
         fetchCategories(),
     ])
 }

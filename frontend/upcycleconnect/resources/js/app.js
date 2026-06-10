@@ -1,5 +1,6 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import OneSignalVuePlugin from "@onesignal/onesignal-vue3";
 import App from "./App.vue";
 import router from "./router.js";
 import "../css/app.css";
@@ -9,6 +10,10 @@ const app = createApp(App);
 const pinia = createPinia();
 app.use(pinia);
 app.use(router);
+app.use(OneSignalVuePlugin, {
+    appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+    allowLocalhostAsSecureOrigin: true,
+});
 
 useAuthStore().init();
 

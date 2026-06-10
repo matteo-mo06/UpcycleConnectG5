@@ -91,3 +91,19 @@ func GetPendingRequestByUser(userID string) (models.ProfessionalRequest, error) 
 	}
 	return req, err
 }
+
+func GetLatestRequestByUser(userID string) (models.ProfessionalRequest, error) {
+	var req models.ProfessionalRequest
+	row := config.Conn.QueryRow(`
+		SELECT id_request, id_user, status, created_at, processed_at
+		FROM PROFESSIONAL_REQUEST
+		WHERE id_user = ?
+		ORDER BY created_at DESC
+		LIMIT 1`, userID)
+
+	err := row.Scan(&req.IdRequest, &req.IdUser, &req.Status, &req.CreatedAt, &req.ProcessedAt)
+	if err == sql.ErrNoRows {
+		return req, sql.ErrNoRows
+	}
+	return req, err
+}

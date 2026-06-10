@@ -277,3 +277,39 @@ func GetUserByEmail(email string) (models.User, error) {
 	)
 	return user, err
 }
+
+
+func SaveOnesignalPlayerID(userID, playerID string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE user SET onesignal_player_id = ? WHERE id_user = ?",
+		playerID, userID,
+	)
+	return err
+}
+
+func GetOnesignalPlayerID(userID string) string {
+	var pid *string
+	_ = config.Conn.QueryRow(
+		"SELECT onesignal_player_id FROM user WHERE id_user = ?", userID,
+	).Scan(&pid)
+	if pid == nil {
+		return ""
+	}
+	return *pid
+}
+
+func GetEventCreatorID(eventID string) string {
+	var id string
+	_ = config.Conn.QueryRow(
+		"SELECT id_creator FROM event WHERE id_event = ?", eventID,
+	).Scan(&id)
+	return id
+}
+
+func GetFormationCreatorID(formationID string) string {
+	var id string
+	_ = config.Conn.QueryRow(
+		"SELECT id_creator FROM formation WHERE id_formation = ?", formationID,
+	).Scan(&id)
+	return id
+}

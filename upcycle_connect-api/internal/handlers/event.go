@@ -12,6 +12,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetEvents(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +132,7 @@ func ApproveEvent(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve event"})
 		return
 	}
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetEventCreatorID(id)), "Événement approuvé", "Votre événement a été approuvé et est maintenant visible.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement approuvé"})
 }
@@ -148,6 +150,7 @@ func RejectEvent(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject event"})
 		return
 	}
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetEventCreatorID(id)), "Événement refusé", "Votre événement n'a pas été approuvé.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement rejeté"})
 }
@@ -265,6 +268,63 @@ func DeleteMyEvent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement supprimé"})
+}
+
+func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	event, err := db.GetEventById(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "événement introuvable"})
+			return
+		}
+		fmt.Println("UpdateMyEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find event"})
+		return
+	}
+
+	if event.IdCreator == nil || *event.IdCreator != userID {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de cet événement"})
+		return
+	}
+
+	if event.Status == "approved" {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "un événement approuvé ne peut pas être modifié directement"})
+		return
+	}
+
+	var body models.Event
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	// Champs de contenu uniquement — Id_creator et Status préservés
+	event.TitleEvent = body.TitleEvent
+	event.DescriptionEvent = body.DescriptionEvent
+	event.DateEvent = body.DateEvent
+	event.LocationEvent = body.LocationEvent
+	event.Capacity = body.Capacity
+	event.PriceCents = body.PriceCents
+
+	if err := db.UpdateEvent(event); err != nil {
+		fmt.Println("UpdateMyEvent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update event"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement mis à jour"})
 }
 
 func GetPublicEventsForUser(w http.ResponseWriter, r *http.Request) {

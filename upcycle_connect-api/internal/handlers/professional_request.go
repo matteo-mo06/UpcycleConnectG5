@@ -12,6 +12,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,28 @@ func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande envoyée avec succès"})
+}
+
+func GetMyProfessionalRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	req, err := db.GetLatestRequestByUser(userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucune demande trouvée"})
+			return
+		}
+		fmt.Println("GetMyProfessionalRequest error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch request"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(req)
 }
 
 func GetProfessionalRequests(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +129,7 @@ func ValidateProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 		_ = db.AddUserRole(req.IdUser, artisanRole.IdRole)
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(req.IdUser), "Demande pro approuvée", "Votre demande de compte professionnel a été approuvée. Vous avez maintenant accès à l'espace artisan.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande approuvée, rôle artisan attribué"})
 }
@@ -146,6 +170,7 @@ func RejectProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(req.IdUser), "Demande pro refusée", "Votre demande de compte professionnel n'a pas été approuvée.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande rejetée"})
 }
