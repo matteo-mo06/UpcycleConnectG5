@@ -12,6 +12,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetEvents(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +132,7 @@ func ApproveEvent(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve event"})
 		return
 	}
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetEventCreatorID(id)), "Événement approuvé", "Votre événement a été approuvé et est maintenant visible.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement approuvé"})
 }
@@ -148,6 +150,7 @@ func RejectEvent(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject event"})
 		return
 	}
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetEventCreatorID(id)), "Événement refusé", "Votre événement n'a pas été approuvé.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "événement rejeté"})
 }

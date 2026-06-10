@@ -59,6 +59,8 @@ func InitRoutes() {
 
 	http.Handle("POST /professional-request", auth(handlers.SubmitProfessionalRequest))
 	http.Handle("GET /user/professional-request", auth(handlers.GetMyProfessionalRequest))
+	http.Handle("POST /user/onesignal-player-id", auth(handlers.SaveOnesignalPlayerID))
+	http.Handle("DELETE /user/onesignal-player-id", auth(handlers.DeleteOnesignalPlayerID))
 
 	http.Handle("GET /admin/stats", admin(handlers.GetStats))
 
@@ -132,6 +134,11 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/score-actions", admin(handlers.GetScoreActions))
 	http.Handle("PUT /admin/score-action/{action_type}", admin(handlers.UpdateScoreAction))
+
+	http.Handle("GET /admin/revenue/summary", admin(handlers.GetRevenueSummary))
+	http.Handle("GET /admin/revenue/transactions", admin(handlers.GetRevenueTransactions))
+	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
+	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
 
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))

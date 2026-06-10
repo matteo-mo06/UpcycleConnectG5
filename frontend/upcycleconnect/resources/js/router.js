@@ -24,6 +24,7 @@ import Lockers from './Pages/Admin/Lockers.vue'
 import AdminProjets from './Pages/Admin/Projets.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
+import Revenus from './Pages/Admin/Revenus.vue'
 import Paiement from './Pages/User/Paiement.vue'
 import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
 import CGU from './Pages/CGU.vue'
@@ -72,6 +73,7 @@ const router = createRouter({
         { path: '/admin/projets', component: AdminProjets, meta: { requiresAdmin: true } },
         { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
+        { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
 
         { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
         { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },

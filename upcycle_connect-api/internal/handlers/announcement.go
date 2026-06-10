@@ -18,6 +18,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetPublicAnnouncements(w http.ResponseWriter, r *http.Request) {
@@ -230,6 +231,11 @@ func ApproveAnnouncement(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to approve announcement"})
 		return
 	}
+	go func() {
+		if ownerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+			utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Annonce approuvée", "Votre annonce a été approuvée et est maintenant visible.")
+		}
+	}()
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce approuvée"})
 }
@@ -247,6 +253,11 @@ func RejectAnnouncement(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reject announcement"})
 		return
 	}
+	go func() {
+		if ownerID, err := db.GetAnnouncementOwnerID(id); err == nil {
+			utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Annonce refusée", "Votre annonce n'a pas été approuvée.")
+		}
+	}()
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce rejetée"})
 }
