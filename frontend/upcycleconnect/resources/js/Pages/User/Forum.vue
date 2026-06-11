@@ -234,7 +234,7 @@
         </div>
 
         <div
-            v-if="openedTopic || openedTopicLoading"
+            v-if="openedTopic || openedTopicLoading || openedTopicError"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
             @click.self="closeTopic"
         >
@@ -335,6 +335,12 @@
                         class="text-center text-gray-400 text-sm py-6"
                     >
                         Chargement…
+                    </div>
+                    <div
+                        v-else-if="openedTopicError"
+                        class="text-center text-red-400 text-sm py-6"
+                    >
+                        {{ openedTopicError }}
                     </div>
 
                     <template v-else-if="openedTopic">
@@ -654,6 +660,7 @@ const topicError = ref("");
 
 const openedTopic = ref(null);
 const openedTopicLoading = ref(false);
+const openedTopicError = ref("");
 const replyBody = ref("");
 const replyLoading = ref(false);
 const replyingTo = ref(null);
@@ -738,6 +745,7 @@ async function fetchTopics() {
 
 async function openTopic(topic) {
     openedTopic.value = null;
+    openedTopicError.value = "";
     replyBody.value = "";
     replyingTo.value = null;
     openedTopicLoading.value = true;
@@ -745,6 +753,7 @@ async function openTopic(topic) {
         const { data } = await api.get(`/forum/topics/${topic.id}`);
         openedTopic.value = data;
     } catch {
+        openedTopicError.value = "Impossible de charger ce sujet.";
     } finally {
         openedTopicLoading.value = false;
     }
@@ -753,6 +762,7 @@ async function openTopic(topic) {
 function closeTopic() {
     openedTopic.value = null;
     openedTopicLoading.value = false;
+    openedTopicError.value = "";
     replyingTo.value = null;
     replyBody.value = "";
     editTopic.value = false;

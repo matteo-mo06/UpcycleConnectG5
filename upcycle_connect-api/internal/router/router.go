@@ -190,4 +190,11 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/project/{id}", admin(handlers.DeleteProjectAdmin))
 	http.Handle("PATCH /admin/project/{id}/approve", admin(handlers.ApproveProject))
 	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
+
+	http.Handle("GET /conseils", auth(handlers.GetAdvices))
+	http.Handle("GET /conseils/{id}", auth(handlers.GetAdvice))
+	http.Handle("GET /conseils/{id}/documents", auth(handlers.GetAdviceDocuments))
+	http.Handle("POST /conseils", perm("create_advice", handlers.CreateAdvice))
+	http.Handle("PATCH /conseils/{id}", auth(handlers.UpdateMyAdvice))
+	http.Handle("DELETE /conseils/{id}", auth(handlers.DeleteMyAdvice))
 }

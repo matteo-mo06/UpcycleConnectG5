@@ -37,6 +37,13 @@ const ArtisanFormations = () => import('./Pages/Artisan/Formations.vue')
 const ArtisanProjets    = () => import('./Pages/Artisan/Projets.vue')
 const ArtisanCalendrier = () => import('./Pages/Artisan/Calendrier.vue')
 
+const SalarieDashboard  = () => import('./Pages/Salarie/Dashboard.vue')
+const SalarieFormations = () => import('./Pages/Salarie/Formations.vue')
+const SalarieEvenements = () => import('./Pages/Salarie/Evenements.vue')
+const SalarieConseils   = () => import('./Pages/Salarie/Conseils.vue')
+const SalarieForum      = () => import('./Pages/Salarie/Forum.vue')
+const SalarieCalendrier = () => import('./Pages/Salarie/Calendrier.vue')
+
 const router = createRouter({
     history: createWebHistory(),
     routes: [
@@ -81,6 +88,13 @@ const router = createRouter({
         { path: '/artisan/projets',    component: ArtisanProjets,    meta: { requiresArtisan: true } },
         { path: '/artisan/calendrier', component: ArtisanCalendrier, meta: { requiresArtisan: true } },
 
+        { path: '/salarie/dashboard',  component: SalarieDashboard,  meta: { requiresSalarie: true } },
+        { path: '/salarie/formations', component: SalarieFormations, meta: { requiresSalarie: true } },
+        { path: '/salarie/evenements', component: SalarieEvenements, meta: { requiresSalarie: true } },
+        { path: '/salarie/conseils',   component: SalarieConseils,   meta: { requiresSalarie: true } },
+        { path: '/salarie/forum',      component: SalarieForum,      meta: { requiresSalarie: true } },
+        { path: '/salarie/calendrier', component: SalarieCalendrier, meta: { requiresSalarie: true } },
+
         { path: '/:pathMatch(.*)*', redirect: '/accueil' },
     ],
 })
@@ -90,6 +104,7 @@ router.beforeEach((to) => {
 
     if (to.meta.requiresAdmin && !auth.isAdmin) return '/login'
     if (to.meta.requiresArtisan && !auth.isArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
+    if (to.meta.requiresSalarie && !auth.isSalarie) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
 })
 
