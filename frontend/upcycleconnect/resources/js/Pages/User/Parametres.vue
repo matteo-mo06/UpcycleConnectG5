@@ -234,6 +234,44 @@
                     </template>
                 </div>
 
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2
+                        class="font-semibold text-gray-800 mb-1"
+                        style="font-family: var(--font-family-title)"
+                    >
+                        Notifications
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-4">
+                        Gérez vos notifications push sur cet appareil.
+                    </p>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700 font-medium">Notifications push</p>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                {{ notifOptedIn ? "Activées - vous recevez les alertes en temps réel." : "Désactivées." }}
+                            </p>
+                        </div>
+                        <button
+                            @click="toggleNotifications"
+                            :disabled="notifLoading"
+                            :class="[
+                                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50',
+                                notifOptedIn ? 'bg-primary' : 'bg-gray-200'
+                            ]"
+                        >
+                            <span
+                                :class="[
+                                    'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                                    notifOptedIn ? 'translate-x-6' : 'translate-x-1'
+                                ]"
+                            />
+                        </button>
+                    </div>
+                    <p v-if="notifBlocked" class="text-xs text-amber-600 mt-3">
+                        Les notifications sont bloquées dans votre navigateur. Autorisez-les dans les paramètres du site pour les réactiver.
+                    </p>
+                </div>
+
                 <div
                     class="bg-white rounded-2xl shadow-sm p-5 border border-red-100"
                 >
@@ -342,7 +380,10 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import { useAuthStore } from "@/stores/auth.js";
+import { useOneSignal } from "@onesignal/onesignal-vue3";
 import api from "@/api.js";
+
+const oneSignal = useOneSignal();
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -374,6 +415,36 @@ const showConfirm = ref(false);
 const proRequest = ref(null);
 const proSubmitting = ref(false);
 const isArtisan = computed(() => auth.user?.roles?.includes("artisan") ?? false);
+
+const notifOptedIn = ref(false);
+const notifLoading = ref(false);
+const notifBlocked = ref(false);
+
+function refreshNotifState() {
+    notifOptedIn.value = oneSignal.User.PushSubscription.optedIn ?? false;
+    notifBlocked.value = Notification.permission === "denied";
+}
+
+oneSignal.User.PushSubscription.addEventListener("change", refreshNotifState);
+
+async function toggleNotifications() {
+    if (notifBlocked.value) return;
+    notifLoading.value = true;
+    try {
+        if (notifOptedIn.value) {
+            await oneSignal.User.PushSubscription.optOut();
+            await api.delete("/user/onesignal-player-id");
+        } else {
+            await oneSignal.User.PushSubscription.optIn();
+            const playerId = oneSignal.User.PushSubscription.id;
+            if (playerId) await api.post("/user/onesignal-player-id", { player_id: playerId });
+        }
+        refreshNotifState();
+    } catch (e) {
+        console.error("Erreur notifications:", e);
+    }
+    notifLoading.value = false;
+}
 
 async function saveProfile() {
     profileLoading.value = true;
@@ -455,6 +526,8 @@ async function deleteAccount() {
 }
 
 onMounted(async () => {
+    setTimeout(refreshNotifState, 500);
+
     try {
         const { data } = await api.get("/user/me");
         profile.value.first_name = data.first_name;

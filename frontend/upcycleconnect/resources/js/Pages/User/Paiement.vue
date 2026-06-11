@@ -19,9 +19,19 @@
                         Paiement sécurisé
                     </h1>
                     <p class="text-sm text-gray-500 mb-4">{{ announcement?.title }}</p>
-                    <div class="flex items-center justify-between border-t pt-4">
-                        <span class="text-gray-600">Total</span>
-                        <span class="text-xl font-bold text-primary">{{ announcement?.price?.toFixed(2) }} €</span>
+                    <div class="space-y-2 border-t pt-4">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Prix de l'article</span>
+                            <span class="text-gray-700">{{ formatCents(pricing.price_cents) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-500">Commission plateforme ({{ pricing.commission_rate }}%)</span>
+                            <span class="text-gray-700">{{ formatCents(pricing.commission_cents) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between border-t pt-2 mt-2">
+                            <span class="font-semibold text-gray-800">Total</span>
+                            <span class="text-xl font-bold text-primary">{{ formatCents(pricing.total_cents) }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -35,7 +45,7 @@
                         :disabled="paying || !stripeReady"
                         class="w-full py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {{ paying ? 'Traitement en cours…' : `Payer ${announcement?.price?.toFixed(2)} €` }}
+                        {{ paying ? 'Traitement en cours…' : `Payer ${formatCents(pricing.total_cents)}` }}
                     </button>
 
                     <p class="text-xs text-gray-400 text-center mt-3">
@@ -66,6 +76,12 @@ const paying = ref(false)
 const paymentError = ref(null)
 const stripeReady = ref(false)
 const announcement = ref(null)
+const pricing = ref({ price_cents: 0, commission_cents: 0, total_cents: 0, commission_rate: 0 })
+
+function formatCents(cents) {
+    if (!cents) return '0,00 €'
+    return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+}
 
 let stripe = null
 let elements = null
@@ -78,7 +94,8 @@ onMounted(async () => {
         ])
 
         announcement.value = annRes.data.announcement ?? annRes.data
-        const clientSecret = intentRes.data.client_secret
+        const { client_secret: clientSecret, price_cents, commission_cents, total_cents, commission_rate } = intentRes.data
+        pricing.value = { price_cents, commission_cents, total_cents, commission_rate }
 
         loading.value = false
         await nextTick()

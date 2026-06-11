@@ -13,6 +13,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetFormations(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +295,7 @@ func ApproveFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetFormationCreatorID(id)), "Formation approuvée", "Votre formation a été approuvée et est maintenant visible.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "formation approuvée"})
 }
@@ -325,6 +327,7 @@ func RejectFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(db.GetFormationCreatorID(id)), "Formation refusée", "Votre formation n'a pas été approuvée.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "formation rejetée"})
 }

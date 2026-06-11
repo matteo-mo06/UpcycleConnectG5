@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/go-pdf/fpdf"
@@ -17,6 +18,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
@@ -44,14 +46,21 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	commissionRate, _ := db.GetCommissionRate()
+	priceCents := int64(ann.Price * 100)
+	commissionCents := int64(float64(priceCents) * commissionRate / 100.0)
+	totalCents := priceCents + commissionCents
+
 	client := stripe.NewClient(config.StripeSecretKey())
 
 	params := &stripe.PaymentIntentCreateParams{
-		Amount:   stripe.Int64(int64(ann.Price * 100)),
+		Amount:   stripe.Int64(totalCents),
 		Currency: stripe.String("eur"),
 		Metadata: map[string]string{
-			"announcement_id": announcementID,
-			"buyer_id":        userID,
+			"announcement_id":  announcementID,
+			"buyer_id":         userID,
+			"price_cents":      strconv.FormatInt(priceCents, 10),
+			"commission_cents": strconv.FormatInt(commissionCents, 10),
 		},
 		AutomaticPaymentMethods: &stripe.PaymentIntentCreateAutomaticPaymentMethodsParams{
 			Enabled: stripe.Bool(true),
@@ -67,9 +76,13 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"client_secret":   pi.ClientSecret,
-		"announcement_id": announcementID,
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"client_secret":    pi.ClientSecret,
+		"announcement_id":  announcementID,
+		"price_cents":      priceCents,
+		"commission_cents": commissionCents,
+		"total_cents":      totalCents,
+		"commission_rate":  commissionRate,
 	})
 }
 
@@ -117,14 +130,23 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			go generateAndStoreInvoice(pi.ID, announcementID, buyerID, pi.Amount)
+			commissionCents, _ := strconv.Atoi(pi.Metadata["commission_cents"])
+			if err := db.StorePayment(pi.ID, announcementID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount), commissionCents); err != nil {
+				fmt.Println("StorePayment error:", err)
+			}
+
+			go generateAndStoreInvoice(pi.ID, announcementID, buyerID, pi.Amount, int64(commissionCents), pi.Created)
+
+			if sellerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
+				go utils.SendPushNotification(db.GetOnesignalPlayerID(sellerID), "Annonce vendue", "Votre annonce a été achetée !")
+			}
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func generateAndStoreInvoice(paymentID, announcementID, buyerID string, amountCents int64) {
+func generateAndStoreInvoice(paymentID, announcementID, buyerID string, amountCents, commissionCents, createdAt int64) {
 	ann, err := db.GetAnnouncementById(announcementID)
 	if err != nil {
 		fmt.Println("generateInvoice: GetAnnouncementById error:", err)
@@ -140,7 +162,7 @@ func generateAndStoreInvoice(paymentID, announcementID, buyerID string, amountCe
 	filename := paymentID + ".pdf"
 	fullPath := filepath.Join(dir, filename)
 
-	if err := buildInvoicePDF(fullPath, paymentID, ann, buyer, amountCents); err != nil {
+	if err := buildInvoicePDF(fullPath, paymentID, ann, buyer, amountCents, commissionCents, createdAt); err != nil {
 		fmt.Println("generateInvoice: buildInvoicePDF error:", err)
 		return
 	}
@@ -150,15 +172,18 @@ func generateAndStoreInvoice(paymentID, announcementID, buyerID string, amountCe
 	}
 }
 
-func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer models.User, amountCents int64) error {
+func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer models.User, amountCents, commissionCents, createdAt int64) error {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 15, 20)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
-	price := fmt.Sprintf("%.2f EUR", float64(amountCents)/100)
-	date := time.Now().Format("02/01/2006")
+	priceCents := amountCents - commissionCents
+	articlePrice := fmt.Sprintf("%.2f EUR", float64(priceCents)/100)
+	commissionPrice := fmt.Sprintf("%.2f EUR", float64(commissionCents)/100)
+	totalPrice := fmt.Sprintf("%.2f EUR", float64(amountCents)/100)
+	date := time.Unix(createdAt, 0).Format("02/01/2006 15:04")
 
 	numDisplay := paymentID
 	if len(numDisplay) > 26 {
@@ -203,7 +228,7 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.Rect(110, 55, 80, 34, "D")
 	// "Client" label on the top border (fieldset style)
 	pdf.SetFillColor(255, 255, 255)
-	pdf.Rect(121, 52, 16, 6, "F")
+	pdf.Rect(118, 52, 16, 6, "F")
 	pdf.SetFont("Helvetica", "", 8)
 	pdf.SetTextColor(120, 120, 120)
 	pdf.SetXY(121, 52)
@@ -239,7 +264,7 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(20, 103)
 	pdf.CellFormat(110, 8, tr(title), "1", 0, "L", true, 0, "")
 	pdf.CellFormat(25, 8, "1", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(35, 8, price, "1", 0, "R", true, 0, "")
+	pdf.CellFormat(35, 8, articlePrice, "1", 0, "R", true, 0, "")
 
 	pdf.SetFont("Helvetica", "I", 7.5)
 	pdf.SetTextColor(120, 120, 120)
@@ -258,9 +283,13 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	// --- TOTALS (right) ---
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetXY(115, 169)
+	pdf.CellFormat(40, 6, "Prix article", "LTR", 0, "L", false, 0, "")
+	pdf.CellFormat(35, 6, articlePrice, "LTR", 0, "R", false, 0, "")
+
 	pdf.SetXY(115, 175)
-	pdf.CellFormat(40, 6, "Total HT", "LTR", 0, "L", false, 0, "")
-	pdf.CellFormat(35, 6, price, "LTR", 0, "R", false, 0, "")
+	pdf.CellFormat(40, 6, tr("Commission plateforme"), "LR", 0, "L", false, 0, "")
+	pdf.CellFormat(35, 6, commissionPrice, "LR", 0, "R", false, 0, "")
 
 	pdf.SetXY(115, 181)
 	pdf.CellFormat(40, 6, "TVA (0%)", "LR", 0, "L", false, 0, "")
@@ -269,13 +298,13 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetFont("Helvetica", "B", 10)
 	pdf.SetXY(115, 187)
 	pdf.CellFormat(40, 7, "Total TTC", "1", 0, "L", false, 0, "")
-	pdf.CellFormat(35, 7, price, "1", 0, "R", false, 0, "")
+	pdf.CellFormat(35, 7, totalPrice, "1", 0, "R", false, 0, "")
 
 	// --- RÈGLEMENT ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetXY(20, 202)
-	pdf.CellFormat(170, 7, tr("Règlement   Payé par carte bancaire le ")+date, "1", 0, "L", false, 0, "")
+	pdf.CellFormat(170, 7, tr("Règlement   Payé par carte bancaire le ")+date+" - Total : "+totalPrice, "1", 0, "L", false, 0, "")
 
 	// --- FOOTER ---
 	pdf.SetTextColor(120, 120, 120)

@@ -12,6 +12,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +129,7 @@ func ValidateProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 		_ = db.AddUserRole(req.IdUser, artisanRole.IdRole)
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(req.IdUser), "Demande pro approuvée", "Votre demande de compte professionnel a été approuvée. Vous avez maintenant accès à l'espace artisan.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande approuvée, rôle artisan attribué"})
 }
@@ -168,6 +170,7 @@ func RejectProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(req.IdUser), "Demande pro refusée", "Votre demande de compte professionnel n'a pas été approuvée.")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande rejetée"})
 }

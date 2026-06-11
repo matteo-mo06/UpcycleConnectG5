@@ -10,6 +10,7 @@ import (
 
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
+	"upcycle_connect-api/internal/utils"
 )
 
 func GetMyDepositRequests(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +147,6 @@ func CancelDepositRequest(w http.ResponseWriter, r *http.Request) {
 func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 	announcementID := r.PathValue("id")
 
-	// Locker is already assigned at request creation time — just confirm deposit.
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
 		http.Error(w, "ValidateDepositRequest error: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -156,6 +156,7 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 		if err := db.AwardScore(ownerID, "deposit_validated", announcementID); err != nil {
 			fmt.Println("AwardScore deposit_validated error:", err)
 		}
+		go utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Dépôt validé", "Votre demande de dépôt a été validée. Vous pouvez déposer votre objet dans le casier.")
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -171,6 +172,9 @@ func RejectDepositRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if ownerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
+		go utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Dépôt refusé", "Votre demande de dépôt n'a pas été acceptée.")
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
