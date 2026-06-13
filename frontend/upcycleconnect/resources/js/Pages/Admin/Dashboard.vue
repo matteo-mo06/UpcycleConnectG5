@@ -2,7 +2,9 @@
     <AdminLayout>
 
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Dashboard</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
+                Bonjour {{ auth.user?.first_name ?? '' }}
+            </h1>
         </div>
 
         <div v-if="loading" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
@@ -14,7 +16,7 @@
                 <div
                     v-for="stat in stats"
                     :key="stat.label"
-                    class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+                    class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
                     <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
                         <div :class="stat.iconClass" v-html="stat.icon" />
                     </div>
@@ -27,56 +29,38 @@
 
             <div class="grid grid-cols-5 gap-6">
 
-                <div class="col-span-3 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                         <h2 class="text-base font-semibold text-gray-800">Derniers utilisateurs</h2>
-                        <a href="/admin/users" class="text-xs font-medium text-primary hover:underline">Voir tout</a>
+                        <RouterLink to="/admin/users" class="text-xs font-medium text-primary hover:underline">Voir tout</RouterLink>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="bg-primary">
-                                    <th class="text-left text-white font-medium px-5 py-3">Nom</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Email</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Type</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Inscription</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="(user, i) in recentUsers"
-                                    :key="user.email"
-                                    :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']">
-                                    <td class="px-5 py-3 font-medium text-gray-800">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                                                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                                                </svg>
-                                            </div>
-                                            {{ user.name }}
-                                        </div>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500">{{ user.email }}</td>
-                                    <td class="px-5 py-3">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                            {{ user.type }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500">{{ user.date }}</td>
-                                </tr>
-                                <tr v-if="recentUsers.length === 0">
-                                    <td colspan="4" class="px-5 py-8 text-center text-gray-400 text-sm">Aucun utilisateur</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="divide-y divide-gray-50">
+                        <div
+                            v-for="user in recentUsers"
+                            :key="user.email"
+                            class="px-5 py-3 flex items-center gap-3">
+                            <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-gray-800 text-sm truncate">{{ user.name }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+                            </div>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{{ user.type }}</span>
+                            <span class="text-xs text-gray-400 flex-shrink-0">{{ user.date }}</span>
+                        </div>
+                        <div v-if="recentUsers.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
+                            Aucun utilisateur
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                         <h2 class="text-base font-semibold text-gray-800">Prochains événements</h2>
-                        <a href="/admin/events" class="text-xs font-medium text-primary hover:underline">Voir tout</a>
+                        <RouterLink to="/admin/events" class="text-xs font-medium text-primary hover:underline">Voir tout</RouterLink>
                     </div>
                     <div class="divide-y divide-gray-50">
                         <div
@@ -103,10 +87,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 import { roleLabel, fullName } from '@/utils.js'
 
+const auth = useAuthStore()
 const loading = ref(true)
 const error = ref('')
 const statsData = ref({})

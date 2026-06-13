@@ -3,7 +3,7 @@
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
-                Espace professionnel
+                Bonjour {{ auth.user?.first_name ?? '' }}
             </h1>
         </div>
 
@@ -16,7 +16,7 @@
                 <div
                     v-for="stat in stats"
                     :key="stat.label"
-                    class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4"
+                    class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
                 >
                     <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
                         <div :class="stat.iconClass" v-html="stat.icon" />
@@ -30,45 +30,31 @@
 
             <div class="grid grid-cols-5 gap-6">
 
-                <div class="col-span-3 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-800">Mes dernières annonces</h2>
+                        <h2 class="text-base font-semibold text-gray-800">Dernières annonces</h2>
                         <RouterLink to="/artisan/annonces" class="text-xs font-medium text-primary hover:underline">Voir tout</RouterLink>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="bg-primary">
-                                    <th class="text-left text-white font-medium px-5 py-3">Titre</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Type</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">État</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="(ann, i) in recentAnnouncements"
-                                    :key="ann.id"
-                                    :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']"
-                                >
-                                    <td class="px-5 py-3 font-medium text-gray-800 max-w-[160px] truncate">{{ ann.title }}</td>
-                                    <td class="px-5 py-3 text-gray-500 capitalize">{{ ann.type }}</td>
-                                    <td class="px-5 py-3">
-                                        <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', stateBadge(ann.state)]">
-                                            {{ ann.state }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500">{{ ann.date }}</td>
-                                </tr>
-                                <tr v-if="recentAnnouncements.length === 0">
-                                    <td colspan="4" class="px-5 py-8 text-center text-gray-400 text-sm">Aucune annonce publiée</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="divide-y divide-gray-50">
+                        <div
+                            v-for="ann in recentAnnouncements"
+                            :key="ann.id"
+                            class="px-5 py-3 flex items-center gap-3"
+                        >
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-gray-800 text-sm truncate">{{ ann.title }}</p>
+                                <p class="text-xs text-gray-400 mt-0.5 capitalize">{{ ann.type }}</p>
+                            </div>
+                            <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', stateBadge(ann.state)]">{{ ann.state }}</span>
+                            <span class="text-xs text-gray-400 flex-shrink-0">{{ ann.date }}</span>
+                        </div>
+                        <div v-if="recentAnnouncements.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
+                            Aucune annonce publiée
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-span-2 bg-white rounded-xl shadow-sm p-5">
+                <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5">
                     <h2 class="text-base font-semibold text-gray-800 mb-1">Actions rapides</h2>
                     <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
                     <div class="grid grid-cols-2 gap-3">
@@ -125,8 +111,10 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
+const auth = useAuthStore()
 const loading = ref(true)
 const error = ref('')
 const showCreateAnnonce = ref(false)

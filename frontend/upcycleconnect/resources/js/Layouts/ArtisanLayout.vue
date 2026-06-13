@@ -44,7 +44,7 @@
                     <p class="text-white text-sm font-medium truncate">
                         {{ auth.user?.first_name }} {{ auth.user?.last_name }}
                     </p>
-                    <p class="text-white/50 text-xs truncate">Artisan</p>
+                    <p class="text-white/50 text-xs truncate capitalize">{{ primaryRole }}</p>
                 </div>
                 <RouterLink
                     to="/accueil"
@@ -79,13 +79,14 @@
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
-import { initials as getInitials } from "@/utils.js";
+import { initials as getInitials, primaryRole as getPrimaryRole } from "@/utils.js";
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
 const initials = computed(() => getInitials(auth.user));
+const primaryRole = computed(() => getPrimaryRole(auth.user?.roles ?? []));
 
 function handleLogout() {
     auth.logout();
@@ -94,17 +95,17 @@ function handleLogout() {
 
 const navItems = [
     {
-        label: "Dashboard",
+        label: "Accueil",
         href: "/artisan/dashboard",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
     },
     {
-        label: "Mes annonces",
+        label: "Annonces",
         href: "/artisan/annonces",
-        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`,
     },
     {
-        label: "Mes dépôts",
+        label: "Dépôt d'objet",
         href: "/artisan/depot",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
     },
@@ -126,7 +127,7 @@ const navItems = [
     {
         label: "Calendrier",
         href: "/artisan/calendrier",
-        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>`,
     },
 ];
 

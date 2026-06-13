@@ -2,7 +2,7 @@
     <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes événements</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Événements</h1>
             <button
                 @click="openCreate"
                 class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"

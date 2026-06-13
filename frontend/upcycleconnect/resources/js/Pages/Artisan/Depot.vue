@@ -2,7 +2,7 @@
     <ArtisanLayout>
 
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes dépôts</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Dépôt d'objet</h1>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm p-6">

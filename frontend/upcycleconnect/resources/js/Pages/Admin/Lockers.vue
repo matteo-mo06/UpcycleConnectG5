@@ -125,7 +125,8 @@
             <div class="absolute inset-0 bg-black/40" @click="toEditCode = null" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
                 <h3 class="font-semibold text-gray-800 mb-1">Modifier le code d'accès</h3>
-                <p class="text-sm text-gray-500 mb-4">Casier #{{ toEditCode.number }}</p>
+                <p class="text-sm text-gray-500 mb-3">Casier #{{ toEditCode.number }}</p>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Code d'accès <span class="text-red-400">*</span></label>
                 <input
                     v-model="newAccessCode"
                     type="text"

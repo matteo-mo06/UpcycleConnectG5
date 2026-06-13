@@ -3,7 +3,7 @@
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
-                Espace salarié
+                Bonjour {{ auth.user?.first_name ?? '' }}
             </h1>
         </div>
 
@@ -16,7 +16,7 @@
                 <div
                     v-for="stat in stats"
                     :key="stat.label"
-                    class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4"
+                    class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
                 >
                     <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
                         <div :class="stat.iconClass" v-html="stat.icon" />
@@ -30,7 +30,7 @@
 
             <div class="grid grid-cols-5 gap-6">
 
-                <div class="col-span-3 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="col-span-3 bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                         <h2 class="text-base font-semibold text-gray-800">Mes derniers conseils</h2>
                         <RouterLink to="/salarie/conseils" class="text-xs font-medium text-primary hover:underline">Voir tout</RouterLink>
@@ -53,7 +53,7 @@
                     </div>
                 </div>
 
-                <div class="col-span-2 bg-white rounded-xl shadow-sm p-5">
+                <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5">
                     <h2 class="text-base font-semibold text-gray-800 mb-1">Actions rapides</h2>
                     <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
                     <div class="grid grid-cols-2 gap-3">

@@ -143,7 +143,8 @@
         <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <h3 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">Créer un rôle</h3>
+                <h3 class="font-semibold text-gray-800 mb-3" style="font-family: var(--font-family-title)">Créer un rôle</h3>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nom du rôle <span class="text-red-400">*</span></label>
                 <input
                     v-model="formModal.name"
                     type="text"

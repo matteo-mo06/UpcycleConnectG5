@@ -2,10 +2,10 @@
     <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes annonces</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Annonces</h1>
             <button
                 @click="showCreate = true"
-                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -16,7 +16,7 @@
 
         <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="announcements.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+        <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400 text-sm">
             Vous n'avez aucune annonce publiée.
         </div>
 

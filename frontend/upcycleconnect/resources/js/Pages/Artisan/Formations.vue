@@ -2,7 +2,10 @@
     <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes formations</h1>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Formations</h1>
+                <p class="text-sm text-gray-400 mt-1">Gérez vos formations et suivez leur statut</p>
+            </div>
             <button
                 @click="openCreate"
                 class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"

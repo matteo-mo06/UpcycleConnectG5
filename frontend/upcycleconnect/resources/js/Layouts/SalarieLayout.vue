@@ -44,7 +44,7 @@
                     <p class="text-white text-sm font-medium truncate">
                         {{ auth.user?.first_name }} {{ auth.user?.last_name }}
                     </p>
-                    <p class="text-white/50 text-xs truncate">Salarié</p>
+                    <p class="text-white/50 text-xs truncate capitalize">{{ primaryRole }}</p>
                 </div>
                 <RouterLink
                     to="/accueil"
@@ -79,13 +79,14 @@
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
-import { initials as getInitials } from "@/utils.js";
+import { initials as getInitials, primaryRole as getPrimaryRole } from "@/utils.js";
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
 const initials = computed(() => getInitials(auth.user));
+const primaryRole = computed(() => getPrimaryRole(auth.user?.roles ?? []));
 
 function handleLogout() {
     auth.logout();
@@ -94,7 +95,7 @@ function handleLogout() {
 
 const navItems = [
     {
-        label: "Dashboard",
+        label: "Accueil",
         href: "/salarie/dashboard",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
     },

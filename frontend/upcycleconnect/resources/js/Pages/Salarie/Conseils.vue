@@ -2,7 +2,7 @@
     <SalarieLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes conseils</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Conseils</h1>
             <button
                 @click="openCreate"
                 class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
@@ -10,7 +10,7 @@
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                 </svg>
-                Nouveau conseil
+                Créer un conseil
             </button>
         </div>
 

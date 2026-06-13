@@ -36,7 +36,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                     <input
                         v-model="form.title"
                         type="text"
@@ -115,7 +115,7 @@
                 </div>
 
                 <div v-if="form.type === 'vente'">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Prix (€) <span class="text-red-400">*</span></label>
                     <input
                         v-model.number="form.price"
                         type="number"
@@ -127,7 +127,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Disponible à partir du</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Disponible à partir du <span class="text-red-400">*</span></label>
                     <input
                         v-model="form.availability_date"
                         type="date"
