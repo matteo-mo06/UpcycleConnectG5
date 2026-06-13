@@ -305,7 +305,7 @@
 
                         <div v-if="sanctionType && sanctionTarget && sanctionTarget.source === 'report'" class="mt-3 pt-3 border-t border-gray-100 space-y-2">
                             <p class="text-xs font-medium text-gray-600">
-                                {{ sanctionLabels[sanctionType] }} — {{ sanctionTarget.name }}
+                                {{ sanctionLabels[sanctionType] }} : {{ sanctionTarget.name }}
                             </p>
                             <div v-if="sanctionType === 'suspension'" class="flex items-center gap-2">
                                 <label class="text-xs text-gray-500">Durée :</label>

@@ -308,7 +308,6 @@ func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Champs de contenu uniquement — Id_creator et Status préservés
 	event.TitleEvent = body.TitleEvent
 	event.DescriptionEvent = body.DescriptionEvent
 	event.DateEvent = body.DateEvent

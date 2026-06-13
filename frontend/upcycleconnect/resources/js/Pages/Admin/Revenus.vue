@@ -92,9 +92,9 @@
                                 :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
                             >
                                 <td class="px-5 py-3 text-gray-700 max-w-xs truncate">
-                                    {{ tx.announcement_title || '—' }}
+                                    {{ tx.announcement_title || '-' }}
                                 </td>
-                                <td class="px-5 py-3 text-gray-600">{{ tx.buyer_name || '—' }}</td>
+                                <td class="px-5 py-3 text-gray-600">{{ tx.buyer_name || '-' }}</td>
                                 <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(tx.amount_cents) }}</td>
                                 <td class="px-5 py-3 text-right">
                                     <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">
@@ -202,7 +202,7 @@ function formatEuros(cents) {
 }
 
 function formatDate(str) {
-    if (!str) return '—'
+    if (!str) return '-'
     return new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 

@@ -111,6 +111,109 @@
                         <div v-if="selectedProject.capacity"><span class="font-medium text-gray-700">Capacité :</span> {{ selectedProject.capacity }} membres</div>
                         <div><span class="font-medium text-gray-700">Membres :</span> {{ selectedProject.members_count }}</div>
                     </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Matériaux</p>
+                            <button @click="showAddMaterial = !showAddMaterial" class="p-1 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                        </div>
+                        <div v-if="showAddMaterial" class="flex gap-2 mb-3">
+                            <input v-model="newMaterial.name" placeholder="Nom" class="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <input v-model.number="newMaterial.quantity" type="number" min="0" step="0.01" placeholder="Qté" class="w-16 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <select v-model="newMaterial.unit" class="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+                              <option value="">Unité</option>
+                              <option>pièce</option><option>kg</option><option>g</option><option>m</option><option>cm</option><option>L</option><option>mL</option><option>paire</option><option>lot</option>
+                            </select>
+                            <button @click="addMaterial" class="px-2 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary-dark transition-colors">Ajouter</button>
+                        </div>
+                        <p v-if="materials.length === 0" class="text-xs text-gray-400">Aucun matériau renseigné.</p>
+                        <table v-else class="w-full text-xs">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-100">
+                                    <th class="text-left pb-1 font-medium">Nom</th>
+                                    <th class="text-right pb-1 font-medium">Qté</th>
+                                    <th class="text-left pb-1 font-medium pl-2">Unité</th>
+                                    <th class="w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in materials" :key="m.id" class="border-b border-gray-50 last:border-0">
+                                    <template v-if="editingMaterialId === m.id">
+                                        <td class="py-1.5 pr-1"><input v-model="editMaterial.name" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none"/></td>
+                                        <td class="py-1.5 px-1 w-16"><input v-model.number="editMaterial.quantity" type="number" min="0" step="0.01" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none text-right"/></td>
+                                        <td class="py-1.5 px-1 w-20"><select v-model="editMaterial.unit" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none bg-white">
+                                          <option value="">-</option>
+                                          <option>pièce</option><option>kg</option><option>g</option><option>m</option><option>cm</option><option>L</option><option>mL</option><option>paire</option><option>lot</option>
+                                        </select></td>
+                                        <td class="py-1.5 pl-1"><div class="flex gap-0.5">
+                                            <button @click="saveEditMaterial(m)" class="p-1 text-secondary hover:bg-secondary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+                                            <button @click="editingMaterialId = null" class="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                                        </div></td>
+                                    </template>
+                                    <template v-else>
+                                        <td class="py-1.5 pr-2 text-gray-700">{{ m.name }}</td>
+                                        <td class="py-1.5 text-right text-gray-600">{{ m.quantity }}</td>
+                                        <td class="py-1.5 pl-2 text-gray-500">{{ m.unit ?? '-' }}</td>
+                                        <td class="py-1.5 pl-1"><div class="flex gap-0.5">
+                                            <button @click="startEditMaterial(m)" class="p-1 text-gray-300 hover:text-primary hover:bg-primary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                            <button @click="deleteMaterial(m.id)" class="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                        </div></td>
+                                    </template>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Étapes</p>
+                            <button @click="showAddStep = !showAddStep" class="p-1 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                        </div>
+                        <div v-if="showAddStep" class="flex gap-2 mb-3">
+                            <input v-model="newStep.title" placeholder="Titre de l'étape" @keyup.enter="addStep" class="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <button @click="addStep" class="px-2 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary-dark transition-colors">Ajouter</button>
+                        </div>
+                        <p v-if="steps.length === 0" class="text-xs text-gray-400">Aucune étape renseignée.</p>
+                        <div v-else class="space-y-1">
+                            <div v-for="(s, i) in steps" :key="s.id" class="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 group">
+                                <template v-if="editingStepId === s.id">
+                                    <div class="flex-1 flex flex-col gap-1">
+                                        <input v-model="editStep.title" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none" @keyup.enter="saveEditStep(s)"/>
+                                        <input v-model="editStep.description" placeholder="Description (optionnelle)" class="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none text-gray-500"/>
+                                    </div>
+                                    <div class="flex gap-0.5 flex-shrink-0">
+                                        <button @click="saveEditStep(s)" class="p-1 text-secondary hover:bg-secondary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+                                        <button @click="editingStepId = null" class="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <button
+                                        @click="cycleStepStatus(s)"
+                                        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                                        :class="{ 'border-gray-300 text-gray-300': s.status === 'todo', 'border-primary text-primary': s.status === 'in_progress', 'border-secondary bg-secondary text-white': s.status === 'done' }"
+                                    >
+                                        <svg v-if="s.status === 'done'" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        <span v-else-if="s.status === 'in_progress'" class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                    </button>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-gray-700 truncate" :class="{ 'line-through text-gray-400': s.status === 'done' }">{{ s.title }}</p>
+                                        <p v-if="s.description" class="text-xs text-gray-500 truncate">{{ s.description }}</p>
+                                    </div>
+                                    <span class="px-1.5 py-0.5 rounded text-xs flex-shrink-0" :class="{ 'bg-gray-100 text-gray-500': s.status === 'todo', 'bg-primary/10 text-primary': s.status === 'in_progress', 'bg-secondary/10 text-secondary': s.status === 'done' }">{{ stepStatusLabel(s.status) }}</span>
+                                    <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity">
+                                        <button @click="moveStep(i, -1)" :disabled="i === 0" class="p-1 text-gray-300 hover:text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-30 disabled:cursor-default"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg></button>
+                                        <button @click="moveStep(i, 1)" :disabled="i === steps.length - 1" class="p-1 text-gray-300 hover:text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-30 disabled:cursor-default"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></button>
+                                        <button @click="startEditStep(s)" class="p-1 text-gray-300 hover:text-primary hover:bg-primary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                        <button @click="deleteStep(s.id)" class="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div v-if="selectedProject.status === 'pending' || selectedProject.status === 'rejected'" class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
                     <button
@@ -205,7 +308,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import api from '@/api.js'
@@ -226,6 +329,16 @@ const filterStatus = ref('')
 const filteredProjects = computed(() =>
     filterStatus.value ? projects.value.filter(p => p.status === filterStatus.value) : projects.value
 )
+const materials = ref([])
+const steps = ref([])
+const showAddMaterial = ref(false)
+const showAddStep = ref(false)
+const newMaterial = ref({ name: '', quantity: 0, unit: '' })
+const newStep = ref({ title: '' })
+const editingMaterialId = ref(null)
+const editMaterial = ref({ name: '', quantity: 0, unit: '' })
+const editingStepId = ref(null)
+const editStep = ref({ title: '', description: '' })
 
 function statusLabel(status) {
     return { open: 'Ouvert', in_progress: 'En cours', completed: 'Terminé', pending: 'En attente', rejected: 'Rejeté' }[status] ?? status
@@ -246,6 +359,147 @@ function openCreate() {
     form.value = { title: '', description: '', start_date: '', end_date: '', location: '', capacity: null }
     formError.value = ''
     formModal.value = true
+}
+
+watch(selectedProject, async (p) => {
+    materials.value = []
+    steps.value = []
+    showAddMaterial.value = false
+    showAddStep.value = false
+    editingMaterialId.value = null
+    editingStepId.value = null
+    if (!p) return
+    try {
+        const [mRes, sRes] = await Promise.all([
+            api.get(`/projects/${p.id}/materials`),
+            api.get(`/projects/${p.id}/steps`),
+        ])
+        materials.value = mRes.data ?? []
+        steps.value = sRes.data ?? []
+    } catch {}
+})
+
+async function addMaterial() {
+    if (!newMaterial.value.name.trim()) return
+    try {
+        const { data } = await api.post(`/projects/${selectedProject.value.id}/materials`, {
+            name: newMaterial.value.name,
+            quantity: newMaterial.value.quantity || 0,
+            unit: newMaterial.value.unit || null,
+        })
+        materials.value.push(data)
+        newMaterial.value = { name: '', quantity: 0, unit: '' }
+        showAddMaterial.value = false
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function startEditMaterial(m) {
+    editingMaterialId.value = m.id
+    editMaterial.value = { name: m.name, quantity: m.quantity, unit: m.unit ?? '' }
+}
+
+async function saveEditMaterial(m) {
+    try {
+        await api.patch(`/projects/${selectedProject.value.id}/materials/${m.id}`, {
+            name: editMaterial.value.name,
+            quantity: editMaterial.value.quantity || 0,
+            unit: editMaterial.value.unit || null,
+        })
+        const idx = materials.value.findIndex(x => x.id === m.id)
+        if (idx !== -1) materials.value[idx] = { ...materials.value[idx], name: editMaterial.value.name, quantity: editMaterial.value.quantity, unit: editMaterial.value.unit || null }
+        editingMaterialId.value = null
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function deleteMaterial(id) {
+    try {
+        await api.delete(`/projects/${selectedProject.value.id}/materials/${id}`)
+        materials.value = materials.value.filter(m => m.id !== id)
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function stepStatusLabel(s) {
+    return { todo: 'À faire', in_progress: 'En cours', done: 'Fait' }[s] ?? s
+}
+
+async function addStep() {
+    if (!newStep.value.title.trim()) return
+    try {
+        const { data } = await api.post(`/projects/${selectedProject.value.id}/steps`, {
+            title: newStep.value.title,
+            step_order: steps.value.length,
+        })
+        steps.value.push(data)
+        newStep.value = { title: '' }
+        showAddStep.value = false
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function cycleStepStatus(s) {
+    const next = { todo: 'in_progress', in_progress: 'done', done: 'todo' }[s.status]
+    try {
+        await api.patch(`/projects/${selectedProject.value.id}/steps/${s.id}/status`, { status: next })
+        s.status = next
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function deleteStep(id) {
+    try {
+        await api.delete(`/projects/${selectedProject.value.id}/steps/${id}`)
+        steps.value = steps.value.filter(s => s.id !== id)
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function startEditStep(s) {
+    editingStepId.value = s.id
+    editStep.value = { title: s.title, description: s.description ?? '' }
+}
+
+async function saveEditStep(s) {
+    if (!editStep.value.title.trim()) return
+    try {
+        await api.patch(`/projects/${selectedProject.value.id}/steps/${s.id}`, {
+            title: editStep.value.title,
+            description: editStep.value.description || null,
+            step_order: s.step_order,
+        })
+        const idx = steps.value.findIndex(x => x.id === s.id)
+        if (idx !== -1) steps.value[idx] = { ...steps.value[idx], title: editStep.value.title, description: editStep.value.description || null }
+        editingStepId.value = null
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function moveStep(index, dir) {
+    const target = index + dir
+    if (target < 0 || target >= steps.value.length) return
+    const a = steps.value[index]
+    const b = steps.value[target]
+    try {
+        await Promise.all([
+            api.patch(`/projects/${selectedProject.value.id}/steps/${a.id}`, { title: a.title, description: a.description ?? null, step_order: b.step_order }),
+            api.patch(`/projects/${selectedProject.value.id}/steps/${b.id}`, { title: b.title, description: b.description ?? null, step_order: a.step_order }),
+        ])
+        const newSteps = [...steps.value]
+        newSteps[target] = { ...a, step_order: b.step_order }
+        newSteps[index] = { ...b, step_order: a.step_order }
+        steps.value = newSteps
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
 }
 
 function openEditFromDetail(p) {

@@ -88,7 +88,7 @@
 
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
-                        Permissions — {{modal.roleName}}
+                        Permissions : {{modal.roleName}}
                     </h3>
                     <button
                         @click="modal.open = false"

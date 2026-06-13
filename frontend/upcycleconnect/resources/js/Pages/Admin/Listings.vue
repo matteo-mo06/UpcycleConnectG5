@@ -442,7 +442,7 @@
                             <select
                                 v-model="listingForm.idCategory"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
-                                <option value="">— Aucune —</option>
+                                <option value="">- Aucune -</option>
                                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                             </select>
                         </div>
@@ -504,7 +504,7 @@
                             <select
                                 v-model="listingForm.condition"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 <option value="neuf">Neuf</option>
                                 <option value="tres_bon">Très bon état</option>
                                 <option value="bon">Bon état</option>

@@ -163,8 +163,8 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
             @click.self="selected = null"
         >
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
                     <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ selected.title }}
                     </h2>
@@ -199,7 +199,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div v-if="selected.start_date">
                             <p class="text-xs text-gray-400 mb-0.5">Début</p>
@@ -235,8 +235,105 @@
                         </svg>
                         <p class="text-sm text-secondary font-medium">Vous êtes membre de ce projet</p>
                     </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Matériaux</p>
+                            <button v-if="isCreator" @click="showAddMaterial = !showAddMaterial" class="p-1 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                        </div>
+                        <div v-if="isCreator && showAddMaterial" class="flex gap-2 mb-3">
+                            <input v-model="newMaterial.name" placeholder="Nom" class="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <input v-model.number="newMaterial.quantity" type="number" min="0" step="0.01" placeholder="Qté" class="w-16 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <select v-model="newMaterial.unit" class="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+                              <option value="">Unité</option>
+                              <option>pièce</option><option>kg</option><option>g</option><option>m</option><option>cm</option><option>L</option><option>mL</option><option>paire</option><option>lot</option>
+                            </select>
+                            <button @click="addMaterial" class="px-2 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary-dark transition-colors">Ajouter</button>
+                        </div>
+                        <p v-if="materials.length === 0" class="text-xs text-gray-400">Aucun matériau renseigné.</p>
+                        <table v-else class="w-full text-xs">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-100">
+                                    <th class="text-left pb-1 font-medium">Nom</th>
+                                    <th class="text-right pb-1 font-medium">Qté</th>
+                                    <th class="text-left pb-1 font-medium pl-2">Unité</th>
+                                    <th v-if="isCreator" class="w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in materials" :key="m.id" class="border-b border-gray-50 last:border-0">
+                                    <template v-if="isCreator && editingMaterialId === m.id">
+                                        <td class="py-1.5 pr-1"><input v-model="editMaterial.name" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none"/></td>
+                                        <td class="py-1.5 px-1 w-16"><input v-model.number="editMaterial.quantity" type="number" min="0" step="0.01" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none text-right"/></td>
+                                        <td class="py-1.5 px-1 w-20"><select v-model="editMaterial.unit" class="w-full px-2 py-1 text-xs border border-primary/40 rounded focus:outline-none bg-white">
+                                          <option value="">-</option>
+                                          <option>pièce</option><option>kg</option><option>g</option><option>m</option><option>cm</option><option>L</option><option>mL</option><option>paire</option><option>lot</option>
+                                        </select></td>
+                                        <td class="py-1.5 pl-1"><div class="flex gap-0.5">
+                                            <button @click="saveEditMaterial(m)" class="p-1 text-secondary hover:bg-secondary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></button>
+                                            <button @click="editingMaterialId = null" class="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                                        </div></td>
+                                    </template>
+                                    <template v-else>
+                                        <td class="py-1.5 pr-2 text-gray-700">{{ m.name }}</td>
+                                        <td class="py-1.5 text-right text-gray-600">{{ m.quantity }}</td>
+                                        <td class="py-1.5 pl-2 text-gray-500">{{ m.unit ?? '-' }}</td>
+                                        <td v-if="isCreator" class="py-1.5 pl-1"><div class="flex gap-0.5">
+                                            <button @click="startEditMaterial(m)" class="p-1 text-gray-300 hover:text-primary hover:bg-primary/10 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                                            <button @click="deleteMaterial(m.id)" class="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                                        </div></td>
+                                    </template>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Étapes</p>
+                            <button v-if="isCreator" @click="showAddStep = !showAddStep" class="p-1 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            </button>
+                        </div>
+                        <div v-if="isCreator && showAddStep" class="flex gap-2 mb-3">
+                            <input v-model="newStep.title" placeholder="Titre de l'étape" @keyup.enter="addStep" class="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                            <button @click="addStep" class="px-2 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary-dark transition-colors">Ajouter</button>
+                        </div>
+                        <p v-if="steps.length === 0" class="text-xs text-gray-400">Aucune étape renseignée.</p>
+                        <div v-else class="space-y-1">
+                            <div v-for="s in steps" :key="s.id" class="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-gray-50 group">
+                                <button
+                                    v-if="isCreator"
+                                    @click="cycleStepStatus(s)"
+                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                                    :class="{ 'border-gray-300 text-gray-300': s.status === 'todo', 'border-primary text-primary': s.status === 'in_progress', 'border-secondary bg-secondary text-white': s.status === 'done' }"
+                                >
+                                    <svg v-if="s.status === 'done'" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span v-else-if="s.status === 'in_progress'" class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                </button>
+                                <span
+                                    v-else
+                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                    :class="{ 'border-gray-300 text-gray-300': s.status === 'todo', 'border-primary text-primary': s.status === 'in_progress', 'border-secondary bg-secondary text-white': s.status === 'done' }"
+                                >
+                                    <svg v-if="s.status === 'done'" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span v-else-if="s.status === 'in_progress'" class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-700 truncate" :class="{ 'line-through text-gray-400': s.status === 'done' }">{{ s.title }}</p>
+                                    <p v-if="s.description" class="text-xs text-gray-500 truncate">{{ s.description }}</p>
+                                </div>
+                                <span class="px-1.5 py-0.5 rounded text-xs flex-shrink-0" :class="{ 'bg-gray-100 text-gray-500': s.status === 'todo', 'bg-primary/10 text-primary': s.status === 'in_progress', 'bg-secondary/10 text-secondary': s.status === 'done' }">{{ stepStatusLabel(s.status) }}</span>
+                                <button v-if="isCreator" @click="deleteStep(s.id)" class="p-1 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
                     <button
                         @click="selected = null"
                         class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
@@ -244,14 +341,14 @@
                         Fermer
                     </button>
                     <button
-                        v-if="canRegister && selected.is_registered"
+                        v-if="canRegister && selected.is_registered && !isCreator"
                         @click="toggleRegistration(selected); selected = null"
                         class="px-4 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
                     >
                         Quitter le projet
                     </button>
                     <button
-                        v-else-if="canRegister && !selected.is_registered && !isFull(selected)"
+                        v-else-if="canRegister && !selected.is_registered && !isFull(selected) && !isCreator"
                         @click="toggleRegistration(selected); selected = null"
                         class="px-4 py-2 rounded-xl bg-secondary text-white text-sm font-medium hover:bg-secondary-dark transition-colors"
                     >
@@ -377,9 +474,18 @@ const formError = ref('')
 const form = ref({ title: '', description: '', start_date: '', end_date: '', location: '', capacity: null })
 const showReport = ref(false)
 const reportTarget = ref(null)
+const materials = ref([])
+const steps = ref([])
+const showAddMaterial = ref(false)
+const showAddStep = ref(false)
+const newMaterial = ref({ name: '', quantity: 0, unit: '' })
+const newStep = ref({ title: '' })
+const editingMaterialId = ref(null)
+const editMaterial = ref({ name: '', quantity: 0, unit: '' })
 
 const canCreate = computed(() => auth.hasPermission('create_project'))
 const canRegister = computed(() => auth.hasPermission('register_project'))
+const isCreator = computed(() => selected.value?.id_creator === auth.user?.id)
 
 function canDeleteProject(p) {
     return p.id_creator === auth.user?.id || auth.isAdmin || auth.hasPermission('moderate_projects')
@@ -558,6 +664,106 @@ async function fetchMyCreated() {
 }
 
 watch(page, fetchProjects)
+
+watch(selected, async (p) => {
+    materials.value = []
+    steps.value = []
+    showAddMaterial.value = false
+    showAddStep.value = false
+    editingMaterialId.value = null
+    if (!p) return
+    try {
+        const [mRes, sRes] = await Promise.all([
+            api.get(`/projects/${p.id}/materials`),
+            api.get(`/projects/${p.id}/steps`),
+        ])
+        materials.value = mRes.data ?? []
+        steps.value = sRes.data ?? []
+    } catch {}
+})
+
+async function addMaterial() {
+    if (!newMaterial.value.name.trim()) return
+    try {
+        const { data } = await api.post(`/projects/${selected.value.id}/materials`, {
+            name: newMaterial.value.name,
+            quantity: newMaterial.value.quantity || 0,
+            unit: newMaterial.value.unit || null,
+        })
+        materials.value.push(data)
+        newMaterial.value = { name: '', quantity: 0, unit: '' }
+        showAddMaterial.value = false
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function startEditMaterial(m) {
+    editingMaterialId.value = m.id
+    editMaterial.value = { name: m.name, quantity: m.quantity, unit: m.unit ?? '' }
+}
+
+async function saveEditMaterial(m) {
+    try {
+        await api.patch(`/projects/${selected.value.id}/materials/${m.id}`, {
+            name: editMaterial.value.name,
+            quantity: editMaterial.value.quantity || 0,
+            unit: editMaterial.value.unit || null,
+        })
+        const idx = materials.value.findIndex(x => x.id === m.id)
+        if (idx !== -1) materials.value[idx] = { ...materials.value[idx], name: editMaterial.value.name, quantity: editMaterial.value.quantity, unit: editMaterial.value.unit || null }
+        editingMaterialId.value = null
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function deleteMaterial(id) {
+    try {
+        await api.delete(`/projects/${selected.value.id}/materials/${id}`)
+        materials.value = materials.value.filter(m => m.id !== id)
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function stepStatusLabel(s) {
+    return { todo: 'À faire', in_progress: 'En cours', done: 'Fait' }[s] ?? s
+}
+
+async function addStep() {
+    if (!newStep.value.title.trim()) return
+    try {
+        const { data } = await api.post(`/projects/${selected.value.id}/steps`, {
+            title: newStep.value.title,
+            step_order: steps.value.length,
+        })
+        steps.value.push(data)
+        newStep.value = { title: '' }
+        showAddStep.value = false
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function cycleStepStatus(s) {
+    const next = { todo: 'in_progress', in_progress: 'done', done: 'todo' }[s.status]
+    try {
+        await api.patch(`/projects/${selected.value.id}/steps/${s.id}/status`, { status: next })
+        s.status = next
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+async function deleteStep(id) {
+    try {
+        await api.delete(`/projects/${selected.value.id}/steps/${id}`)
+        steps.value = steps.value.filter(s => s.id !== id)
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
 
 async function fetchAll(silent = false) {
     await Promise.all([fetchProjects(silent), fetchMyCreated()])

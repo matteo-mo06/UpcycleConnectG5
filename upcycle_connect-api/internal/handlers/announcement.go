@@ -456,7 +456,6 @@ func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Champs de contenu uniquement — state_annoucement, request, id_buyer préservés
 	ann.TitleAnnouncement = body.TitleAnnouncement
 	ann.DescriptionAnnouncement = body.DescriptionAnnouncement
 	ann.Price = body.Price

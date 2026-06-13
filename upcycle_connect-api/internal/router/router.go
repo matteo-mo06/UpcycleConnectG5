@@ -198,6 +198,17 @@ func InitRoutes() {
 	http.Handle("PATCH /admin/project/{id}/approve", admin(handlers.ApproveProject))
 	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
 
+	http.Handle("GET /projects/{id}/materials", auth(handlers.GetProjectMaterials))
+	http.Handle("POST /projects/{id}/materials", auth(handlers.CreateProjectMaterial))
+	http.Handle("PATCH /projects/{id}/materials/{material_id}", auth(handlers.UpdateProjectMaterial))
+	http.Handle("DELETE /projects/{id}/materials/{material_id}", auth(handlers.DeleteProjectMaterial))
+
+	http.Handle("GET /projects/{id}/steps", auth(handlers.GetProjectSteps))
+	http.Handle("POST /projects/{id}/steps", auth(handlers.CreateProjectStep))
+	http.Handle("PATCH /projects/{id}/steps/{step_id}", auth(handlers.UpdateProjectStep))
+	http.Handle("PATCH /projects/{id}/steps/{step_id}/status", auth(handlers.UpdateProjectStepStatus))
+	http.Handle("DELETE /projects/{id}/steps/{step_id}", auth(handlers.DeleteProjectStep))
+
 	http.Handle("GET /conseils", auth(handlers.GetAdvices))
 	http.Handle("GET /conseils/{id}", auth(handlers.GetAdvice))
 	http.Handle("GET /conseils/{id}/documents", auth(handlers.GetAdviceDocuments))

@@ -63,8 +63,8 @@
                                     <p class="text-xs text-gray-500 truncate">{{ f.creator_name }}</p>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <p class="text-gray-800 text-xs font-medium">{{ f.date ? f.date.slice(0,10) : '—' }}</p>
-                                    <p class="text-gray-500 text-xs truncate">{{ f.location ?? '—' }}</p>
+                                    <p class="text-gray-800 text-xs font-medium">{{ f.date ? f.date.slice(0,10) : '-' }}</p>
+                                    <p class="text-gray-500 text-xs truncate">{{ f.location ?? '-' }}</p>
                                 </td>
                                 <td class="px-5 py-3">
                                     <span :class="levelClass(f.level)" class="px-2 py-0.5 rounded-full text-xs font-medium">
@@ -129,7 +129,6 @@
 
         </template>
 
-        <!-- Modal détail -->
         <div v-if="detailFormation" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="detailFormation = null">
             <div class="absolute inset-0 bg-black/40" @click="detailFormation = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
@@ -203,7 +202,6 @@
             </div>
         </div>
 
-        <!-- Modal rejet -->
         <div v-if="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="rejectModal = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -222,7 +220,6 @@
             </div>
         </div>
 
-        <!-- Modal suppression -->
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -332,7 +329,7 @@ function openRejectModal(f) {
 async function approveFormation(f) {
     try {
         await api.patch(`/formations/${f.id}/approve`)
-        f.status = 'approved'
+        await Promise.all([fetchFormations(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de l\'approbation.')
     }
@@ -342,12 +339,8 @@ async function submitReject() {
     if (!rejectModal.value) return
     try {
         await api.patch(`/formations/${rejectModal.value.id}/reject`, { reason: rejectReason.value || null })
-        const f = formations.value.find(x => x.id === rejectModal.value.id)
-        if (f) {
-            f.status = 'rejected'
-            f.rejection_reason = rejectReason.value || null
-        }
         rejectModal.value = null
+        await Promise.all([fetchFormations(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors du rejet.')
     }

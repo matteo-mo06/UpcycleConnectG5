@@ -23,7 +23,7 @@
                         Politique de Confidentialité
                     </h1>
                 </div>
-                <p class="text-xs text-gray-400 mb-8">Dernière mise à jour : 1er avril 2025 — UpcycleConnect SAS</p>
+                <p class="text-xs text-gray-400 mb-8">Dernière mise à jour : 1er avril 2025, UpcycleConnect SAS</p>
 
                 <div class="prose prose-sm max-w-none text-gray-700 space-y-8">
 
@@ -34,7 +34,7 @@
                             (le « Service »), et les choix qui s'offrent à vous concernant ces informations.
                         </p>
                         <p class="mt-2">
-                            UpcycleConnect SAS — 21 Rue Érard, 75012 Paris, France —
+                            UpcycleConnect SAS, 21 Rue Érard, 75012 Paris, France,
                             <a href="mailto:admin@upcycle.com" class="text-primary hover:underline">admin@upcycle.com</a>
                         </p>
                     </section>
@@ -92,7 +92,7 @@
                         <ul class="list-disc pl-5 space-y-1 mt-2">
                             <li>
                                 <strong>Prestataires techniques</strong> : hébergement, envoi d'e-mails transactionnels,
-                                détection de fraudes — ces prestataires agissent en qualité de sous-traitants et sont contractuellement
+                                détection de fraudes, ces prestataires agissent en qualité de sous-traitants et sont contractuellement
                                 tenus de traiter vos données uniquement sur nos instructions ;
                             </li>
                             <li>
@@ -147,7 +147,7 @@
                             Pour exercer ces droits, contactez-nous à l'adresse
                             <a href="mailto:admin@upcycle.com" class="text-primary hover:underline">admin@upcycle.com</a>.
                             Nous répondrons dans un délai d'un mois. Vous disposez également du droit d'introduire une réclamation auprès de la
-                            Commission Nationale de l'Informatique et des Libertés (CNIL) — <span class="text-gray-500">cnil.fr</span>.
+                            Commission Nationale de l'Informatique et des Libertés (CNIL) : <span class="text-gray-500">cnil.fr</span>.
                         </p>
                     </section>
 

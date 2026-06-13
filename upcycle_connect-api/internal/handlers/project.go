@@ -311,6 +311,12 @@ func RegisterForProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if project.IdCreator != nil && userID == *project.IdCreator {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous êtes le créateur de ce projet"})
+		return
+	}
+
 	if project.Status != "open" && project.Status != "in_progress" {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "ce projet n'accepte plus de membres"})
