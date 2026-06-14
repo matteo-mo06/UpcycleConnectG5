@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -242,6 +244,48 @@ func MarkTutorialDone(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "tutorial marked as done"})
+}
+
+func ResetTutorial(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	if err := db.ResetTutorial(userID); err != nil {
+		fmt.Println("ResetTutorial error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to reset tutorial"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "tutorial reset"})
+}
+
+func GetMyLimits(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	if !slices.Contains(roles, config.RoleArtisan) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"is_premium": true})
+		return
+	}
+
+	isPremium := db.IsUserPremium(userID)
+	if isPremium {
+		_ = json.NewEncoder(w).Encode(map[string]any{"is_premium": true})
+		return
+	}
+
+	annCount, _ := db.GetUserAnnouncementCount(userID)
+	projectCount, _ := db.CountUserProjects(userID)
+
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"is_premium":    false,
+		"announcements": map[string]int{"used": annCount, "max": 3},
+		"projects":      map[string]int{"used": projectCount, "max": 2},
+	})
 }
 
 func GetMyStats(w http.ResponseWriter, r *http.Request) {

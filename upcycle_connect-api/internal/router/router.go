@@ -33,7 +33,9 @@ func InitRoutes() {
 	http.Handle("DELETE /user/account", auth(handlers.DeleteMyAccount))
 	http.Handle("GET /user/me", auth(handlers.GetMe))
 	http.Handle("POST /user/tutorial-done", auth(handlers.MarkTutorialDone))
+	http.Handle("POST /user/tutorial-reset", auth(handlers.ResetTutorial))
 	http.Handle("GET /user/stats", auth(handlers.GetMyStats))
+	http.Handle("GET /user/limits", auth(handlers.GetMyLimits))
 	http.Handle("GET /user/score-breakdown", auth(handlers.GetMyScoreBreakdown))
 	http.Handle("GET /user/announcements", auth(handlers.GetMyAnnouncements))
 	http.Handle("GET /user/acquisitions", auth(handlers.GetMyAcquisitions))
@@ -119,7 +121,11 @@ func InitRoutes() {
 	http.Handle("PATCH /forum/topics/{id}/posts/{post_id}", auth(handlers.UpdateForumPost))
 	http.Handle("DELETE /forum/topics/{id}/posts/{post_id}", auth(handlers.DeleteForumPost))
 
+	http.Handle("GET /user/stripe/connect/status", auth(handlers.GetStripeConnectStatus))
+	http.Handle("POST /user/stripe/connect/onboarding", auth(handlers.CreateStripeConnectOnboarding))
+
 	http.Handle("POST /pay/announcement/{id}", auth(handlers.CreatePaymentIntent))
+	http.Handle("POST /pay/formation/{id}", auth(handlers.CreateFormationPaymentIntent))
 	http.HandleFunc("POST /webhooks/stripe", handlers.StripeWebhook)
 
 	http.Handle("POST /reports", auth(handlers.SubmitReport))
@@ -208,6 +214,17 @@ func InitRoutes() {
 	http.Handle("PATCH /projects/{id}/steps/{step_id}", auth(handlers.UpdateProjectStep))
 	http.Handle("PATCH /projects/{id}/steps/{step_id}/status", auth(handlers.UpdateProjectStepStatus))
 	http.Handle("DELETE /projects/{id}/steps/{step_id}", auth(handlers.DeleteProjectStep))
+
+	http.Handle("GET /subscription/plans", auth(handlers.GetSubscriptionPlans))
+	http.Handle("GET /user/subscription", auth(handlers.GetMySubscription))
+	http.Handle("GET /user/invoices", auth(handlers.GetMyInvoices))
+	http.Handle("GET /user/invoices/{id}/pdf", auth(handlers.GetMySubscriptionInvoicePDF))
+	http.Handle("POST /user/subscription/checkout", auth(handlers.CreateSubscriptionCheckout))
+	http.Handle("POST /user/subscription/portal", auth(handlers.GetSubscriptionPortal))
+
+	http.Handle("GET /admin/subscription/plans", admin(handlers.GetAdminSubscriptionPlans))
+	http.Handle("PUT /admin/subscription/plan/{id}", admin(handlers.UpdateAdminSubscriptionPlan))
+	http.Handle("GET /admin/subscriptions", admin(handlers.GetAdminSubscriptions))
 
 	http.Handle("GET /conseils", auth(handlers.GetAdvices))
 	http.Handle("GET /conseils/{id}", auth(handlers.GetAdvice))

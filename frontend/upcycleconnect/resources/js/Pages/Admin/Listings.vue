@@ -27,12 +27,12 @@
 
             <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 class="text-base font-semibold text-gray-800">Dernières annonces ajoutées</h2>
-                    <span class="text-xs text-gray-400">Vérifiez la conformité des nouvelles publications</span>
+                    <h2 class="text-base font-semibold text-gray-800">Annonces en attente de validation</h2>
+                    <span class="text-xs text-gray-400">{{ pendingListings.length }} annonce(s) à traiter</span>
                 </div>
                 <div class="divide-y divide-gray-50">
                     <div
-                        v-for="listing in recentListings"
+                        v-for="listing in pendingListings"
                         :key="listing.id"
                         class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/60 transition-colors">
                         <div class="flex-1 mr-4">
@@ -46,7 +46,7 @@
                             </div>
                             <p class="text-xs text-gray-500 mt-0.5">
                                 Par <span class="font-medium text-gray-700">{{ listing.author }}</span>
-                                · {{ listing.category }} · {{ listing.date }}
+                                · {{ listing.category }} · {{ listing.createdAt }}
                             </p>
                         </div>
                         <div class="flex-shrink-0 flex items-center gap-2">
@@ -55,12 +55,10 @@
                                 class="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
                                 Voir
                             </button>
-                            <button
-                                @click="confirmDelete(listing)"
-                                class="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                                Retirer
-                            </button>
                         </div>
+                    </div>
+                    <div v-if="pendingListings.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
+                        Aucune annonce en attente de validation
                     </div>
                 </div>
             </div>
@@ -609,7 +607,7 @@ const stats = computed(() => [
     },
 ])
 
-const recentListings = computed(() => listings.value.slice(0, 3))
+const pendingListings = ref([])
 
 function resetAndFetch() {
     page.value = 1
@@ -662,12 +660,33 @@ watch(page, fetchListings)
 
 onMounted(async () => {
     try {
-        const [{ data: catsData }, { data: announcementStats }] = await Promise.all([
+        const [{ data: catsData }, { data: announcementStats }, { data: pendingData }] = await Promise.all([
             api.get('/admin/categories'),
             api.get('/admin/announcements/stats'),
+            api.get('/admin/announcements', { params: { status: 'En attente', limit: 5 } }),
         ])
         categories.value = catsData ?? []
         statsData.value = announcementStats
+        const catMap = Object.fromEntries((catsData ?? []).map(c => [c.id, c.name]))
+        pendingListings.value = (pendingData.data ?? []).map(a => ({
+            id: a.id,
+            title: a.title,
+            author: a.author_name || '-',
+            type: a.type === 'vente' ? 'Vente' : 'Don',
+            category: catMap[a.id_category] ?? '-',
+            status: a.state ?? 'En attente',
+            createdAt: a.created_at?.slice(0, 10) ?? '-',
+            date: a.availability_date?.slice(0, 10) ?? '-',
+            description: a.description ?? '-',
+            idCategory: a.id_category ?? '',
+            address: a.address ?? '',
+            city: a.city ?? '',
+            postal: a.postal ?? '',
+            price: a.price ?? 0,
+            condition: a.condition ?? '',
+            featured: false,
+            tags: [],
+        }))
         await fetchListings()
     } catch {
         error.value = 'Impossible de charger les annonces.'

@@ -239,6 +239,119 @@
                         class="font-semibold text-gray-800 mb-1"
                         style="font-family: var(--font-family-title)"
                     >
+                        Compte de paiement
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-4">
+                        Nécessaire pour publier des annonces de vente et recevoir des paiements.
+                    </p>
+                    <div v-if="stripeStatus.connected && stripeStatus.charges_enabled" class="flex items-center gap-3 mb-3">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            Compte actif
+                        </span>
+                    </div>
+                    <div v-else-if="stripeStatus.connected && !stripeStatus.charges_enabled" class="flex items-center gap-3 mb-3">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            En attente de validation
+                        </span>
+                    </div>
+                    <button
+                        @click="goToStripeOnboarding"
+                        :disabled="stripeLoading"
+                        class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        {{ stripeLoading ? 'Chargement…' : stripeStatus.connected ? 'Gérer mon compte Stripe' : 'Configurer mon compte de paiement' }}
+                    </button>
+                </div>
+
+                <div v-if="isArtisan" class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">
+                        Abonnement
+                    </h2>
+                    <div v-if="subscription" class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-800">{{ subscription.plan?.name }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                <span v-if="subscription.end_timestamp">Valide jusqu'au {{ formatSubDate(subscription.end_timestamp) }}</span>
+                                <span v-else>Renouvellement automatique</span>
+                            </p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Actif</span>
+                    </div>
+                    <p v-else class="text-xs text-gray-400 mb-3">Aucun abonnement actif.</p>
+                    <div class="flex gap-2">
+                        <button v-if="subscription" @click="goToPortal" :disabled="portalLoading"
+                            class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+                            {{ portalLoading ? 'Chargement…' : 'Gérer mon abonnement' }}
+                        </button>
+                        <router-link v-else to="/abonnement"
+                            class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors">
+                            Passer Premium
+                        </router-link>
+                    </div>
+
+                    <template v-if="subscription">
+                        <div class="mt-5 border-t border-gray-100 pt-4">
+                            <h3 class="text-sm font-medium text-gray-700 mb-3">Factures</h3>
+                            <div v-if="invoicesLoading" class="text-xs text-gray-400">Chargement…</div>
+                            <div v-else-if="invoices.length === 0" class="text-xs text-gray-400">Aucune facture.</div>
+                            <div v-else class="space-y-2">
+                                <div v-for="inv in invoices" :key="inv.id"
+                                    class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                                    <div>
+                                        <p class="text-sm text-gray-700">{{ formatInvoiceDate(inv.date) }}</p>
+                                        <p class="text-xs text-gray-400">{{ formatCents(inv.amount_cents) }}</p>
+                                    </div>
+                                    <button @click="downloadInvoicePDF(inv.id)"
+                                        class="flex items-center gap-1 text-xs text-primary hover:underline font-medium disabled:opacity-50"
+                                        :disabled="downloadingInvoice === inv.id">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        {{ downloadingInvoice === inv.id ? '…' : 'PDF' }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="invoicePages > 1" class="flex items-center justify-between mt-3">
+                                <button @click="loadInvoices(invoicePage - 1)" :disabled="invoicePage <= 1"
+                                    class="text-xs text-gray-500 border border-gray-200 px-3 py-1 rounded-lg disabled:opacity-40 hover:bg-gray-50">
+                                    Précédent
+                                </button>
+                                <span class="text-xs text-gray-400">{{ invoicePage }} / {{ invoicePages }}</span>
+                                <button @click="loadInvoices(invoicePage + 1)" :disabled="invoicePage >= invoicePages"
+                                    class="text-xs text-gray-500 border border-gray-200 px-3 py-1 rounded-lg disabled:opacity-40 hover:bg-gray-50">
+                                    Suivant
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2
+                        class="font-semibold text-gray-800 mb-1"
+                        style="font-family: var(--font-family-title)"
+                    >
+                        Tutoriel
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-4">
+                        Relancez le tutoriel de découverte de la plateforme.
+                    </p>
+                    <button
+                        @click="restartTutorial"
+                        :disabled="tutorialLoading"
+                        class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        {{ tutorialLoading ? "Redirection…" : "Relancer le tutoriel" }}
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2
+                        class="font-semibold text-gray-800 mb-1"
+                        style="font-family: var(--font-family-title)"
+                    >
                         Notifications
                     </h2>
                     <p class="text-xs text-gray-400 mb-4">
@@ -268,7 +381,7 @@
                         </button>
                     </div>
                     <p v-if="notifBlocked" class="text-xs text-amber-600 mt-3">
-                        Les notifications sont bloquées dans votre navigateur. Autorisez-les dans les paramètres du site pour les réactiver.
+                        Les notifications sont bloquées par le navigateur. Cliquez sur le cadenas dans la barre d'adresse, puis autorisez les notifications et rechargez la page.
                     </p>
                 </div>
 
@@ -377,7 +490,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, RouterLink } from "vue-router";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import { useAuthStore } from "@/stores/auth.js";
 import { useOneSignal } from "@onesignal/onesignal-vue3";
@@ -415,6 +528,94 @@ const showConfirm = ref(false);
 const proRequest = ref(null);
 const proSubmitting = ref(false);
 const isArtisan = computed(() => auth.user?.roles?.includes("artisan") ?? false);
+
+const stripeStatus = ref({ connected: false, charges_enabled: false })
+const stripeLoading = ref(false)
+
+const subscription = ref(null)
+const invoices = ref([])
+const invoicePage = ref(1)
+const invoicePages = ref(0)
+const invoicesLoading = ref(false)
+const downloadingInvoice = ref(null)
+const portalLoading = ref(false)
+
+function formatSubDate(ts) {
+    if (!ts) return ''
+    return new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+function formatInvoiceDate(dateStr) {
+    if (!dateStr) return ''
+    const [y, m] = dateStr.split('-')
+    const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre']
+    return `${months[parseInt(m, 10) - 1]} ${y}`
+}
+
+function formatCents(cents) {
+    if (cents == null) return ''
+    return (cents / 100).toFixed(2).replace('.', ',') + ' €'
+}
+
+async function loadInvoices(page) {
+    invoicesLoading.value = true
+    try {
+        const { data } = await api.get(`/user/invoices?page=${page}`)
+        invoices.value = data.invoices ?? []
+        invoicePage.value = data.page ?? page
+        invoicePages.value = data.pages ?? 0
+    } catch {}
+    invoicesLoading.value = false
+}
+
+async function downloadInvoicePDF(id) {
+    downloadingInvoice.value = id
+    try {
+        const { data } = await api.get(`/user/invoices/${id}/pdf`, { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `facture-${id}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+    } catch {}
+    downloadingInvoice.value = null
+}
+
+async function goToPortal() {
+    portalLoading.value = true
+    try {
+        const { data } = await api.post('/user/subscription/portal')
+        window.location.href = data.url
+    } catch {
+        portalLoading.value = false
+    }
+}
+
+async function goToStripeOnboarding() {
+    stripeLoading.value = true
+    try {
+        const { data } = await api.post('/user/stripe/connect/onboarding')
+        window.location.href = data.url
+    } catch {
+        stripeLoading.value = false
+    }
+}
+
+const tutorialLoading = ref(false);
+
+async function restartTutorial() {
+    tutorialLoading.value = true;
+    try {
+        await api.post("/user/tutorial-reset");
+        if (auth.user) {
+            auth.user.tutorial_done = false;
+            sessionStorage.setItem("user", JSON.stringify(auth.user));
+        }
+        router.push("/accueil");
+    } catch {}
+    tutorialLoading.value = false;
+}
 
 const notifOptedIn = ref(false);
 const notifLoading = ref(false);
@@ -526,7 +727,11 @@ async function deleteAccount() {
 }
 
 onMounted(async () => {
-    setTimeout(refreshNotifState, 500);
+    setTimeout(refreshNotifState, 500)
+    try {
+        const { data } = await api.get('/user/stripe/connect/status')
+        stripeStatus.value = data
+    } catch {}
 
     try {
         const { data } = await api.get("/user/me");
@@ -539,5 +744,15 @@ onMounted(async () => {
         const { data } = await api.get("/user/professional-request");
         proRequest.value = data;
     } catch {}
+
+    if (isArtisan.value) {
+        try {
+            const { data } = await api.get('/user/subscription')
+            if (data.active) subscription.value = data.subscription
+        } catch {}
+        if (subscription.value) {
+            await loadInvoices(1)
+        }
+    }
 });
 </script>

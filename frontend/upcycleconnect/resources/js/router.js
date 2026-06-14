@@ -25,10 +25,16 @@ import AdminProjets from './Pages/Admin/Projets.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import Revenus from './Pages/Admin/Revenus.vue'
+import AdminSubscriptions from './Pages/Admin/Subscriptions.vue'
 import Paiement from './Pages/User/Paiement.vue'
 import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
+import PaiementFormation from './Pages/User/PaiementFormation.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
+import Error from './Pages/Error.vue'
+import StripeReturn from './Pages/StripeReturn.vue'
+import Abonnement from './Pages/Abonnement.vue'
+import StripeRefresh from './Pages/StripeRefresh.vue'
 
 const ArtisanDashboard  = () => import('./Pages/Artisan/Dashboard.vue')
 const ArtisanAnnonces   = () => import('./Pages/Artisan/Annonces.vue')
@@ -65,13 +71,14 @@ const router = createRouter({
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
         { path: '/score',       component: Score,       meta: { requiresAuth: true } },
         { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
-        { path: '/paiement/:id',     component: Paiement,              meta: { requiresAuth: true } },
-        { path: '/paiement-confirmation', component: PaiementConfirmation, meta: { requiresAuth: true } },
+        { path: '/paiement/:id',             component: Paiement,           meta: { requiresAuth: true } },
+        { path: '/paiement-formation/:id',   component: PaiementFormation,  meta: { requiresAuth: true } },
+        { path: '/paiement-confirmation',    component: PaiementConfirmation, meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
         { path: '/admin/roles', component: Roles, meta: { requiresAdmin: true } },
-        { path: '/admin/listings', component: Listings, meta: { requiresAdmin: true } },
+        { path: '/admin/annonces', component: Listings, meta: { requiresAdmin: true } },
         { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
         { path: '/admin/formations', component: AdminFormations, meta: { requiresAdmin: true } },
         { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
@@ -81,6 +88,9 @@ const router = createRouter({
         { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
         { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
+        { path: '/admin/abonnements', component: AdminSubscriptions, meta: { requiresAdmin: true } },
+
+        { path: '/abonnement', component: Abonnement, meta: { requiresAuth: true } },
 
         { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
         { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },
@@ -97,7 +107,10 @@ const router = createRouter({
         { path: '/salarie/forum',      component: SalarieForum,      meta: { requiresSalarie: true } },
         { path: '/salarie/calendrier', component: SalarieCalendrier, meta: { requiresSalarie: true } },
 
-        { path: '/:pathMatch(.*)*', redirect: '/accueil' },
+        { path: '/stripe/return',  component: StripeReturn,  meta: { requiresAuth: true } },
+        { path: '/stripe/refresh', component: StripeRefresh, meta: { requiresAuth: true } },
+        { path: '/error/:code', component: Error },
+        { path: '/:pathMatch(.*)*', component: Error },
     ],
 })
 

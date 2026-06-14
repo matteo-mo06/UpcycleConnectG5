@@ -12,18 +12,30 @@
 
         <template v-else>
 
-            <div class="grid grid-cols-4 gap-5 mb-8">
-                <div
-                    v-for="stat in stats"
-                    :key="stat.label"
-                    class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
-                >
-                    <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
-                        <div :class="stat.iconClass" v-html="stat.icon" />
+            <div class="relative mb-8">
+                <div class="grid grid-cols-4 gap-5" :class="{ 'blur-sm pointer-events-none select-none': !isPremium }">
+                    <div
+                        v-for="stat in stats"
+                        :key="stat.label"
+                        class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
+                    >
+                        <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
+                            <div :class="stat.iconClass" v-html="stat.icon" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-2xl font-bold text-gray-800 leading-none">{{ stat.value }}</p>
+                            <p class="text-sm text-gray-500 mt-1 truncate">{{ stat.label }}</p>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <p class="text-2xl font-bold text-gray-800 leading-none">{{ stat.value }}</p>
-                        <p class="text-sm text-gray-500 mt-1 truncate">{{ stat.label }}</p>
+                </div>
+                <div v-if="!isPremium" class="absolute inset-0 flex items-center justify-center">
+                    <div class="bg-white rounded-2xl shadow-lg px-6 py-4 text-center border border-primary/20">
+                        <p class="font-semibold text-gray-800 text-sm mb-1">Statistiques avancées</p>
+                        <p class="text-xs text-gray-500 mb-3">Disponibles avec l'abonnement Premium</p>
+                        <RouterLink to="/abonnement"
+                            class="inline-block px-4 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-dark transition-colors">
+                            Passer Premium
+                        </RouterLink>
                     </div>
                 </div>
             </div>
@@ -120,6 +132,7 @@ const error = ref('')
 const showCreateAnnonce = ref(false)
 const announcements = ref([])
 const statsData = ref({})
+const isPremium = ref(false)
 
 const stats = computed(() => [
     {
@@ -171,12 +184,14 @@ function stateBadge(state) {
 
 onMounted(async () => {
     try {
-        const [{ data: annData }, { data: userStats }] = await Promise.all([
+        const [{ data: annData }, { data: userStats }, { data: limData }] = await Promise.all([
             api.get('/user/announcements'),
             api.get('/user/stats'),
+            api.get('/user/limits'),
         ])
         announcements.value = Array.isArray(annData) ? annData : (annData.data ?? [])
         statsData.value = userStats
+        isPremium.value = limData?.is_premium ?? false
     } catch {
         error.value = 'Impossible de charger les données.'
     } finally {

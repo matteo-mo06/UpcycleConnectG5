@@ -56,6 +56,7 @@
                         <p v-if="f.status === 'rejected' && f.rejection_reason" class="text-xs text-red-500 line-clamp-1">{{ f.rejection_reason }}</p>
                         <div class="mt-auto pt-2 flex items-center justify-between">
                             <span :class="statusClass(f.status)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{ statusLabel(f.status) }}</span>
+                            <span v-if="f.price" class="text-xs font-semibold text-primary">{{ f.price.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
                             <button
                                 @click.stop="toDelete = f"
                                 class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -92,7 +93,7 @@
                     </p>
                     <p v-if="selectedFormation.description" class="leading-relaxed text-gray-600">{{ selectedFormation.description }}</p>
                     <div class="grid grid-cols-2 gap-3 text-xs text-gray-500">
-                        <div v-if="selectedFormation.date"><span class="font-medium text-gray-700">Date :</span> {{ selectedFormation.date.slice(0, 16).replace('T', ' ') }}</div>
+                        <div v-if="selectedFormation.date"><span class="font-medium text-gray-700">Date :</span> {{ formatDateTime(selectedFormation.date) }}</div>
                         <div v-if="selectedFormation.location"><span class="font-medium text-gray-700">Lieu :</span> {{ selectedFormation.location }}</div>
                         <div v-if="selectedFormation.duration_hours"><span class="font-medium text-gray-700">Durée :</span> {{ selectedFormation.duration_hours }}h</div>
                         <div v-if="selectedFormation.capacity"><span class="font-medium text-gray-700">Capacité :</span> {{ selectedFormation.capacity }} places</div>
@@ -190,6 +191,12 @@
                                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Prix (€) <span class="text-gray-300">(laisser vide si gratuit)</span></label>
+                            <input v-model.number="form.price" type="number" min="0" step="0.01"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Ex: 25.00"/>
+                        </div>
                     </div>
                     <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
                 </div>
@@ -226,7 +233,7 @@ const formModal = ref(false)
 const editTarget = ref(null)
 const submitting = ref(false)
 const formError = ref('')
-const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '' })
+const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null })
 const filterStatus = ref('')
 const filteredFormations = computed(() =>
     filterStatus.value ? formations.value.filter(f => f.status === filterStatus.value) : formations.value
@@ -240,6 +247,17 @@ const minDateTime = computed(() => {
 
 function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
+}
+
+function formatDateTime(dateStr) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function endDateTime(dateStr, hours) {
+    if (!dateStr || !hours) return null
+    return new Date(new Date(dateStr).getTime() + hours * 3600000)
 }
 
 function levelClass(level) {
@@ -281,6 +299,7 @@ function openEditFromDetail(f) {
         level: f.level,
         duration_hours: f.duration_hours ?? null,
         id_category: f.id_category ?? '',
+        price: f.price ?? null,
     }
     formError.value = ''
     formModal.value = true
@@ -328,6 +347,7 @@ async function submitForm() {
             level: form.value.level,
             duration_hours: form.value.duration_hours || null,
             id_category: form.value.id_category || null,
+            price: form.value.price || null,
         }
         if (editTarget.value) {
             await api.patch(`/formations/${editTarget.value.id}`, payload)

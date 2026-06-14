@@ -68,14 +68,49 @@
                         <p class="text-xs text-gray-500 line-clamp-2">{{ f.description }}</p>
                         <div class="mt-auto pt-2 flex items-center justify-between">
                             <span class="text-xs text-gray-400">Par {{ f.creator_name }}</span>
-                            <span v-if="f.is_registered" class="text-xs text-secondary font-medium">Inscrit</span>
-                            <span v-else-if="f.capacity && f.inscription_count >= f.capacity" class="text-xs text-gray-400">Complet</span>
+                            <div class="flex items-center gap-2">
+                                <span v-if="f.price" class="text-xs font-semibold text-primary">{{ formatPrice(f.price) }}</span>
+                                <span v-if="f.is_registered" class="text-xs text-secondary font-medium">Inscrit</span>
+                                <span v-else-if="f.capacity && f.inscription_count >= f.capacity" class="text-xs text-gray-400">Complet</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+        </div>
+
+        <div v-if="confirmPaidFormation" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="confirmPaidFormation = null"/>
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800">Formation payante</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">{{ confirmPaidFormation.title_formation }}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">
+                    Cette formation est payante
+                    <span class="font-semibold text-primary">({{ formatPrice(confirmPaidFormation.price) }})</span>.
+                    Une fois inscrit, vous ne pourrez pas vous désinscrire.
+                </p>
+                <div class="flex gap-2 justify-end">
+                    <button @click="confirmPaidFormation = null"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button @click="proceedToPayment"
+                        class="px-4 py-2 text-sm font-semibold bg-secondary text-white rounded-xl hover:bg-secondary-dark transition-colors">
+                        Continuer vers le paiement
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div v-if="detailFormation" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="detailFormation = null">
@@ -106,8 +141,7 @@
                         </div>
                         <div v-if="detailFormation.date">
                             <p class="text-xs text-gray-400 mb-0.5">Date</p>
-                            <p class="font-medium text-gray-800">{{ detailFormation.date.slice(0,10) }}</p>
-                            <p class="text-xs text-gray-500">{{ detailFormation.date.slice(11,16) }}</p>
+                            <p class="font-medium text-gray-800">{{ formatDateTime(detailFormation.date) }}</p>
                         </div>
                         <div v-if="detailFormation.location">
                             <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
@@ -138,17 +172,22 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
-                    <button
-                        v-if="detailFormation.is_registered"
-                        @click="toggleRegistration(detailFormation); detailFormation = null"
-                        class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                        Se désinscrire
-                    </button>
+                    <template v-if="detailFormation.is_registered">
+                        <span v-if="detailFormation.price" class="px-3 py-1.5 text-sm text-gray-400 italic">
+                            Désinscription non disponible pour les formations payantes
+                        </span>
+                        <button
+                            v-else
+                            @click="toggleRegistration(detailFormation); detailFormation = null"
+                            class="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                            Se désinscrire
+                        </button>
+                    </template>
                     <button
                         v-else-if="!isFull(detailFormation)"
                         @click="toggleRegistration(detailFormation); detailFormation = null"
                         class="px-3 py-1.5 text-sm font-semibold bg-secondary text-white rounded-lg hover:bg-secondary-dark transition-colors">
-                        S'inscrire
+                        {{ detailFormation.price ? `S'inscrire · ${formatPrice(detailFormation.price)}` : "S'inscrire" }}
                     </button>
                     <span v-else class="px-3 py-1.5 text-sm text-gray-400">Complet</span>
                 </div>
@@ -159,11 +198,14 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 import { useAuthStore } from '@/stores/auth.js'
+
+const router = useRouter()
 
 const auth = useAuthStore()
 
@@ -176,6 +218,7 @@ const search = ref('')
 const filterLevel = ref('')
 const filterCategory = ref('')
 const detailFormation = ref(null)
+const confirmPaidFormation = ref(null)
 
 const canRegister = computed(() => auth.hasPermission('register_formation'))
 
@@ -210,24 +253,60 @@ function openDetail(f) {
     detailFormation.value = f
 }
 
+function formatDateTime(dateStr) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function endDateTime(dateStr, hours) {
+    if (!dateStr || !hours) return null
+    return new Date(new Date(dateStr).getTime() + hours * 3600000)
+}
+
+function formatPrice(price) {
+    if (!price) return 'Gratuit'
+    return price.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+}
+
 async function toggleRegistration(f) {
     if (!canRegister.value) return
-    f.loading = true
-    try {
-        if (f.is_registered) {
+    if (f.is_registered) {
+        f.loading = true
+        try {
             await api.delete(`/user/formation/${f.id}/unregister`)
             f.is_registered = false
             f.inscription_count = Math.max(0, f.inscription_count - 1)
-        } else {
-            await api.post(`/user/formation/${f.id}/register`)
-            f.is_registered = true
-            f.inscription_count++
+        } catch (err) {
+            alert(err.response?.data?.error ?? 'Erreur lors de la désinscription.')
+        } finally {
+            f.loading = false
         }
+        return
+    }
+
+    if (f.price && f.price > 0) {
+        detailFormation.value = null
+        confirmPaidFormation.value = f
+        return
+    }
+
+    f.loading = true
+    try {
+        await api.post(`/user/formation/${f.id}/register`)
+        f.is_registered = true
+        f.inscription_count++
     } catch (err) {
         alert(err.response?.data?.error ?? 'Erreur lors de l\'inscription.')
     } finally {
         f.loading = false
     }
+}
+
+function proceedToPayment() {
+    const f = confirmPaidFormation.value
+    confirmPaidFormation.value = null
+    router.push(`/paiement-formation/${f.id}`)
 }
 
 function changePage(p) {

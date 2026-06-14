@@ -41,7 +41,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
 		       COUNT(ins.id_user) AS inscription_count,
 		       EXISTS(SELECT 1 FROM user_formation_inscription r WHERE r.id_user = ? AND r.id_formation = f.id_formation) AS is_registered,
-		       f.created_at
+		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
 		LEFT JOIN user u ON u.id_user = f.id_creator
@@ -66,7 +66,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount, &f.IsRegistered,
-			&f.CreatedAt,
+			&f.CreatedAt, &f.Price,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -76,7 +76,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 	return list, total, nil
 }
 
-func GetAllFormations(search, status string, limit, offset int) ([]models.Formation, int, error) {
+func GetAllFormations(search, status, level string, limit, offset int) ([]models.Formation, int, error) {
 	where := "WHERE f.deleted_at IS NULL"
 	var args []any
 
@@ -87,6 +87,10 @@ func GetAllFormations(search, status string, limit, offset int) ([]models.Format
 	if status != "" {
 		where += " AND f.status = ?"
 		args = append(args, status)
+	}
+	if level != "" {
+		where += " AND f.level = ?"
+		args = append(args, level)
 	}
 
 	countArgs := make([]any, len(args))
@@ -109,7 +113,7 @@ func GetAllFormations(search, status string, limit, offset int) ([]models.Format
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
 		       COUNT(ins.id_user) AS inscription_count,
-		       f.created_at
+		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
 		LEFT JOIN user u ON u.id_user = f.id_creator
@@ -134,7 +138,7 @@ func GetAllFormations(search, status string, limit, offset int) ([]models.Format
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
-			&f.CreatedAt,
+			&f.CreatedAt, &f.Price,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -153,7 +157,7 @@ func GetFormationById(id string) (models.Formation, error) {
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
-		       f.created_at
+		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
 		LEFT JOIN user u ON u.id_user = f.id_creator
@@ -165,7 +169,7 @@ func GetFormationById(id string) (models.Formation, error) {
 		&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 		&f.IdCreator, &f.CreatorName,
 		&f.IdFormateur, &f.FormateurName,
-		&f.CreatedAt,
+		&f.CreatedAt, &f.Price,
 	)
 	return f, err
 }
@@ -175,11 +179,11 @@ func CreateFormation(f models.Formation) error {
 		INSERT INTO formation (
 			id_formation, title_formation, description_formation, date_formation,
 			location_formation, capacity, level, duration_hours, status,
-			id_category, id_creator, id_formateur, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NOW())`,
+			id_category, id_creator, id_formateur, price, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())`,
 		f.IdFormation, f.TitleFormation, f.DescriptionFormation, f.DateFormation,
 		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.IdCreator, f.IdFormateur,
+		f.IdCategory, f.IdCreator, f.IdFormateur, f.Price,
 	)
 	return err
 }
@@ -195,12 +199,13 @@ func UpdateFormation(f models.Formation) error {
 			level = ?,
 			duration_hours = ?,
 			id_category = ?,
+			price = ?,
 			status = 'pending',
 			rejection_reason = NULL
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
 		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.IdFormation,
+		f.IdCategory, f.Price, f.IdFormation,
 	)
 	return err
 }
@@ -216,11 +221,12 @@ func UpdateFormationAdmin(f models.Formation) error {
 			level = ?,
 			duration_hours = ?,
 			id_category = ?,
+			price = ?,
 			status = ?
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
 		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.Status, f.IdFormation,
+		f.IdCategory, f.Price, f.Status, f.IdFormation,
 	)
 	return err
 }
@@ -269,7 +275,7 @@ func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
 		       COUNT(ins.id_user) AS inscription_count,
-		       f.created_at
+		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
 		LEFT JOIN user u ON u.id_user = f.id_creator
@@ -296,7 +302,7 @@ func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
-			&f.CreatedAt,
+			&f.CreatedAt, &f.Price,
 		)
 		if err != nil {
 			return nil, err
@@ -315,7 +321,7 @@ func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
 		       COUNT(ins.id_user) AS inscription_count,
-		       f.created_at
+		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
 		LEFT JOIN user u ON u.id_user = f.id_creator
@@ -339,7 +345,7 @@ func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
 			&f.InscriptionCount,
-			&f.CreatedAt,
+			&f.CreatedAt, &f.Price,
 		)
 		if err != nil {
 			return nil, err

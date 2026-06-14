@@ -1,4 +1,5 @@
 import axios from "axios";
+import router from "./router.js";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -14,5 +15,28 @@ export function setAuthToken(token) {
 export function clearAuthToken() {
     delete api.defaults.headers.common["Authorization"];
 }
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
+        const url = error.config?.url ?? "";
+
+        const isAuthEndpoint = url.includes("/auth/login") || url.includes("/auth/register");
+
+        if (!error.response) {
+            router.push("/error/500");
+        } else if (status === 401 && !isAuthEndpoint) {
+            import("./stores/auth.js").then(({ useAuthStore }) => {
+                useAuthStore().logout();
+            });
+            router.push("/login");
+        } else if (status >= 500) {
+            router.push("/error/500");
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export default api;

@@ -74,6 +74,16 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
+		count, _ := db.CountUserProjects(userID)
+		if count >= 2 {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 2 projets atteinte, passez à l'abonnement premium pour en créer davantage"})
+			return
+		}
+	}
+
 	var req models.CreateProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
