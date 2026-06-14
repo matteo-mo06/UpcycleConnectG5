@@ -121,6 +121,11 @@ router.beforeEach((to) => {
     if (to.meta.requiresArtisan && !auth.isArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresSalarie && !auth.isSalarie) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
+
+    // Artisan/professionnel qui n'a pas encore vu le tutoriel particulier : on le force vers /accueil
+    if (auth.isLoggedIn && !auth.user?.tutorial_done && to.path.startsWith('/artisan/')) {
+        return '/accueil'
+    }
 })
 
 export default router
