@@ -29,7 +29,6 @@
 
             <div class="grid grid-cols-2 gap-5">
 
-                <!-- Annonces -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Dernières annonces</p>
@@ -44,7 +43,6 @@
                     </div>
                 </div>
 
-                <!-- Événements -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Derniers événements</p>
@@ -59,7 +57,6 @@
                     </div>
                 </div>
 
-                <!-- Formations -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Dernières formations</p>
@@ -74,7 +71,6 @@
                     </div>
                 </div>
 
-                <!-- Projets -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Derniers projets</p>
@@ -89,7 +85,6 @@
                     </div>
                 </div>
 
-                <!-- Derniers utilisateurs -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Derniers utilisateurs inscrits</p>
@@ -104,7 +99,6 @@
                     </div>
                 </div>
 
-                <!-- Derniers signalements -->
                 <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <p class="text-sm font-semibold text-gray-800">Derniers signalements</p>

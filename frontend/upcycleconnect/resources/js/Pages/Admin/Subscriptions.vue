@@ -4,7 +4,6 @@
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Abonnements</h1>
         </div>
 
-        <!-- Cartes résumé -->
         <div class="grid grid-cols-3 gap-5 mb-8">
             <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
                 <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
@@ -43,7 +42,6 @@
             </div>
         </div>
 
-        <!-- Plans -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
             <div class="px-5 py-4 border-b border-gray-100">
                 <h2 class="font-semibold text-gray-800">Plans d'abonnement</h2>
@@ -91,7 +89,6 @@
             </div>
         </div>
 
-        <!-- Abonnés -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100">
                 <h2 class="font-semibold text-gray-800">Abonnés</h2>
@@ -129,7 +126,6 @@
             </div>
         </div>
 
-        <!-- Modal plan -->
         <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="modal = false"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">

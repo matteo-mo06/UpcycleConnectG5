@@ -475,7 +475,6 @@ func GetMyCreatedFormations(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(formations)
 }
 
-// Admin handlers
 
 func GetAllFormationsAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

@@ -12,7 +12,7 @@ CREATE TABLE `user` (
   `status` varchar(20) NOT NULL DEFAULT 'active',
   PRIMARY KEY (`id_user`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `advice` (
   `id_advice` char(36) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE `advice` (
   `tag` varchar(120) DEFAULT NULL,
   `date_advice` date DEFAULT NULL,
   PRIMARY KEY (`id_advice`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `category` (
   `id_category` char(36) NOT NULL,
@@ -28,13 +28,13 @@ CREATE TABLE `category` (
   `description_category` text,
   PRIMARY KEY (`id_category`),
   UNIQUE KEY `name_category` (`name_category`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `notification` (
   `id_notification` char(36) NOT NULL,
   `view` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_notification`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `payement` (
   `id_payement` char(36) NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE `payement` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `paid_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id_payement`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `subscription` (
   `id_subscription` char(36) NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE `subscription` (
   `cancelled` tinyint(1) NOT NULL DEFAULT '0',
   `cancelled_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id_subscription`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `subscription_plans` (
   `id_plan` char(36) NOT NULL,
@@ -64,32 +64,32 @@ CREATE TABLE `subscription_plans` (
   `interval_count` int NOT NULL DEFAULT '1',
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id_plan`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `ticket` (
   `id_ticket` char(36) NOT NULL,
   `timestamp_ticket` datetime DEFAULT NULL,
   PRIMARY KEY (`id_ticket`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `topic` (
   `id_topic` char(36) NOT NULL,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id_topic`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `post` (
   `id_post` char(36) NOT NULL,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id_post`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `role` (
   `id_role` char(36) NOT NULL,
   `name_role` varchar(100) NOT NULL,
   PRIMARY KEY (`id_role`),
   UNIQUE KEY `name_role` (`name_role`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `permission` (
   `id_permission` char(36) NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE `permission` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_permission`),
   UNIQUE KEY `name_permission` (`name_permission`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `locker` (
   `id_locker` char(36) NOT NULL,
@@ -106,7 +106,7 @@ CREATE TABLE `locker` (
   `locker_number` int DEFAULT NULL,
   PRIMARY KEY (`id_locker`),
   UNIQUE KEY `locker_number_unique` (`locker_number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `project` (
   `id_project` char(36) NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE `project` (
   PRIMARY KEY (`id_project`),
   KEY `fk_project_creator` (`id_creator`),
   CONSTRAINT `fk_project_creator` FOREIGN KEY (`id_creator`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `formation` (
   `id_formation` char(36) NOT NULL,
@@ -128,7 +128,7 @@ CREATE TABLE `formation` (
   KEY `fk_formation_formateur` (`id_formateur`),
   CONSTRAINT `fk_formation_creator` FOREIGN KEY (`id_creator`) REFERENCES `user` (`id_user`),
   CONSTRAINT `fk_formation_formateur` FOREIGN KEY (`id_formateur`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `event` (
   `id_event` char(36) NOT NULL,
@@ -142,7 +142,7 @@ CREATE TABLE `event` (
   PRIMARY KEY (`id_event`),
   KEY `fk_event_creator` (`id_creator`),
   CONSTRAINT `fk_event_creator` FOREIGN KEY (`id_creator`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `announcement` (
   `id_announcement` char(36) NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE `announcement` (
   PRIMARY KEY (`id_announcement`),
   KEY `fk_announcement_category` (`id_category`),
   CONSTRAINT `fk_announcement_category` FOREIGN KEY (`id_category`) REFERENCES `category` (`id_category`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `professional_request` (
   `id_request` char(36) NOT NULL,
@@ -174,7 +174,7 @@ CREATE TABLE `professional_request` (
   PRIMARY KEY (`id_request`),
   KEY `fk_professional_request_user` (`id_user`),
   CONSTRAINT `fk_professional_request_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `document` (
   `id_document` char(36) NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE `document` (
   PRIMARY KEY (`id_document`),
   KEY `fk_document_user` (`id_user`),
   CONSTRAINT `fk_document_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `report` (
   `id_report` char(36) NOT NULL,
@@ -212,7 +212,7 @@ CREATE TABLE `report` (
   CONSTRAINT `fk_report_resolved_by` FOREIGN KEY (`resolved_by`) REFERENCES `user` (`id_user`),
   CONSTRAINT `fk_report_topic` FOREIGN KEY (`id_topic`) REFERENCES `topic` (`id_topic`),
   CONSTRAINT `fk_report_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_sanctions` (
   `id_sanction` char(36) NOT NULL,
@@ -231,7 +231,7 @@ CREATE TABLE `user_sanctions` (
   CONSTRAINT `fk_sanctions_admin` FOREIGN KEY (`id_admin`) REFERENCES `user` (`id_user`),
   CONSTRAINT `fk_sanctions_report` FOREIGN KEY (`id_report`) REFERENCES `report` (`id_report`),
   CONSTRAINT `fk_sanctions_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `announcement_locker` (
   `id_announcement` char(36) NOT NULL,
@@ -240,7 +240,7 @@ CREATE TABLE `announcement_locker` (
   UNIQUE KEY `id_locker` (`id_locker`),
   CONSTRAINT `fk_announcement_locker_announcement` FOREIGN KEY (`id_announcement`) REFERENCES `announcement` (`id_announcement`),
   CONSTRAINT `fk_announcement_locker_locker` FOREIGN KEY (`id_locker`) REFERENCES `locker` (`id_locker`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `role_permission` (
   `id` char(36) NOT NULL,
@@ -251,7 +251,7 @@ CREATE TABLE `role_permission` (
   KEY `fk_rp_permission` (`permission_id`),
   CONSTRAINT `fk_rp_permission` FOREIGN KEY (`permission_id`) REFERENCES `permission` (`id_permission`),
   CONSTRAINT `fk_rp_role` FOREIGN KEY (`role_id`) REFERENCES `role` (`id_role`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `topic_post` (
   `id_topic` char(36) NOT NULL,
@@ -260,7 +260,7 @@ CREATE TABLE `topic_post` (
   KEY `fk_topic_post_post` (`id_post`),
   CONSTRAINT `fk_topic_post_post` FOREIGN KEY (`id_post`) REFERENCES `post` (`id_post`),
   CONSTRAINT `fk_topic_post_topic` FOREIGN KEY (`id_topic`) REFERENCES `topic` (`id_topic`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `sub_sub_plan` (
   `id_subscription` char(36) NOT NULL,
@@ -269,7 +269,7 @@ CREATE TABLE `sub_sub_plan` (
   KEY `fk_sub_sub_plan_plan` (`id_plan`),
   CONSTRAINT `fk_sub_sub_plan_plan` FOREIGN KEY (`id_plan`) REFERENCES `subscription_plans` (`id_plan`),
   CONSTRAINT `fk_sub_sub_plan_subscription` FOREIGN KEY (`id_subscription`) REFERENCES `subscription` (`id_subscription`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `payement_event` (
   `id_payement` char(36) NOT NULL,
@@ -278,7 +278,7 @@ CREATE TABLE `payement_event` (
   KEY `fk_payement_event_event` (`id_event`),
   CONSTRAINT `fk_payement_event_event` FOREIGN KEY (`id_event`) REFERENCES `event` (`id_event`),
   CONSTRAINT `fk_payement_event_payement` FOREIGN KEY (`id_payement`) REFERENCES `payement` (`id_payement`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `payement_formation` (
   `id_payement` char(36) NOT NULL,
@@ -287,7 +287,7 @@ CREATE TABLE `payement_formation` (
   KEY `fk_payement_formation_formation` (`id_formation`),
   CONSTRAINT `fk_payement_formation_formation` FOREIGN KEY (`id_formation`) REFERENCES `formation` (`id_formation`),
   CONSTRAINT `fk_payement_formation_payement` FOREIGN KEY (`id_payement`) REFERENCES `payement` (`id_payement`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `payement_project` (
   `id_payement` char(36) NOT NULL,
@@ -296,7 +296,7 @@ CREATE TABLE `payement_project` (
   KEY `fk_payement_project_project` (`id_project`),
   CONSTRAINT `fk_payement_project_payement` FOREIGN KEY (`id_payement`) REFERENCES `payement` (`id_payement`),
   CONSTRAINT `fk_payement_project_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_advice` (
   `id_user` char(36) NOT NULL,
@@ -305,7 +305,7 @@ CREATE TABLE `user_advice` (
   KEY `fk_user_advice_advice` (`id_advice`),
   CONSTRAINT `fk_user_advice_advice` FOREIGN KEY (`id_advice`) REFERENCES `advice` (`id_advice`),
   CONSTRAINT `fk_user_advice_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_announcement` (
   `id_user` char(36) NOT NULL,
@@ -314,7 +314,7 @@ CREATE TABLE `user_announcement` (
   KEY `fk_user_announcement_announcement` (`id_announcement`),
   CONSTRAINT `fk_user_announcement_announcement` FOREIGN KEY (`id_announcement`) REFERENCES `announcement` (`id_announcement`),
   CONSTRAINT `fk_user_announcement_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_event_inscription` (
   `id_user` char(36) NOT NULL,
@@ -323,7 +323,7 @@ CREATE TABLE `user_event_inscription` (
   KEY `fk_user_event_inscription_event` (`id_event`),
   CONSTRAINT `fk_user_event_inscription_event` FOREIGN KEY (`id_event`) REFERENCES `event` (`id_event`),
   CONSTRAINT `fk_user_event_inscription_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_formation_inscription` (
   `id_user` char(36) NOT NULL,
@@ -332,7 +332,7 @@ CREATE TABLE `user_formation_inscription` (
   KEY `fk_user_formation_inscription_formation` (`id_formation`),
   CONSTRAINT `fk_user_formation_inscription_formation` FOREIGN KEY (`id_formation`) REFERENCES `formation` (`id_formation`),
   CONSTRAINT `fk_user_formation_inscription_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_formation_inscription_payement` (
   `id_user` char(36) NOT NULL,
@@ -344,7 +344,7 @@ CREATE TABLE `user_formation_inscription_payement` (
   CONSTRAINT `fk_ufip_formation` FOREIGN KEY (`id_formation`) REFERENCES `formation` (`id_formation`),
   CONSTRAINT `fk_ufip_payement` FOREIGN KEY (`id_payement`) REFERENCES `payement` (`id_payement`),
   CONSTRAINT `fk_ufip_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_notification` (
   `id_user` char(36) NOT NULL,
@@ -353,7 +353,7 @@ CREATE TABLE `user_notification` (
   KEY `fk_user_notification_notification` (`id_notification`),
   CONSTRAINT `fk_user_notification_notification` FOREIGN KEY (`id_notification`) REFERENCES `notification` (`id_notification`),
   CONSTRAINT `fk_user_notification_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_payement` (
   `id_user` char(36) NOT NULL,
@@ -362,7 +362,7 @@ CREATE TABLE `user_payement` (
   KEY `fk_user_payement_payement` (`id_payement`),
   CONSTRAINT `fk_user_payement_payement` FOREIGN KEY (`id_payement`) REFERENCES `payement` (`id_payement`),
   CONSTRAINT `fk_user_payement_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_project_inscription` (
   `id_user` char(36) NOT NULL,
@@ -371,7 +371,7 @@ CREATE TABLE `user_project_inscription` (
   KEY `fk_user_project_inscription_project` (`id_project`),
   CONSTRAINT `fk_user_project_inscription_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`),
   CONSTRAINT `fk_user_project_inscription_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_project_updown` (
   `id_user` char(36) NOT NULL,
@@ -381,7 +381,7 @@ CREATE TABLE `user_project_updown` (
   KEY `fk_user_project_updown_project` (`id_project`),
   CONSTRAINT `fk_user_project_updown_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`),
   CONSTRAINT `fk_user_project_updown_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_role` (
   `id_user` char(36) NOT NULL,
@@ -390,7 +390,7 @@ CREATE TABLE `user_role` (
   KEY `fk_user_role_role` (`id_role`),
   CONSTRAINT `fk_user_role_role` FOREIGN KEY (`id_role`) REFERENCES `role` (`id_role`),
   CONSTRAINT `fk_user_role_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `user_subscription` (
   `id_user` char(36) NOT NULL,
@@ -399,7 +399,7 @@ CREATE TABLE `user_subscription` (
   KEY `fk_user_subscription_subscription` (`id_subscription`),
   CONSTRAINT `fk_user_subscription_subscription` FOREIGN KEY (`id_subscription`) REFERENCES `subscription` (`id_subscription`),
   CONSTRAINT `fk_user_subscription_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 -- Données de seed
 INSERT INTO `user` VALUES ('7cd909a9-a27a-4849-a867-55e39b871c66','admin@upcycle.com','$2a$10$JHayhaAb0AYcARtBUWkyuuxf2fN64DydnGgbHSVPQfA60uvY5mo5K','Admin','Upcycle',0,0,'2026-04-22 21:47:08','active');

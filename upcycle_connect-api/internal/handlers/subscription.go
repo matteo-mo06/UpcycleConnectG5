@@ -145,7 +145,6 @@ func GetSubscriptionPortal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"url": session.URL})
 }
 
-// Admin handlers
 
 func GetAdminSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -385,13 +384,11 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 		planDesc = string([]rune(planDesc)[:42]) + "..."
 	}
 
-	// --- LOGO ---
 	pdf.SetTextColor(45, 106, 79)
 	pdf.SetFont("Helvetica", "B", 20)
 	pdf.SetXY(20, 15)
 	pdf.Cell(80, 10, "UpcycleConnect")
 
-	// --- FACTURE BOX (top right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(122, 10, 68, 38, "D")
 	pdf.SetTextColor(40, 40, 40)
@@ -407,7 +404,6 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.SetX(124)
 	pdf.CellFormat(64, 5, tr("Page n°1 sur 1"), "", 0, "L", false, 0, "")
 
-	// --- PLATFORM INFO (left) ---
 	pdf.SetTextColor(60, 60, 60)
 	pdf.SetFont("Helvetica", "B", 10)
 	pdf.SetXY(20, 56)
@@ -418,7 +414,6 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.SetXY(20, 67)
 	pdf.Cell(85, 5, "upcycleconnect.fr")
 
-	// --- CLIENT BOX (right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(110, 55, 80, 34, "D")
 	pdf.SetFillColor(255, 255, 255)
@@ -435,11 +430,9 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.SetXY(115, 68)
 	pdf.Cell(70, 5, tr("E-mail : "+user.Email))
 
-	// --- SEPARATOR ---
 	pdf.SetDrawColor(200, 200, 200)
 	pdf.Line(20, 92, 190, 92)
 
-	// --- TABLE HEADER ---
 	pdf.SetFillColor(220, 220, 220)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "B", 9)
@@ -448,7 +441,6 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.CellFormat(45, 7, tr("Période"), "1", 0, "C", true, 0, "")
 	pdf.CellFormat(35, 7, "Total TTC", "1", 0, "R", true, 0, "")
 
-	// --- TABLE ROW ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetFillColor(255, 255, 255)
 	pdf.SetXY(20, 103)
@@ -456,7 +448,6 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.CellFormat(45, 8, tr(periodStr), "1", 0, "C", true, 0, "")
 	pdf.CellFormat(35, 8, totalPrice, "1", 0, "R", true, 0, "")
 
-	// --- "Payé" WATERMARK ---
 	pdf.SetTextColor(220, 90, 90)
 	pdf.SetFont("Helvetica", "B", 72)
 	pdf.TransformBegin()
@@ -465,7 +456,6 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.Cell(135, 25, tr("Payé"))
 	pdf.TransformEnd()
 
-	// --- TOTALS (right) ---
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetXY(115, 169)
@@ -481,13 +471,11 @@ func buildSubscriptionInvoicePDF(invoiceID string, inv *stripe.Invoice, user mod
 	pdf.CellFormat(40, 7, "Total TTC", "1", 0, "L", false, 0, "")
 	pdf.CellFormat(35, 7, totalPrice, "1", 0, "R", false, 0, "")
 
-	// --- RÈGLEMENT ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetXY(20, 196)
 	pdf.CellFormat(170, 7, tr("Règlement   Payé par carte bancaire le ")+date+" - Total : "+totalPrice, "1", 0, "L", false, 0, "")
 
-	// --- FOOTER ---
 	pdf.SetTextColor(120, 120, 120)
 	pdf.SetFont("Helvetica", "", 7.5)
 	pdf.SetXY(20, 268)

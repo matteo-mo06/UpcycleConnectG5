@@ -256,7 +256,6 @@
             </div>
         </div>
 
-        <!-- Modale de modification -->
         <div v-if="editModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="editModal = false"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">

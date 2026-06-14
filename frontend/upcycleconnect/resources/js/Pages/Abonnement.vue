@@ -5,7 +5,6 @@
             <p class="text-sm text-gray-400 mt-1">Accédez aux fonctionnalités avancées d'UpcycleConnect</p>
         </div>
 
-        <!-- Abonnement actif -->
         <div v-if="subscription" class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-secondary/20">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
@@ -29,7 +28,6 @@
             </div>
         </div>
 
-        <!-- Alerte succès / annulation -->
         <div v-if="successMsg" class="mb-6 p-4 rounded-xl bg-green-50 text-green-700 text-sm font-medium">
             {{ successMsg }}
         </div>
@@ -37,7 +35,6 @@
             {{ cancelledMsg }}
         </div>
 
-        <!-- Plans -->
         <div v-if="!subscription" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <div v-for="plan in plans" :key="plan.id"
                 class="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4 border border-gray-100 hover:border-primary/30 transition-colors">
@@ -65,7 +62,6 @@
             </div>
         </div>
 
-        <!-- Features premium (toujours visible) -->
         <div class="bg-white rounded-2xl shadow-sm p-6">
             <h2 class="font-semibold text-gray-800 mb-4">Ce que comprend le Premium</h2>
             <div class="grid grid-cols-2 gap-4">

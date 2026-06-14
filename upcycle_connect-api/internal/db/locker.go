@@ -163,7 +163,6 @@ func GetAvailableLocker() (models.Locker, error) {
 	return l, err
 }
 
-// ReserveLocker finds an available locker and assigns it atomically in a transaction.
 func ReserveLocker(announcementID, accessCode string) (models.Locker, error) {
 	tx, err := config.Conn.Begin()
 	if err != nil {

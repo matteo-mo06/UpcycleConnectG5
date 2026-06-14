@@ -70,7 +70,6 @@ export const useAuthStore = defineStore("auth", () => {
                 await api.post("/user/onesignal-player-id", { player_id: playerId });
             }
         } catch {
-            // notifications déclinées ou navigateur non supporté — non bloquant
         }
     }
 

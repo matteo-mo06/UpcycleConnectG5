@@ -339,13 +339,11 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 		numDisplay = numDisplay[:26]
 	}
 
-	// --- LOGO ---
 	pdf.SetTextColor(45, 106, 79)
 	pdf.SetFont("Helvetica", "B", 20)
 	pdf.SetXY(20, 15)
 	pdf.Cell(80, 10, "UpcycleConnect")
 
-	// --- FACTURE BOX (top right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(122, 10, 68, 38, "D")
 	pdf.SetTextColor(40, 40, 40)
@@ -361,7 +359,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetX(124)
 	pdf.CellFormat(64, 5, tr("Page n°1 sur 1"), "", 0, "L", false, 0, "")
 
-	// --- PLATFORM INFO (left) ---
 	pdf.SetTextColor(60, 60, 60)
 	pdf.SetFont("Helvetica", "B", 10)
 	pdf.SetXY(20, 56)
@@ -372,10 +369,8 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(20, 67)
 	pdf.Cell(85, 5, "upcycleconnect.fr")
 
-	// --- CLIENT BOX (right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(110, 55, 80, 34, "D")
-	// "Client" label on the top border (fieldset style)
 	pdf.SetFillColor(255, 255, 255)
 	pdf.Rect(118, 52, 16, 6, "F")
 	pdf.SetFont("Helvetica", "", 8)
@@ -390,11 +385,9 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(115, 68)
 	pdf.Cell(70, 5, tr("E-mail : "+buyer.Email))
 
-	// --- SEPARATOR ---
 	pdf.SetDrawColor(200, 200, 200)
 	pdf.Line(20, 92, 190, 92)
 
-	// --- TABLE HEADER ---
 	pdf.SetFillColor(220, 220, 220)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "B", 9)
@@ -403,7 +396,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.CellFormat(25, 7, tr("Quantité"), "1", 0, "C", true, 0, "")
 	pdf.CellFormat(35, 7, "Total TTC", "1", 0, "R", true, 0, "")
 
-	// --- TABLE ROW ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetFillColor(255, 255, 255)
 	title := ann.TitleAnnouncement
@@ -420,7 +412,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(22, 112)
 	pdf.Cell(108, 4, tr("Vendeur : "+ann.AuthorName))
 
-	// --- "Payé" WATERMARK ---
 	pdf.SetTextColor(220, 90, 90)
 	pdf.SetFont("Helvetica", "B", 72)
 	pdf.TransformBegin()
@@ -429,7 +420,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.Cell(135, 25, tr("Payé"))
 	pdf.TransformEnd()
 
-	// --- TOTALS (right) ---
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetXY(115, 169)
@@ -449,13 +439,11 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.CellFormat(40, 7, "Total TTC", "1", 0, "L", false, 0, "")
 	pdf.CellFormat(35, 7, totalPrice, "1", 0, "R", false, 0, "")
 
-	// --- RÈGLEMENT ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetXY(20, 202)
 	pdf.CellFormat(170, 7, tr("Règlement   Payé par carte bancaire le ")+date+" - Total : "+totalPrice, "1", 0, "L", false, 0, "")
 
-	// --- FOOTER ---
 	pdf.SetTextColor(120, 120, 120)
 	pdf.SetFont("Helvetica", "", 7.5)
 	pdf.SetXY(20, 268)

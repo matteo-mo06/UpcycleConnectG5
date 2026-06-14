@@ -9,7 +9,7 @@ CREATE TABLE `project_material` (
   PRIMARY KEY (`id_material`),
   KEY `fk_material_project` (`id_project`),
   CONSTRAINT `fk_material_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `project_step` (
   `id_step`     char(36) NOT NULL,
@@ -21,6 +21,6 @@ CREATE TABLE `project_step` (
   PRIMARY KEY (`id_step`),
   KEY `fk_step_project` (`id_project`),
   CONSTRAINT `fk_step_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 SET FOREIGN_KEY_CHECKS = 1;

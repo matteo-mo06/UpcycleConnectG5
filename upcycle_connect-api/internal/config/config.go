@@ -18,7 +18,6 @@ const ArtisanRoleName = RoleArtisan
 
 var Conn *sql.DB
 
-// JWTSecret lit la variable au moment de l'appel (après godotenv.Load).
 func JWTSecret() []byte {
 	return []byte(os.Getenv("JWT_SECRET"))
 }

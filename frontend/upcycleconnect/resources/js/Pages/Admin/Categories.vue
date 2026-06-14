@@ -70,7 +70,6 @@
             </table>
         </div>
 
-        <!-- Modal création / édition -->
         <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="modal = false"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -109,7 +108,6 @@
             </div>
         </div>
 
-        <!-- Modal confirmation suppression -->
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">

@@ -18,7 +18,6 @@
             </div>
         </div>
 
-        <!-- Cartes résumé -->
         <div class="grid grid-cols-4 gap-5 mb-8">
             <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
                 <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
@@ -69,7 +68,6 @@
             </div>
         </div>
 
-        <!-- Onglet Transactions -->
         <div v-if="activeTab === 'transactions'">
             <div v-if="loadingTx" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
             <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune transaction pour le moment.</div>
@@ -125,7 +123,6 @@
             </div>
         </div>
 
-        <!-- Onglet Abonnements -->
         <div v-if="activeTab === 'abonnements'">
             <div class="bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center gap-4">
                 <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -140,7 +137,6 @@
             </div>
         </div>
 
-        <!-- Onglet Paramètres -->
         <div v-if="activeTab === 'parametres'">
             <div class="bg-white rounded-xl shadow-sm p-6 max-w-md">
                 <h2 class="font-semibold text-gray-800 mb-1">Taux de commission</h2>

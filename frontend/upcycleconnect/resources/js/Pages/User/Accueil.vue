@@ -7,7 +7,6 @@
             </h1>
         </div>
 
-        <!-- Annonces mises en avant -->
         <div class="mb-6">
             <div class="flex items-center justify-between mb-3">
                 <div>
@@ -60,7 +59,6 @@
 
         <div class="grid grid-cols-5 gap-6">
 
-            <!-- Actions rapides -->
             <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5" data-tutorial="quick-actions">
                 <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Actions rapides</h2>
                 <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
@@ -107,7 +105,6 @@
                 </div>
             </div>
 
-            <!-- Vitrine partenaires -->
             <div class="col-span-3 bg-white rounded-2xl shadow-sm p-5 flex flex-col">
                 <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Partenaires & publicités</h2>
                 <p class="text-xs text-gray-400 mb-4">Ils soutiennent UpcycleConnect</p>
