@@ -195,7 +195,7 @@
                         class="font-semibold text-gray-800 mb-1"
                         style="font-family: var(--font-family-title)"
                     >
-                        Compte professionnel
+                        Compte artisan
                     </h2>
                     <p class="text-xs text-gray-400 mb-4">
                         Devenez artisan pour publier des annonces et proposer vos services.
@@ -207,7 +207,7 @@
                             :disabled="proSubmitting"
                             class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
                         >
-                            {{ proSubmitting ? "Envoi en cours…" : "Devenir professionnel" }}
+                            {{ proSubmitting ? "Envoi en cours…" : "Demande compte artisan" }}
                         </button>
                     </template>
 
