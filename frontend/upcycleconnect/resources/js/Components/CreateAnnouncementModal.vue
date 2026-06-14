@@ -166,11 +166,18 @@
                     </div>
                 </div>
 
-                <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+                <p v-if="error && !premiumError" class="text-sm text-red-600">{{ error }}</p>
+                <div v-if="premiumError" class="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                    {{ error }}
+                    <router-link to="/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
+                </div>
 
             </div>
 
-            <div class="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+            <div class="px-6 py-4 border-t border-gray-100 flex-shrink-0 space-y-3">
+                <p v-if="limits && !limits.is_premium" class="text-xs text-gray-400 text-center">
+                    {{ limits.announcements.used }}/{{ limits.announcements.max }} annonces publiées
+                </p>
                 <button
                     @click="submit"
                     :disabled="loading"
@@ -186,6 +193,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import api from '@/api.js'
 
 const props = defineProps({ modelValue: Boolean })
@@ -193,6 +201,8 @@ const emit = defineEmits(['update:modelValue', 'created'])
 
 const loading = ref(false)
 const error = ref('')
+const premiumError = ref(false)
+const limits = ref(null)
 const photos = ref([])
 const categories = ref([])
 
@@ -263,6 +273,28 @@ async function submit() {
     if (!form.availability_date) { error.value = 'La date de disponibilité est requise.'; return }
     if (form.type === 'vente' && (!form.price || form.price < 0.01)) { error.value = 'Le prix minimum pour une vente est 0.01 €.'; return }
 
+    if (form.type === 'vente') {
+        try {
+            const { data } = await api.get('/user/stripe/connect/status')
+            if (!data.connected) {
+                const { data: link } = await api.post('/user/stripe/connect/onboarding')
+                window.location.href = link.url
+                return
+            }
+            if (!data.charges_enabled) {
+                error.value = 'Votre compte de paiement est en cours de vérification par Stripe. Réessayez dans quelques instants.'
+                return
+            }
+        } catch (e) {
+            if (e.response?.data?.error === 'stripe_connect_unavailable') {
+                error.value = 'Le système de paiement n\'est pas encore disponible. Contactez l\'administrateur.'
+            } else {
+                error.value = 'Impossible de vérifier votre compte de paiement.'
+            }
+            return
+        }
+    }
+
     loading.value = true
     try {
         const photoURLs = photos.value.length ? await uploadPhotos() : []
@@ -274,6 +306,7 @@ async function submit() {
         emit('update:modelValue', false)
         resetForm()
     } catch (e) {
+        premiumError.value = e.response?.status === 403
         error.value = e.response?.data?.error ?? 'Une erreur est survenue.'
     } finally {
         loading.value = false
@@ -282,8 +315,12 @@ async function submit() {
 
 onMounted(async () => {
     try {
-        const { data } = await api.get('/categories')
-        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+        const [catRes, limRes] = await Promise.all([
+            api.get('/categories'),
+            api.get('/user/limits'),
+        ])
+        categories.value = Array.isArray(catRes.data) ? catRes.data : (catRes.data.data ?? [])
+        limits.value = limRes.data
     } catch {}
 })
 

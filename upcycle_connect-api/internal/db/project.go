@@ -178,6 +178,13 @@ func GetProjectOwnerID(projectID string) (string, error) {
 	return ownerID.String, nil
 }
 
+func CountUserProjects(userID string) (int, error) {
+	var count int
+	err := config.Conn.QueryRow(
+		`SELECT COUNT(*) FROM PROJECT WHERE id_creator = ? AND status != 'Supprimé'`, userID).Scan(&count)
+	return count, err
+}
+
 func CreateProject(p models.Project) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO PROJECT (

@@ -402,6 +402,7 @@ func MarkAnnouncementSold(announcementID, buyerID string) error {
 	return tx.Commit()
 }
 
+
 func DeleteAnnouncement(id string) error {
 	_, err := config.Conn.Exec(
 		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Supprimée', deleted_at = NOW() WHERE id_announcement = ?",

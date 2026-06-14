@@ -7,51 +7,60 @@
             </h1>
         </div>
 
-        <div class="grid grid-cols-4 gap-5 mb-8" data-tutorial="stats">
-            <div
-                v-for="stat in stats"
-                :key="stat.label"
-                class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
-            >
-                <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
-                    <div :class="stat.iconClass" v-html="stat.icon" />
+        <!-- Annonces mises en avant -->
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">Dernières annonces</h2>
+                    <p class="text-xs text-gray-400 mt-0.5">Les annonces récemment publiées sur la plateforme</p>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ stat.value }}</p>
-                    <p class="text-sm text-gray-500 mt-1">{{ stat.label }}</p>
-                    <span v-if="stat.badge" class="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                        {{ stat.badge }}
-                    </span>
-                </div>
+                <RouterLink to="/annonces" class="text-xs font-medium text-primary hover:underline">Voir tout</RouterLink>
+            </div>
+
+            <div v-if="announcesLoading" class="grid grid-cols-4 gap-4">
+                <div v-for="i in 4" :key="i" class="bg-white rounded-2xl shadow-sm h-48 animate-pulse" />
+            </div>
+
+            <div v-else-if="featuredAnnounces.length === 0" class="bg-white rounded-2xl shadow-sm p-10 text-center text-sm text-gray-400">
+                Aucune annonce disponible pour le moment.
+            </div>
+
+            <div v-else class="grid grid-cols-4 gap-4">
+                <RouterLink
+                    v-for="ann in featuredAnnounces"
+                    :key="ann.id"
+                    :to="`/annonces/${ann.id}`"
+                    class="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
+                >
+                    <div class="h-32 bg-gray-100 overflow-hidden">
+                        <img v-if="ann.first_photo" :src="ann.first_photo" :alt="ann.title"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
+                            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-medium text-gray-800 truncate">{{ ann.title }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">{{ ann.city || ann.address }}</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-xs font-semibold text-primary">
+                                {{ ann.price > 0 ? ann.price.toFixed(2) + ' €' : 'Gratuit' }}
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded text-xs font-medium"
+                                :class="ann.type === 'don' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'">
+                                {{ ann.type === 'don' ? 'Don' : 'Vente' }}
+                            </span>
+                        </div>
+                    </div>
+                </RouterLink>
             </div>
         </div>
 
         <div class="grid grid-cols-5 gap-6">
 
-            <div class="col-span-3 bg-white rounded-2xl shadow-sm p-5">
-                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Activité récente</h2>
-                <p class="text-xs text-gray-400 mb-4">Dernières actualités de la plateforme</p>
-                <div class="space-y-4">
-                    <p v-if="activity.length === 0" class="text-sm text-gray-400 text-center py-6">Aucune activité récente pour le moment.</p>
-                    <div v-for="item in activity" :key="item.id" class="flex items-start gap-3">
-                        <div :class="['w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold', item.avatarColor]">
-                            {{ item.initials }}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm text-gray-700">
-                                <span class="font-medium">{{ item.author }}</span>
-                                {{ item.action }}
-                                <span class="font-medium">{{ item.subject }}</span>
-                            </p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-gray-400">{{ item.time }}</span>
-                                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', item.tagClass]">{{ item.tag }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <!-- Actions rapides -->
             <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5" data-tutorial="quick-actions">
                 <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Actions rapides</h2>
                 <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
@@ -98,6 +107,19 @@
                 </div>
             </div>
 
+            <!-- Vitrine partenaires -->
+            <div class="col-span-3 bg-white rounded-2xl shadow-sm p-5 flex flex-col">
+                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Partenaires & publicités</h2>
+                <p class="text-xs text-gray-400 mb-4">Ils soutiennent UpcycleConnect</p>
+                <div class="flex-1 flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl">
+                    <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <p class="text-sm font-medium text-gray-400">Aucun partenaire pour le moment</p>
+                    <p class="text-xs text-gray-300 text-center max-w-xs">Cet espace est réservé à nos partenaires et annonceurs. Contactez-nous pour en savoir plus.</p>
+                </div>
+            </div>
+
         </div>
 
         <CreateAnnouncementModal v-model="showDepot" />
@@ -113,7 +135,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { usePolling } from '@/composables/usePolling.js'
 import { RouterLink } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
@@ -123,8 +144,9 @@ import api from '@/api.js'
 
 const auth = useAuthStore()
 const showDepot = ref(false)
-
 const showTutorial = ref(false)
+const featuredAnnounces = ref([])
+const announcesLoading = ref(true)
 
 const tutorialSteps = [
     {
@@ -132,12 +154,6 @@ const tutorialSteps = [
         placement: 'right',
         title: 'Bienvenue sur UpcycleConnect !',
         description: 'Ce menu latéral vous donne accès à toutes les sections de la plateforme. Faisons un rapide tour ensemble.',
-    },
-    {
-        target: 'stats',
-        placement: 'bottom',
-        title: 'Votre tableau de bord',
-        description: 'Ces indicateurs résument votre activité : score upcycling, annonces actives, dépôts en attente et événements à venir.',
     },
     {
         target: 'nav-annonces',
@@ -197,61 +213,14 @@ async function finishTutorial() {
     } catch {}
 }
 
-const stats = ref([
-    {
-        label: 'Upcycling Score',
-        value: '-',
-        key: 'upcycling_score',
-        badge: null,
-        bgClass: 'bg-secondary/20',
-        iconClass: 'text-secondary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>`,
-    },
-    {
-        label: 'Annonces actives',
-        value: '-',
-        key: 'active_announcements',
-        badge: null,
-        bgClass: 'bg-primary/10',
-        iconClass: 'text-primary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>`,
-    },
-    {
-        label: 'Dépôts en attente',
-        value: '-',
-        key: 'pending_deposits',
-        badge: 'En attente',
-        bgClass: 'bg-primary/10',
-        iconClass: 'text-primary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
-    },
-    {
-        label: 'Événements à venir',
-        value: '-',
-        key: 'upcoming_events',
-        badge: null,
-        bgClass: 'bg-blue-100',
-        iconClass: 'text-blue-500',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
-    },
-])
-
-const activity = []
-
-async function fetchStats() {
-    try {
-        const { data } = await api.get('/user/stats')
-        stats.value.forEach(s => {
-            if (data[s.key] !== undefined) s.value = data[s.key]
-        })
-    } catch {}
-}
-
-onMounted(() => {
+onMounted(async () => {
     if (!auth.user?.tutorial_done) {
         showTutorial.value = true
     }
+    try {
+        const { data } = await api.get('/announcements?limit=4')
+        featuredAnnounces.value = (data.data ?? []).slice(0, 4)
+    } catch {}
+    announcesLoading.value = false
 })
-
-usePolling(fetchStats)
 </script>

@@ -33,6 +33,13 @@
                         <input v-model="search" type="text" placeholder="Rechercher une formation…"
                             class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
                     </div>
+                    <select v-model="filterLevel"
+                        class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
+                        <option value="">Tous les niveaux</option>
+                        <option value="beginner">Débutant</option>
+                        <option value="intermediate">Intermédiaire</option>
+                        <option value="advanced">Avancé</option>
+                    </select>
                     <select v-model="filterStatus"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les statuts</option>
@@ -159,7 +166,7 @@
                         </div>
                         <div v-if="detailFormation.date">
                             <p class="text-xs text-gray-400 mb-0.5">Date</p>
-                            <p class="font-medium text-gray-800">{{ detailFormation.date.slice(0,10) }}</p>
+                            <p class="font-medium text-gray-800">{{ formatDateTime(detailFormation.date) }}</p>
                         </div>
                         <div v-if="detailFormation.location">
                             <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
@@ -250,6 +257,7 @@ const loading = ref(false)
 const error = ref('')
 const search = ref('')
 const filterStatus = ref('')
+const filterLevel = ref('')
 const detailFormation = ref(null)
 const rejectModal = ref(null)
 const rejectReason = ref('')
@@ -291,6 +299,17 @@ const stats = computed(() => [
 
 function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
+}
+
+function formatDateTime(dateStr) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function endDateTime(dateStr, hours) {
+    if (!dateStr || !hours) return null
+    return new Date(new Date(dateStr).getTime() + hours * 3600000)
 }
 
 function levelClass(level) {
@@ -370,7 +389,7 @@ async function fetchFormations() {
     error.value = ''
     try {
         const { data } = await api.get('/admin/formations', {
-            params: { page: page.value, limit: 20, search: search.value, status: filterStatus.value }
+            params: { page: page.value, limit: 20, search: search.value, status: filterStatus.value, level: filterLevel.value }
         })
         formations.value = data.data ?? []
         total.value = data.total ?? 0
@@ -398,7 +417,7 @@ async function fetchStats() {
     } catch {}
 }
 
-watch([page, filterStatus], fetchFormations)
+watch([page, filterStatus, filterLevel], fetchFormations)
 watch(search, () => { page.value = 1; fetchFormations() })
 
 onMounted(() => { fetchFormations(); fetchStats() })

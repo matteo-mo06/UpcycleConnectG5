@@ -25,6 +25,9 @@ func JWTSecret() []byte {
 
 func StripeSecretKey() string     { return os.Getenv("STRIPE_SECRET_KEY") }
 func StripeWebhookSecret() string { return os.Getenv("STRIPE_WEBHOOK_SECRET") }
+func BaseURL() string     { return os.Getenv("BASE_URL") }
+func FrontendURL() string { return os.Getenv("FRONTEND_URL") }
+func PlatformURL() string { return os.Getenv("PLATFORM_URL") }
 
 func InvoicesDir() string {
 	if d := os.Getenv("INVOICES_DIR"); d != "" {

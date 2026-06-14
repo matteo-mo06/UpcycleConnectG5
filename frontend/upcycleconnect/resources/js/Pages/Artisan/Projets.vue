@@ -300,16 +300,25 @@
                                 placeholder="0 = illimitée"/>
                         </div>
                     </div>
-                    <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
+                    <p v-if="formError && !premiumError" class="text-xs text-red-500">{{ formError }}</p>
+                    <div v-if="premiumError" class="text-xs text-red-600 bg-red-50 rounded-lg p-3">
+                        {{ formError }}
+                        <router-link to="/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
+                    </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
-                    <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        Annuler
-                    </button>
-                    <button @click="submitForm" :disabled="submitting"
-                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Soumettre') }}
-                    </button>
+                <div class="px-6 py-4 border-t border-gray-100 space-y-2">
+                    <p v-if="limits && !limits.is_premium && !editTarget" class="text-xs text-gray-400 text-center">
+                        {{ limits.projects.used }}/{{ limits.projects.max }} projets créés
+                    </p>
+                    <div class="flex justify-end gap-2">
+                        <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            Annuler
+                        </button>
+                        <button @click="submitForm" :disabled="submitting"
+                            class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                            {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Soumettre') }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -335,6 +344,8 @@ const formModal = ref(false)
 const editTarget = ref(null)
 const submitting = ref(false)
 const formError = ref('')
+const premiumError = ref(false)
+const limits = ref(null)
 const form = ref({ title: '', description: '', start_date: '', end_date: '', location: '', capacity: null })
 const filterStatus = ref('')
 const filteredProjects = computed(() =>
@@ -539,15 +550,15 @@ async function vote(p, value) {
     } catch {}
 }
 
-async function fetchProjects() {
-    loading.value = true
+async function fetchProjects(silent = false) {
+    if (!silent) loading.value = true
     try {
         const { data } = await api.get('/user/my-projects')
         projects.value = data ?? []
     } catch {
         projects.value = []
     } finally {
-        loading.value = false
+        if (!silent) loading.value = false
     }
 }
 
@@ -569,6 +580,7 @@ async function submitForm() {
     if (!form.value.title.trim()) { formError.value = 'Le titre est requis.'; return }
     submitting.value = true
     formError.value = ''
+    premiumError.value = false
     try {
         const payload = {
             title: form.value.title,
@@ -586,6 +598,7 @@ async function submitForm() {
         formModal.value = false
         await fetchProjects()
     } catch (e) {
+        premiumError.value = e.response?.status === 403
         formError.value = e.response?.data?.error ?? 'Erreur lors de l\'enregistrement.'
     } finally {
         submitting.value = false
@@ -595,6 +608,10 @@ async function submitForm() {
 usePolling(fetchProjects)
 
 onMounted(async () => {
+    try {
+        const { data } = await api.get('/user/limits')
+        limits.value = data
+    } catch {}
     const openId = route.query.open
     if (!openId) return
     await fetchProjects()

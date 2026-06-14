@@ -10,7 +10,6 @@
             </button>
 
             <div v-if="loading" class="text-center py-20 text-gray-400">Chargement…</div>
-
             <div v-else-if="error" class="text-center py-20 text-red-500">{{ error }}</div>
 
             <template v-else>
@@ -18,19 +17,11 @@
                     <h1 class="text-xl font-bold text-gray-800 mb-1" style="font-family: var(--font-family-title)">
                         Paiement sécurisé
                     </h1>
-                    <p class="text-sm text-gray-500 mb-4">{{ announcement?.title }}</p>
+                    <p class="text-sm text-gray-500 mb-4">{{ formation?.title }}</p>
                     <div class="space-y-2 border-t pt-4">
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-500">Prix de l'article</span>
-                            <span class="text-gray-700">{{ formatCents(pricing.price_cents) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-500">Commission plateforme ({{ pricing.commission_rate }}%)</span>
-                            <span class="text-gray-700">{{ formatCents(pricing.commission_cents) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between border-t pt-2 mt-2">
+                        <div class="flex items-center justify-between border-t pt-2">
                             <span class="font-semibold text-gray-800">Total</span>
-                            <span class="text-xl font-bold text-primary">{{ formatCents(pricing.total_cents) }}</span>
+                            <span class="text-xl font-bold text-primary">{{ formatCents(priceCents) }}</span>
                         </div>
                     </div>
                 </div>
@@ -45,7 +36,7 @@
                         :disabled="paying || !stripeReady"
                         class="w-full py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {{ paying ? 'Traitement en cours…' : `Payer ${formatCents(pricing.total_cents)}` }}
+                        {{ paying ? 'Traitement en cours…' : `Payer ${formatCents(priceCents)}` }}
                     </button>
 
                     <p class="text-xs text-gray-400 text-center mt-3">
@@ -68,15 +59,15 @@ import api from '@/api.js'
 const router = useRouter()
 const route = useRoute()
 
-const announcementId = route.params.id
+const formationId = route.params.id
 
 const loading = ref(true)
 const error = ref(null)
 const paying = ref(false)
 const paymentError = ref(null)
 const stripeReady = ref(false)
-const announcement = ref(null)
-const pricing = ref({ price_cents: 0, commission_cents: 0, total_cents: 0, commission_rate: 0 })
+const formation = ref(null)
+const priceCents = ref(0)
 
 function formatCents(cents) {
     if (!cents) return '0,00 €'
@@ -88,30 +79,24 @@ let elements = null
 
 onMounted(async () => {
     try {
-        const [annRes, intentRes] = await Promise.all([
-            api.get(`/announcements/${announcementId}`),
-            api.post(`/pay/announcement/${announcementId}`),
+        const [formRes, intentRes] = await Promise.all([
+            api.get(`/formations/${formationId}`),
+            api.post(`/pay/formation/${formationId}`),
         ])
 
-        announcement.value = annRes.data.announcement ?? annRes.data
-        const { client_secret: clientSecret, price_cents, commission_cents, total_cents, commission_rate } = intentRes.data
-        pricing.value = { price_cents, commission_cents, total_cents, commission_rate }
+        formation.value = formRes.data
+        priceCents.value = intentRes.data.price_cents
 
         loading.value = false
         await nextTick()
 
         stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-
-        elements = stripe.elements({ clientSecret })
+        elements = stripe.elements({ clientSecret: intentRes.data.client_secret })
         const paymentElement = elements.create('payment')
         paymentElement.mount('#payment-element')
         paymentElement.on('ready', () => { stripeReady.value = true })
 
     } catch (e) {
-        if (e?.response?.status === 403) {
-            router.replace('/abonnement')
-            return
-        }
         error.value = e?.response?.data?.error ?? 'Impossible de charger le paiement.'
         loading.value = false
     }
@@ -129,7 +114,7 @@ async function submitPayment() {
     const { error: stripeError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-            return_url: `${window.location.origin}/paiement-confirmation`,
+            return_url: `${window.location.origin}/paiement-confirmation?type=formation`,
         },
     })
 

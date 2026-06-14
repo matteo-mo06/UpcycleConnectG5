@@ -1,5 +1,5 @@
 <template>
-    <UserLayout>
+    <ArtisanLayout>
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
@@ -12,7 +12,23 @@
             Chargement…
         </div>
 
-        <template v-else>
+        <div v-else-if="premiumRequired" class="bg-white rounded-2xl shadow-sm p-12 flex flex-col items-center gap-4 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <svg class="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="font-semibold text-gray-800 mb-1">Upcycling Score — fonctionnalité Premium</p>
+                <p class="text-sm text-gray-500 mb-4">Accédez au détail de votre score écologique avec l'abonnement Premium.</p>
+                <RouterLink to="/abonnement"
+                    class="inline-block px-5 py-2 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-dark transition-colors">
+                    Découvrir Premium
+                </RouterLink>
+            </div>
+        </div>
+
+        <template v-else-if="!premiumRequired">
 
         <div class="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-6 mb-6">
             <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-secondary/20 flex items-center justify-center">
@@ -96,15 +112,17 @@
 
         </template>
 
-    </UserLayout>
+    </ArtisanLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import UserLayout from '@/Layouts/UserLayout.vue'
+import { RouterLink } from 'vue-router'
+import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import api from '@/api.js'
 
 const loading = ref(false)
+const premiumRequired = ref(false)
 const score = ref(null)
 const breakdown = ref([])
 
@@ -119,7 +137,8 @@ onMounted(async () => {
         const { data } = await api.get('/user/score-breakdown')
         score.value = data.score
         breakdown.value = data.breakdown
-    } catch {
+    } catch (e) {
+        if (e.response?.status === 403) premiumRequired.value = true
     } finally {
         loading.value = false
     }

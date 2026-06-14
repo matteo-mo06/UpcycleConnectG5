@@ -507,6 +507,10 @@ async function claimAnnouncement(a) {
         await api.post(`/announcements/${a.id}/claim`)
         announcements.value = announcements.value.filter(x => x.id !== a.id)
     } catch (e) {
+        if (e.response?.status === 403) {
+            router.push('/abonnement')
+            return
+        }
         alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')
     }
 }

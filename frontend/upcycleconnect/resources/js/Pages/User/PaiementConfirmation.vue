@@ -9,10 +9,18 @@
                     </svg>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Paiement réussi !</h1>
-                <p class="text-gray-500">Votre achat a bien été enregistré. Vous retrouverez l'annonce dans vos acquisitions.</p>
-                <router-link to="/annonces" class="mt-4 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors">
-                    Retour aux annonces
-                </router-link>
+                <template v-if="type === 'formation'">
+                    <p class="text-gray-500">Votre inscription a bien été enregistrée. Vous retrouverez la formation dans votre calendrier.</p>
+                    <router-link to="/formations" class="mt-4 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors">
+                        Retour aux formations
+                    </router-link>
+                </template>
+                <template v-else>
+                    <p class="text-gray-500">Votre achat a bien été enregistré. Vous retrouverez l'annonce dans vos acquisitions.</p>
+                    <router-link to="/annonces" class="mt-4 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors">
+                        Retour aux annonces
+                    </router-link>
+                </template>
             </div>
 
             <div v-else-if="status === 'processing'" class="flex flex-col items-center gap-4">
@@ -51,6 +59,7 @@ import UserLayout from '@/Layouts/UserLayout.vue'
 const router = useRouter()
 const status = ref('loading')
 const errorMessage = ref(null)
+const type = new URLSearchParams(window.location.search).get('type') ?? ''
 
 onMounted(async () => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
