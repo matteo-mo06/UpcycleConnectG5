@@ -162,7 +162,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import SalarieLayout from '@/Layouts/SalarieLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -269,5 +270,5 @@ async function deletePost(post) {
 }
 
 watch(page, fetchTopics)
-onMounted(fetchTopics)
+usePolling(fetchTopics, 2000, () => !selected.value)
 </script>

@@ -90,6 +90,18 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Date == nil || *req.Date == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date est requise"})
+		return
+	}
+
+	if req.Location == nil || *req.Location == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
+		return
+	}
+
 	if req.Date != nil && *req.Date != "" {
 		parsed, err := time.Parse("2006-01-02T15:04:05", *req.Date)
 		if err != nil {
@@ -177,6 +189,18 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 	if req.Title == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le titre est requis"})
+		return
+	}
+
+	if req.Date == nil || *req.Date == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date est requise"})
+		return
+	}
+
+	if req.Location == nil || *req.Location == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
 		return
 	}
 

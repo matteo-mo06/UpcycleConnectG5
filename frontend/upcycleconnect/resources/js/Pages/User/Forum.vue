@@ -635,7 +635,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import { usePolling } from "@/composables/usePolling.js";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 import ReportModal from "@/Components/ReportModal.vue";
@@ -682,22 +683,14 @@ const canEditTopic = computed(() => {
 });
 const canDeleteTopic = computed(() => {
     if (!openedTopic.value) return false;
-    return (
-        openedTopic.value.id_author === auth.user?.id ||
-        auth.isAdmin ||
-        auth.hasPermission("moderate_forum")
-    );
+    return openedTopic.value.id_author === auth.user?.id;
 });
 
 function canEditPost(post) {
     return post.id_author === auth.user?.id || auth.isAdmin;
 }
 function canDeletePost(post) {
-    return (
-        post.id_author === auth.user?.id ||
-        auth.isAdmin ||
-        auth.hasPermission("moderate_forum")
-    );
+    return post.id_author === auth.user?.id;
 }
 function canReportContent(authorId) {
     return authorId !== auth.user?.id;
@@ -887,5 +880,5 @@ async function submitReply() {
 
 watch(page, fetchTopics);
 
-onMounted(fetchTopics);
+usePolling(fetchTopics, 2000, () => !openedTopic.value);
 </script>

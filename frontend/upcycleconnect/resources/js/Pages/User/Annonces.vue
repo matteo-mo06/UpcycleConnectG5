@@ -624,5 +624,5 @@ async function fetchCategories() {
 }
 
 onMounted(() => fetchCategories())
-usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine')
+usePolling(fetchAnnouncements, 2000, () => activeTab.value !== 'mine')
 </script>

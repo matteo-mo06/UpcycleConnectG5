@@ -166,13 +166,13 @@
                                 placeholder="Ex: 3"/>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date & heure</label>
-                            <input v-model="form.date" type="datetime-local" :min="minDateTime"
+                            <label class="block text-xs text-gray-400 mb-1">Date & heure <span class="text-red-400">*</span></label>
+                            <input v-model="form.date" type="datetime-local" :min="minDateTime" required
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
-                            <input v-model="form.location" type="text"
+                            <label class="block text-xs text-gray-400 mb-1">Lieu <span class="text-red-400">*</span></label>
+                            <input v-model="form.location" type="text" required
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="Adresse ou salle"/>
                         </div>
@@ -314,6 +314,8 @@ async function deleteFormation() {
 
 async function submitForm() {
     if (!form.value.title.trim()) { formError.value = 'Le titre est requis.'; return }
+    if (!form.value.date) { formError.value = 'La date est requise.'; return }
+    if (!form.value.location?.trim()) { formError.value = 'Le lieu est requis.'; return }
     submitting.value = true
     formError.value = ''
     try {

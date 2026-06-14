@@ -89,7 +89,7 @@
                     </button>
                 </div>
                 <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-                    <p v-if="selected.description" class="text-sm text-gray-600 whitespace-pre-line">{{ selected.description }}</p>
+                    <p v-if="selected.description" class="text-sm text-gray-600 whitespace-pre-line break-words">{{ selected.description }}</p>
                     <p v-else class="text-sm text-gray-400 italic">Aucun contenu.</p>
                     <div v-if="docsLoading" class="text-xs text-gray-400">Chargement des photos…</div>
                     <div v-else-if="selectedDocs.length" class="flex gap-2 flex-wrap">

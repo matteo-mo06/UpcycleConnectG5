@@ -193,6 +193,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import api from '@/api.js'
 
@@ -240,12 +241,11 @@ async function openDetail(conseil) {
     }
 }
 
-onMounted(async () => {
-    await Promise.allSettled([
-        fetchConseils(),
-        api.get('/categories').then(({ data }) => {
-            categories.value = Array.isArray(data) ? data : (data.data ?? [])
-        }),
-    ])
+onMounted(() => {
+    api.get('/categories').then(({ data }) => {
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+    })
 })
+
+usePolling(fetchConseils, 2000, () => !selected.value)
 </script>

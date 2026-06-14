@@ -100,9 +100,9 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 		typ = "don"
 	}
 
-	perms, _ := r.Context().Value(middleware.ContextPermissions).([]string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
 	state := "En attente"
-	if slices.Contains(perms, "manage_announcements") {
+	if slices.Contains(roles, config.RoleAdmin) {
 		state = "Active"
 	}
 
