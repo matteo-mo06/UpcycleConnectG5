@@ -63,10 +63,12 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { loadStripe } from '@stripe/stripe-js'
 import UserLayout from '@/Layouts/UserLayout.vue'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuthStore()
 
 const announcementId = route.params.id
 
@@ -109,7 +111,7 @@ onMounted(async () => {
 
     } catch (e) {
         if (e?.response?.status === 403) {
-            router.replace('/abonnement')
+            router.replace(auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
             return
         }
         error.value = e?.response?.data?.error ?? 'Impossible de charger le paiement.'

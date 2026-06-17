@@ -300,7 +300,7 @@
                     <p v-if="formError && !premiumError" class="text-xs text-red-500">{{ formError }}</p>
                     <div v-if="premiumError" class="text-xs text-red-600 bg-red-50 rounded-lg p-3">
                         {{ formError }}
-                        <router-link to="/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
+                        <router-link to="/artisan/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 space-y-2">

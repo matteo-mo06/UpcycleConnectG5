@@ -33,7 +33,6 @@ import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 import Error from './Pages/Error.vue'
 import StripeReturn from './Pages/StripeReturn.vue'
-import Abonnement from './Pages/Abonnement.vue'
 import StripeRefresh from './Pages/StripeRefresh.vue'
 
 const ArtisanDashboard  = () => import('./Pages/Artisan/Dashboard.vue')
@@ -43,6 +42,8 @@ const ArtisanEvenements = () => import('./Pages/Artisan/Evenements.vue')
 const ArtisanFormations = () => import('./Pages/Artisan/Formations.vue')
 const ArtisanProjets    = () => import('./Pages/Artisan/Projets.vue')
 const ArtisanCalendrier = () => import('./Pages/Artisan/Calendrier.vue')
+const ArtisanScore      = () => import('./Pages/Artisan/Score.vue')
+const ArtisanAbonnement = () => import('./Pages/Artisan/Abonnement.vue')
 
 const SalarieDashboard  = () => import('./Pages/Salarie/Dashboard.vue')
 const SalarieFormations = () => import('./Pages/Salarie/Formations.vue')
@@ -50,6 +51,7 @@ const SalarieEvenements = () => import('./Pages/Salarie/Evenements.vue')
 const SalarieConseils   = () => import('./Pages/Salarie/Conseils.vue')
 const SalarieForum      = () => import('./Pages/Salarie/Forum.vue')
 const SalarieCalendrier = () => import('./Pages/Salarie/Calendrier.vue')
+const SalarieAbonnement = () => import('./Pages/Salarie/Abonnement.vue')
 
 const router = createRouter({
     history: createWebHistory(),
@@ -90,8 +92,6 @@ const router = createRouter({
         { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
         { path: '/admin/abonnements', component: AdminSubscriptions, meta: { requiresAdmin: true } },
 
-        { path: '/abonnement', component: Abonnement, meta: { requiresAuth: true } },
-
         { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
         { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },
         { path: '/artisan/depot',      component: ArtisanDepot,      meta: { requiresArtisan: true } },
@@ -99,6 +99,8 @@ const router = createRouter({
         { path: '/artisan/formations', component: ArtisanFormations, meta: { requiresArtisan: true } },
         { path: '/artisan/projets',    component: ArtisanProjets,    meta: { requiresArtisan: true } },
         { path: '/artisan/calendrier', component: ArtisanCalendrier, meta: { requiresArtisan: true } },
+        { path: '/artisan/score',      component: ArtisanScore,      meta: { requiresArtisan: true } },
+        { path: '/artisan/abonnement', component: ArtisanAbonnement, meta: { requiresArtisan: true } },
 
         { path: '/salarie/dashboard',  component: SalarieDashboard,  meta: { requiresSalarie: true } },
         { path: '/salarie/formations', component: SalarieFormations, meta: { requiresSalarie: true } },
@@ -106,6 +108,7 @@ const router = createRouter({
         { path: '/salarie/conseils',   component: SalarieConseils,   meta: { requiresSalarie: true } },
         { path: '/salarie/forum',      component: SalarieForum,      meta: { requiresSalarie: true } },
         { path: '/salarie/calendrier', component: SalarieCalendrier, meta: { requiresSalarie: true } },
+        { path: '/salarie/abonnement', component: SalarieAbonnement, meta: { requiresSalarie: true } },
 
         { path: '/stripe/return',  component: StripeReturn,  meta: { requiresAuth: true } },
         { path: '/stripe/refresh', component: StripeRefresh, meta: { requiresAuth: true } },

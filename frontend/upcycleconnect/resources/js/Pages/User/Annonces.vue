@@ -507,7 +507,7 @@ async function claimAnnouncement(a) {
         announcements.value = announcements.value.filter(x => x.id !== a.id)
     } catch (e) {
         if (e.response?.status === 403) {
-            router.push('/abonnement')
+            router.push(auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
             return
         }
         alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')

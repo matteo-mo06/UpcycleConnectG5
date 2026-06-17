@@ -169,7 +169,7 @@
                 <p v-if="error && !premiumError" class="text-sm text-red-600">{{ error }}</p>
                 <div v-if="premiumError" class="text-sm text-red-600 bg-red-50 rounded-lg p-3">
                     {{ error }}
-                    <router-link to="/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
+                    <router-link :to="abonnementHref" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
                 </div>
 
             </div>
@@ -192,9 +192,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
+
+const auth = useAuthStore()
+const abonnementHref = computed(() => auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'created'])

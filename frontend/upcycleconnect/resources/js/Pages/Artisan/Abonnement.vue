@@ -1,5 +1,5 @@
 <template>
-    <component :is="layout">
+    <ArtisanLayout>
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Abonnement Premium</h1>
             <p class="text-sm text-gray-400 mt-1">Accédez aux fonctionnalités avancées d'UpcycleConnect</p>
@@ -74,24 +74,16 @@
                 </div>
             </div>
         </div>
-    </component>
+    </ArtisanLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
-import SalarieLayout from '@/Layouts/SalarieLayout.vue'
 import api from '@/api.js'
 
-const auth = useAuthStore()
 const route = useRoute()
-
-const layout = computed(() => {
-    if (auth.roles?.includes('salarie')) return SalarieLayout
-    return ArtisanLayout
-})
 
 const plans = ref([])
 const subscription = ref(null)

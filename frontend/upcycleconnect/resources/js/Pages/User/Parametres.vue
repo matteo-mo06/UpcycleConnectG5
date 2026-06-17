@@ -285,7 +285,7 @@
                             class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
                             {{ portalLoading ? 'Chargement…' : 'Gérer mon abonnement' }}
                         </button>
-                        <router-link v-else to="/abonnement"
+                        <router-link v-else to="/artisan/abonnement"
                             class="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors">
                             Passer Premium
                         </router-link>

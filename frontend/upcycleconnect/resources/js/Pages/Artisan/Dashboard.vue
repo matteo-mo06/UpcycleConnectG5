@@ -32,7 +32,7 @@
                     <div class="bg-white rounded-2xl shadow-lg px-6 py-4 text-center border border-primary/20">
                         <p class="font-semibold text-gray-800 text-sm mb-1">Statistiques avancées</p>
                         <p class="text-xs text-gray-500 mb-3">Disponibles avec l'abonnement Premium</p>
-                        <RouterLink to="/abonnement"
+                        <RouterLink to="/artisan/abonnement"
                             class="inline-block px-4 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-dark transition-colors">
                             Passer Premium
                         </RouterLink>
