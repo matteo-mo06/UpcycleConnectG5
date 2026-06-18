@@ -40,12 +40,12 @@
                         v-if="currentStep > 0"
                         @click="prev"
                         class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                    >Précédent</button>
+                    >{{ t('accueil.tutorialNav.prev') }}</button>
                     <div v-else class="flex-1" />
                     <button
                         @click="next"
                         class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"
-                    >{{ currentStep === steps.length - 1 ? 'Terminer' : 'Suivant' }}</button>
+                    >{{ currentStep === steps.length - 1 ? t('accueil.tutorialNav.finish') : t('accueil.tutorialNav.next') }}</button>
                 </div>
             </div>
 
@@ -55,8 +55,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps({ steps: { type: Array, required: true } })
+const { t } = useI18n({ useScope: 'global' })
 const emit = defineEmits(['done'])
 
 const currentStep = ref(0)

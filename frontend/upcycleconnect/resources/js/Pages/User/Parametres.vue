@@ -333,6 +333,33 @@
                         class="font-semibold text-gray-800 mb-1"
                         style="font-family: var(--font-family-title)"
                     >
+                        Langue
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-4">
+                        Choisissez la langue d'affichage de la plateforme.
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button
+                            v-for="lang in availableLocales"
+                            :key="lang.code"
+                            @click="switchLocale(lang.code)"
+                            :class="[
+                                'px-4 py-2 rounded-xl text-sm font-medium border transition-colors',
+                                currentLocale === lang.code
+                                    ? 'bg-primary text-white border-primary'
+                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            ]"
+                        >
+                            {{ lang.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2
+                        class="font-semibold text-gray-800 mb-1"
+                        style="font-family: var(--font-family-title)"
+                    >
                         Tutoriel
                     </h2>
                     <p class="text-xs text-gray-400 mb-4">
@@ -491,12 +518,24 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter, RouterLink } from "vue-router";
+import { useI18n } from "vue-i18n";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import { useAuthStore } from "@/stores/auth.js";
 import { useOneSignal } from "@onesignal/onesignal-vue3";
 import api from "@/api.js";
 
 const oneSignal = useOneSignal();
+
+const { locale } = useI18n()
+const currentLocale = locale
+const availableLocales = [
+    { code: 'fr', label: 'Français' },
+    { code: 'en', label: 'English' },
+]
+function switchLocale(code) {
+    locale.value = code
+    localStorage.setItem('locale', code)
+}
 
 const auth = useAuthStore();
 const router = useRouter();
