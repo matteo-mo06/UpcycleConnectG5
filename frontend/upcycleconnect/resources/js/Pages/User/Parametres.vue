@@ -761,7 +761,9 @@ async function deleteAccount() {
         await api.delete("/user/account");
         auth.logout();
         router.push("/login");
-    } catch {}
+    } catch (e) {
+        alert(e.response?.data?.error ?? "Erreur lors de la suppression du compte");
+    }
     deleteLoading.value = false;
 }
 

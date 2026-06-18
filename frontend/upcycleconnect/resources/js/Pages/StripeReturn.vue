@@ -7,17 +7,17 @@
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-gray-800 mb-2" style="font-family: var(--font-family-title)">
-                Compte configuré
+                Compte Stripe configuré
             </h1>
-            <p class="text-sm text-gray-400 mb-8">
-                Votre compte de paiement Stripe a bien été configuré. Vous pouvez maintenant publier des annonces de vente.
+            <p class="text-sm text-gray-400 mb-4">
+                Votre compte de paiement a bien été configuré. Vous pouvez fermer cet onglet — votre annonce va être publiée automatiquement.
             </p>
-            <RouterLink
-                to="/accueil"
+            <p class="text-xs text-gray-300 mb-8">Si la publication ne se lance pas automatiquement, retournez dans UpcycleConnect et cliquez à nouveau sur "Publier".</p>
+            <button onclick="window.close()"
                 class="px-5 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
             >
-                Retour à l'accueil
-            </RouterLink>
+                Fermer cet onglet
+            </button>
         </div>
     </div>
 </template>

@@ -175,15 +175,30 @@
             </div>
 
             <div class="px-6 py-4 border-t border-gray-100 flex-shrink-0 space-y-3">
-                <p v-if="limits && !limits.is_premium" class="text-xs text-gray-400 text-center">
+                <div v-if="stripeWaiting" class="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        <div class="flex-1 text-sm">
+                            <p class="font-medium text-blue-700">Configuration Stripe en cours…</p>
+                            <p class="text-xs text-blue-500 mt-0.5">Complétez votre compte dans l'onglet Stripe qui vient de s'ouvrir. L'annonce sera publiée automatiquement une fois validée.</p>
+                            <button @click="cancelStripeWait" class="mt-1.5 text-xs text-blue-400 underline hover:text-blue-600">Annuler</button>
+                        </div>
+                    </div>
+                </div>
+                <p v-if="limits && !limits.is_premium && !stripeWaiting" class="text-xs text-gray-400 text-center">
                     {{ limits.announcements.used }}/{{ limits.announcements.max }} annonces publiées
                 </p>
                 <button
                     @click="submit"
-                    :disabled="loading"
+                    :disabled="loading || stripeWaiting"
                     class="w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                    {{ loading ? 'Publication…' : 'Publier' }}
+                    <span v-if="stripeWaiting">En attente de Stripe…</span>
+                    <span v-else-if="loading">Publication…</span>
+                    <span v-else>Publier</span>
                 </button>
             </div>
 
@@ -192,7 +207,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
@@ -206,6 +221,16 @@ const emit = defineEmits(['update:modelValue', 'created'])
 const loading = ref(false)
 const error = ref('')
 const premiumError = ref(false)
+const stripeWaiting = ref(false)
+let stripeInterval = null
+
+function cancelStripeWait() {
+    if (stripeInterval) { clearInterval(stripeInterval); stripeInterval = null }
+    stripeWaiting.value = false
+}
+
+onUnmounted(() => { if (stripeInterval) { clearInterval(stripeInterval); stripeInterval = null } })
+
 const limits = ref(null)
 const photos = ref([])
 const categories = ref([])
@@ -235,7 +260,10 @@ const conditions = [
 ]
 
 function close() {
-    if (!loading.value) emit('update:modelValue', false)
+    if (!loading.value) {
+        cancelStripeWait()
+        emit('update:modelValue', false)
+    }
 }
 
 function handleFileSelect(e) {
@@ -270,8 +298,25 @@ async function uploadPhotos() {
     return urls
 }
 
+async function publishAnnouncement() {
+    loading.value = true
+    try {
+        const photoURLs = photos.value.length ? await uploadPhotos() : []
+        await api.post('/announcements', { ...form, photo_urls: photoURLs })
+        emit('created')
+        emit('update:modelValue', false)
+        resetForm()
+    } catch (e) {
+        premiumError.value = e.response?.status === 403
+        error.value = e.response?.data?.error ?? 'Une erreur est survenue.'
+    } finally {
+        loading.value = false
+    }
+}
+
 async function submit() {
     error.value = ''
+    premiumError.value = false
     if (!form.title.trim()) { error.value = 'Le titre est requis.'; return }
     if (!form.id_category) { error.value = 'La catégorie est requise.'; return }
     if (!form.availability_date) { error.value = 'La date de disponibilité est requise.'; return }
@@ -282,7 +327,28 @@ async function submit() {
             const { data } = await api.get('/user/stripe/connect/status')
             if (!data.connected) {
                 const { data: link } = await api.post('/user/stripe/connect/onboarding')
-                window.location.href = link.url
+                window.open(link.url, '_blank')
+                stripeWaiting.value = true
+                let attempts = 0
+                stripeInterval = setInterval(async () => {
+                    attempts++
+                    try {
+                        const { data: status } = await api.get('/user/stripe/connect/status')
+                        if (status.connected && status.charges_enabled) {
+                            clearInterval(stripeInterval)
+                            stripeInterval = null
+                            stripeWaiting.value = false
+                            await publishAnnouncement()
+                            return
+                        }
+                    } catch {}
+                    if (attempts >= 60) {
+                        clearInterval(stripeInterval)
+                        stripeInterval = null
+                        stripeWaiting.value = false
+                        error.value = "La configuration Stripe n'a pas été complétée. Fermez l'onglet Stripe et réessayez."
+                    }
+                }, 3000)
                 return
             }
             if (!data.charges_enabled) {
@@ -299,22 +365,7 @@ async function submit() {
         }
     }
 
-    loading.value = true
-    try {
-        const photoURLs = photos.value.length ? await uploadPhotos() : []
-        await api.post('/announcements', {
-            ...form,
-            photo_urls: photoURLs,
-        })
-        emit('created')
-        emit('update:modelValue', false)
-        resetForm()
-    } catch (e) {
-        premiumError.value = e.response?.status === 403
-        error.value = e.response?.data?.error ?? 'Une erreur est survenue.'
-    } finally {
-        loading.value = false
-    }
+    await publishAnnouncement()
 }
 
 onMounted(async () => {

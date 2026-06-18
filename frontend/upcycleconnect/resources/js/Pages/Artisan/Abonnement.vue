@@ -35,7 +35,7 @@
             {{ cancelledMsg }}
         </div>
 
-        <div v-if="!subscription" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <div v-if="!subscription && !polling" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <div v-for="plan in plans" :key="plan.id"
                 class="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4 border border-gray-100 hover:border-primary/30 transition-colors">
                 <div>
@@ -89,6 +89,7 @@ const plans = ref([])
 const subscription = ref(null)
 const checkoutLoading = ref(null)
 const portalLoading = ref(false)
+const polling = ref(false)
 
 const successMsg = computed(() => route.query.success ? 'Votre abonnement a été activé avec succès !' : '')
 const cancelledMsg = computed(() => route.query.cancelled ? 'Paiement annulé. Votre abonnement n\'a pas été modifié.' : '')
@@ -161,5 +162,18 @@ onMounted(async () => {
     ])
     plans.value = (plansRes.data ?? []).filter(p => p.is_active)
     subscription.value = subRes.data?.active ? subRes.data.subscription : null
+
+    if (route.query.success && !subscription.value) {
+        polling.value = true
+        for (let i = 0; i < 5; i++) {
+            await new Promise(r => setTimeout(r, 2000))
+            const res = await api.get('/user/subscription').catch(() => ({ data: {} }))
+            if (res.data?.active) {
+                subscription.value = res.data.subscription
+                break
+            }
+        }
+        polling.value = false
+    }
 })
 </script>

@@ -249,7 +249,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
@@ -284,6 +284,15 @@ async function fetchAnnouncements() {
         loading.value = false
     }
 }
+
+async function silentFetch() {
+    try {
+        const { data } = await api.get('/user/announcements')
+        announcements.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch {}
+}
+
+let pollInterval = null
 
 async function openDetail(a) {
     selected.value = a
@@ -388,5 +397,10 @@ onMounted(() => {
         showCreate.value = true
         router.replace({ query: { ...route.query, publish: undefined } })
     }
+    pollInterval = setInterval(silentFetch, 2000)
+})
+
+onUnmounted(() => {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
 })
 </script>

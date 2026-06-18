@@ -437,9 +437,10 @@ async function fetchAnnouncements(silent = false) {
             announcements.value = data.data ?? []
             total.value = data.total ?? 0
         }
-    } catch {
+    } catch (e) {
         announcements.value = []
         total.value = 0
+        alert(e.response?.data?.error ?? 'Erreur lors du chargement des annonces.')
     } finally {
         loading.value = false
     }

@@ -329,6 +329,7 @@ async function submitRegister() {
             password_user: registerForm.value.password,
             first_name: registerForm.value.first_name,
             last_name: registerForm.value.last_name,
+            profile: 'particulier',
         })
         registerSuccess.value = 'Compte créé ! Vous pouvez vous connecter.'
         registerForm.value = { first_name: '', last_name: '', email: '', password: '', password_confirm: '' }

@@ -507,8 +507,9 @@ func GetMyInvoices(w http.ResponseWriter, r *http.Request) {
 	const perPage = 5
 
 	client := stripe.NewClient(config.StripeSecretKey())
-	result := client.V1Invoices.List(context.Background(), &stripe.InvoiceListParams{
-		Customer: stripe.String(customerID),
+	list := client.V1Invoices.List(context.Background(), &stripe.InvoiceListParams{
+		ListParams: stripe.ListParams{Limit: stripe.Int64(100)},
+		Customer:   stripe.String(customerID),
 	})
 
 	type invoiceItem struct {
@@ -522,20 +523,23 @@ func GetMyInvoices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var all []invoiceItem
-	for _, inv := range result.Data() {
-			item := invoiceItem{
-				ID:       inv.ID,
-				Date:     time.Unix(inv.Created, 0).UTC().Format("2006-01-02"),
-				Amount:   inv.AmountPaid,
-				Currency: string(inv.Currency),
-				Status:   string(inv.Status),
-			}
-			if inv.InvoicePDF != "" {
-				item.PDFURL = inv.InvoicePDF
-			}
-			if inv.HostedInvoiceURL != "" {
-				item.HostedURL = inv.HostedInvoiceURL
-			}
+	for inv, err := range list.All(context.Background()) {
+		if err != nil {
+			break
+		}
+		item := invoiceItem{
+			ID:       inv.ID,
+			Date:     time.Unix(inv.Created, 0).UTC().Format("2006-01-02"),
+			Amount:   inv.AmountPaid,
+			Currency: string(inv.Currency),
+			Status:   string(inv.Status),
+		}
+		if inv.InvoicePDF != "" {
+			item.PDFURL = inv.InvoicePDF
+		}
+		if inv.HostedInvoiceURL != "" {
+			item.HostedURL = inv.HostedInvoiceURL
+		}
 		all = append(all, item)
 	}
 

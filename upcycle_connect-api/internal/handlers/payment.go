@@ -216,6 +216,8 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 				subID := uuid.New().String()
 				if err := db.CreateSubscriptionRecord(subID, stripeSubID, customerID, planID, userID); err != nil {
 					fmt.Println("CreateSubscriptionRecord error:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
 				}
 			}
 		}
@@ -233,8 +235,12 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			t := time.Unix(sub.CancelAt, 0).UTC().Format("2006-01-02 15:04:05")
 			endStr = &t
 		}
-		cancelled := sub.Status == "canceled" || sub.CancelAtPeriodEnd
-		_ = db.UpdateSubscriptionByStripeID(sub.ID, endStr, cancelled)
+		cancelled := sub.Status == "canceled"
+		if err := db.UpdateSubscriptionByStripeID(sub.ID, endStr, cancelled); err != nil {
+			fmt.Println("UpdateSubscriptionByStripeID (updated) error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		return
 
@@ -249,7 +255,11 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			t := time.Unix(sub.EndedAt, 0).UTC().Format("2006-01-02 15:04:05")
 			endStr = &t
 		}
-		_ = db.UpdateSubscriptionByStripeID(sub.ID, endStr, true)
+		if err := db.UpdateSubscriptionByStripeID(sub.ID, endStr, true); err != nil {
+			fmt.Println("UpdateSubscriptionByStripeID (deleted) error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -269,6 +279,8 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		if formationID != "" {
 			if err := db.RegisterUserForFormation(buyerID, formationID); err != nil {
 				fmt.Println("RegisterUserForFormation (webhook) error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 		}
 
@@ -282,6 +294,8 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			commissionCents, _ := strconv.Atoi(pi.Metadata["commission_cents"])
 			if err := db.StorePayment(pi.ID, announcementID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount), commissionCents); err != nil {
 				fmt.Println("StorePayment error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			go generateAndStoreInvoice(pi.ID, announcementID, buyerID, pi.Amount, int64(commissionCents), pi.Created)

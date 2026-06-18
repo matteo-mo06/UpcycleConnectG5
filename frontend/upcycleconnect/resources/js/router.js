@@ -58,6 +58,15 @@ const router = createRouter({
     routes: [
         { path: '/', redirect: '/accueil' },
         { path: '/login', component: Login },
+        {
+            path: '/abonnement',
+            redirect: to => {
+                const auth = useAuthStore()
+                if (auth.isArtisan) return { path: '/artisan/abonnement', query: to.query }
+                if (auth.isSalarie) return { path: '/salarie/abonnement', query: to.query }
+                return '/accueil'
+            },
+        },
 
         { path: '/cgu', component: CGU },
         { path: '/politique-confidentialite', component: PolitiqueConfidentialite },
@@ -120,7 +129,7 @@ const router = createRouter({
 router.beforeEach((to) => {
     const auth = useAuthStore()
 
-    if (to.meta.requiresAdmin && !auth.isAdmin) return '/login'
+    if (to.meta.requiresAdmin && !auth.isAdmin) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresArtisan && !auth.isArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresSalarie && !auth.isSalarie) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'

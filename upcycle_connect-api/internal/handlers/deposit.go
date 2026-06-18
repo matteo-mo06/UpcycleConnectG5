@@ -14,23 +14,25 @@ import (
 )
 
 func GetMyDepositRequests(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	list, err := db.GetUserDepositRequests(userID)
 	if err != nil {
-		http.Error(w, "GetUserDepositRequests error: "+err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(list)
 }
 
 func GetPendingDepositRequests(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	list, err := db.GetPendingDepositRequests()
 	if err != nil {
-		http.Error(w, "GetPendingDepositRequests error: "+err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(list)
 }
 
@@ -135,6 +137,9 @@ func CancelDepositRequest(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.UnassignLocker(announcementID); err != nil {
 		fmt.Println("CancelDepositRequest UnassignLocker error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
 	}
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -145,10 +150,12 @@ func CancelDepositRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	announcementID := r.PathValue("id")
 
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
-		http.Error(w, "ValidateDepositRequest error: "+err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -162,13 +169,15 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func RejectDepositRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	announcementID := r.PathValue("id")
 
 	if err := db.UnassignLocker(announcementID); err != nil {
 		fmt.Println("RejectDepositRequest UnassignLocker error:", err)
 	}
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
-		http.Error(w, "RejectDepositRequest error: "+err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
