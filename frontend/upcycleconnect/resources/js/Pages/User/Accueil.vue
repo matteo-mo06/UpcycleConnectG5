@@ -64,7 +64,7 @@
                 <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
                 <div class="grid grid-cols-2 gap-3">
                     <button
-                        @click="showDepot = true"
+                        @click="router.push('/annonces?tab=mine')"
                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-primary text-white hover:bg-primary-dark transition-colors min-h-24"
                     >
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -74,7 +74,7 @@
                     </button>
 
                     <button
-                        @click="showDepot = true"
+                        @click="router.push('/annonces?publish=1')"
                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary text-primary hover:bg-primary/5 transition-colors min-h-24"
                     >
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -132,7 +132,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import OnboardingTutorial from '@/Components/OnboardingTutorial.vue'
@@ -140,6 +140,7 @@ import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
 const auth = useAuthStore()
+const router = useRouter()
 const showDepot = ref(false)
 const showTutorial = ref(false)
 const featuredAnnounces = ref([])

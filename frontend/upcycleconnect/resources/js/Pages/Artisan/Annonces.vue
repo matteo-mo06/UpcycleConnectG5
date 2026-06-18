@@ -250,6 +250,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import api from '@/api.js'
@@ -258,6 +259,8 @@ import { formatDate, conditionLabel } from '@/utils.js'
 const announcements = ref([])
 const categories = ref([])
 const loading = ref(true)
+const route = useRoute()
+const router = useRouter()
 const showCreate = ref(false)
 const selected = ref(null)
 const selectedPhotos = ref([])
@@ -379,5 +382,11 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => Promise.all([fetchAnnouncements(), fetchCategories()]))
+onMounted(() => {
+    Promise.all([fetchAnnouncements(), fetchCategories()])
+    if (route.query.publish === '1') {
+        showCreate.value = true
+        router.replace({ query: { ...route.query, publish: undefined } })
+    }
+})
 </script>

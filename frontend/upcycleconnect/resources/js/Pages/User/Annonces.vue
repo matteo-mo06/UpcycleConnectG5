@@ -626,6 +626,12 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => fetchCategories())
+onMounted(() => {
+    fetchCategories()
+    if (route.query.publish === '1') {
+        showDepot.value = true
+        router.replace({ query: { ...route.query, publish: undefined } })
+    }
+})
 usePolling(fetchAnnouncements, 2000, () => activeTab.value !== 'mine')
 </script>
