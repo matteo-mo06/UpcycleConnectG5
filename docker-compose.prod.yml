@@ -1,7 +1,9 @@
 services:
 
   backend:
-    build: ./upcycle_connect-api
+    build:
+      context: ./upcycle_connect-api
+      network: host
     container_name: upcycle-api
     env_file: ./upcycle_connect-api/.env
     volumes:
@@ -13,6 +15,7 @@ services:
     build:
       context: .
       dockerfile: docker/nginx/Dockerfile
+      network: host
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY}
