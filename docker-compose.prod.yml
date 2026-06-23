@@ -4,10 +4,9 @@ services:
     build: ./upcycle_connect-api
     container_name: upcycle-api
     env_file: ./upcycle_connect-api/.env
-    ports:
-      - "8084:8084"
     volumes:
       - ${UPLOADS_HOST_PATH}:/app/uploads
+      - ${INVOICES_HOST_PATH}:/app/invoices
     restart: unless-stopped
 
   nginx:
@@ -15,8 +14,9 @@ services:
       context: .
       dockerfile: docker/nginx/Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-}
-        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-}
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY}
+        VITE_ONESIGNAL_APP_ID: ${VITE_ONESIGNAL_APP_ID}
     container_name: upcycle-nginx
     ports:
       - "80:80"

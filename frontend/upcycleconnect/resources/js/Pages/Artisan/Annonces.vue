@@ -376,9 +376,8 @@ async function deleteAnnouncement() {
 
 async function requestDeposit(a) {
     try {
-        const { data } = await api.post(`/announcements/${a.id}/deposit-request`)
+        await api.post(`/announcements/${a.id}/deposit-request`)
         a.request = 1
-        if (data?.locker_number) a.locker_number = data.locker_number
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de la demande de dépôt.')
     }

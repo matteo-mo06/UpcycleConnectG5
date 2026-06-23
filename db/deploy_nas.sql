@@ -602,6 +602,144 @@ ALTER TABLE `user` ADD COLUMN `tutorial_done` TINYINT(1) NOT NULL DEFAULT 0;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
+-- Migration 000012 : chemin de facture sur announcement
+-- ============================================================
+
+ALTER TABLE `announcement` ADD COLUMN `invoice_path` VARCHAR(512) NULL DEFAULT NULL;
+
+-- ============================================================
+-- Migration 000013 : revenus plateforme
+-- ============================================================
+
+CREATE TABLE `platform_settings` (
+  `key_setting`   varchar(100) NOT NULL,
+  `value_setting` varchar(255) NOT NULL,
+  `updated_at`    datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`key_setting`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `platform_settings` (`key_setting`, `value_setting`) VALUES ('commission_rate', '5.00');
+
+ALTER TABLE `payement`
+  ADD COLUMN `announcement_id`         char(36) DEFAULT NULL,
+  ADD COLUMN `buyer_id`                char(36) DEFAULT NULL,
+  ADD COLUMN `commission_amount_cents`  int NOT NULL DEFAULT 0;
+
+-- ============================================================
+-- Migration 000014 : identifiant OneSignal utilisateur
+-- ============================================================
+
+ALTER TABLE `user` ADD COLUMN `onesignal_player_id` varchar(255) DEFAULT NULL;
+
+-- ============================================================
+-- Migration 000015 : schema conseil
+-- ============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE `advice`
+  ADD COLUMN `description` text DEFAULT NULL,
+  ADD COLUMN `id_creator`  char(36) DEFAULT NULL,
+  ADD COLUMN `created_at`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD CONSTRAINT `fk_advice_creator` FOREIGN KEY (`id_creator`) REFERENCES `user` (`id_user`);
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- Migration 000016 : categorie sur conseil
+-- ============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE `advice`
+  DROP COLUMN `tag`,
+  ADD COLUMN `id_category` char(36) DEFAULT NULL,
+  ADD CONSTRAINT `fk_advice_category` FOREIGN KEY (`id_category`) REFERENCES `category` (`id_category`);
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- Migration 000017 : materiaux et etapes de projet
+-- ============================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE `project_material` (
+  `id_material` char(36)      NOT NULL,
+  `id_project`  char(36)      NOT NULL,
+  `name`        varchar(255)  NOT NULL,
+  `quantity`    decimal(10,2) NOT NULL DEFAULT 0,
+  `unit`        varchar(50)   DEFAULT NULL,
+  PRIMARY KEY (`id_material`),
+  KEY `fk_material_project` (`id_project`),
+  CONSTRAINT `fk_material_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `project_step` (
+  `id_step`     char(36)     NOT NULL,
+  `id_project`  char(36)     NOT NULL,
+  `title`       varchar(255) NOT NULL,
+  `description` text         DEFAULT NULL,
+  `status`      varchar(20)  NOT NULL DEFAULT 'todo',
+  `step_order`  int          NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id_step`),
+  KEY `fk_step_project` (`id_project`),
+  CONSTRAINT `fk_step_project` FOREIGN KEY (`id_project`) REFERENCES `project` (`id_project`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- Migration 000018 : compte Stripe Connect utilisateur
+-- ============================================================
+
+ALTER TABLE `user` ADD COLUMN `stripe_account_id` varchar(255) DEFAULT NULL;
+
+-- ============================================================
+-- Migration 000019 : prix formation
+-- ============================================================
+
+ALTER TABLE `formation` ADD COLUMN `price` DECIMAL(10,2) DEFAULT NULL;
+
+-- ============================================================
+-- Migration 000020 : abonnement Stripe
+-- ============================================================
+
+ALTER TABLE `subscription_plans`
+  ADD COLUMN `name`            varchar(100) NOT NULL DEFAULT '' AFTER `id_plan`,
+  ADD COLUMN `stripe_price_id` varchar(100) DEFAULT NULL;
+
+ALTER TABLE `subscription`
+  ADD COLUMN `stripe_subscription_id` varchar(100) DEFAULT NULL,
+  ADD COLUMN `stripe_customer_id`      varchar(100) DEFAULT NULL;
+
+INSERT INTO `subscription_plans` (`id_plan`, `name`, `price_cents`, `interval_unit`, `interval_count`, `is_active`, `stripe_price_id`)
+VALUES (UUID(), 'Abonnement Mensuel', 1500, 'month', 1, 1, NULL);
+
+-- ============================================================
+-- Migration 000021 : produit Stripe sur plan d'abonnement
+-- ============================================================
+
+ALTER TABLE `subscription_plans` ADD COLUMN `stripe_product_id` varchar(100) DEFAULT NULL;
+
+-- ============================================================
+-- Migration 000022 : nettoyage plan d'abonnement unique
+-- ============================================================
+
+DELETE FROM `subscription_plans` WHERE `name` != 'Abonnement Mensuel';
+UPDATE `subscription_plans` SET `name` = 'Abonnement Mensuel' WHERE `name` = 'Premium Mensuel';
+
+-- ============================================================
+-- Migration 000023 : compteur d'annonces utilisateur
+-- ============================================================
+
+ALTER TABLE `user` ADD COLUMN `announcement_count` INT NOT NULL DEFAULT 0;
+
+UPDATE `user` u SET `announcement_count` = (
+  SELECT COUNT(*) FROM `user_announcement` WHERE `id_user` = u.`id_user`
+);
+
+-- ============================================================
 -- Table de suivi golang-migrate
 -- Indique que toutes les migrations ont ete appliquees.
 -- Sans cette table, le backend tenterait de re-executer
@@ -614,4 +752,4 @@ CREATE TABLE IF NOT EXISTS `schema_migrations` (
   PRIMARY KEY (`version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (11, 0);
+INSERT INTO `schema_migrations` (`version`, `dirty`) VALUES (23, 0);

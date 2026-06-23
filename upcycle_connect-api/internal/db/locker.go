@@ -99,7 +99,7 @@ func GetPendingDepositRequests() ([]models.Announcement, error) {
 		LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		LEFT JOIN USER u ON u.id_user = ua.id_user
 		LEFT JOIN ANNOUNCEMENT_LOCKER al ON al.id_announcement = a.id_announcement
-		WHERE a.request = 1 AND al.id_locker IS NOT NULL
+		WHERE a.request = 1
 		ORDER BY a.availability_date ASC`)
 	if err != nil {
 		return nil, err

@@ -69,53 +69,30 @@ func CreateDepositRequest(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "seules les annonces vendues peuvent faire l'objet d'une demande de dépôt"})
 		return
 	}
+	if ann.Request == 1 {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "une demande de dépôt est déjà en cours"})
+		return
+	}
 
-	assigned, err := db.IsLockerAssigned(announcementID)
-	if err != nil {
+	if _, err := db.GetAvailableLocker(); errors.Is(err, sql.ErrNoRows) {
+		w.WriteHeader(http.StatusConflict)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Aucun casier disponible pour le moment. Veuillez réessayer ultérieurement."})
+		return
+	} else if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
 		return
 	}
-	if assigned {
-		w.WriteHeader(http.StatusConflict)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "un casier est déjà assigné à cette annonce"})
-		return
-	}
-
-	accessCode, err := generateAccessCode()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to generate access code"})
-		return
-	}
-
-	locker, err := db.ReserveLocker(announcementID, accessCode)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"error": "Aucun casier disponible pour le moment. Veuillez réessayer ultérieurement.",
-			})
-			return
-		}
-		fmt.Println("ReserveLocker error:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la réservation du casier"})
-		return
-	}
 
 	if err := db.SetDepositRequest(announcementID, 1); err != nil {
-		_ = db.UnassignLocker(announcementID)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création de la demande"})
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"message":       "casier réservé",
-		"locker_number": locker.Number,
-	})
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande de dépôt créée, en attente de validation"})
 }
 
 func CancelDepositRequest(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +130,28 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	announcementID := r.PathValue("id")
 
+	accessCode, err := generateAccessCode()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to generate access code"})
+		return
+	}
+
+	locker, err := db.ReserveLocker(announcementID, accessCode)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucun casier disponible"})
+			return
+		}
+		fmt.Println("ReserveLocker error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de l'assignation du casier"})
+		return
+	}
+
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
+		_ = db.UnassignLocker(announcementID)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
@@ -163,8 +161,13 @@ func ValidateDepositRequest(w http.ResponseWriter, r *http.Request) {
 		if err := db.AwardScore(ownerID, "deposit_validated", announcementID); err != nil {
 			fmt.Println("AwardScore deposit_validated error:", err)
 		}
-		go utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Dépôt validé", "Votre demande de dépôt a été validée. Vous pouvez déposer votre objet dans le casier.")
+		go utils.SendPushNotification(db.GetOnesignalPlayerID(ownerID), "Dépôt validé", fmt.Sprintf("Votre demande de dépôt a été validée. Déposez votre objet dans le casier n°%d.", locker.Number))
 	}
+
+	if buyerID, err := db.GetAnnouncementBuyerID(announcementID); err == nil && buyerID != "" {
+		go utils.SendPushNotification(db.GetOnesignalPlayerID(buyerID), "Casier assigné", fmt.Sprintf("L'objet que vous avez acheté sera déposé dans le casier n°%d. Code d'accès : %s", locker.Number, accessCode))
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -172,9 +175,6 @@ func RejectDepositRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	announcementID := r.PathValue("id")
 
-	if err := db.UnassignLocker(announcementID); err != nil {
-		fmt.Println("RejectDepositRequest UnassignLocker error:", err)
-	}
 	if err := db.SetDepositRequest(announcementID, 0); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
