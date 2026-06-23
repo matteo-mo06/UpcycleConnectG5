@@ -14,6 +14,9 @@ export const useAuthStore = defineStore("auth", () => {
     const isArtisan = computed(
         () => user.value?.roles?.includes("artisan") ?? false,
     );
+    const isSalarie = computed(
+        () => user.value?.roles?.includes("salarie") ?? false,
+    );
 
     async function login(email, password) {
         const { data } = await api.post("/auth/login", {
@@ -67,7 +70,6 @@ export const useAuthStore = defineStore("auth", () => {
                 await api.post("/user/onesignal-player-id", { player_id: playerId });
             }
         } catch {
-            // notifications déclinées ou navigateur non supporté — non bloquant
         }
     }
 
@@ -84,6 +86,7 @@ export const useAuthStore = defineStore("auth", () => {
         isLoggedIn,
         isAdmin,
         isArtisan,
+        isSalarie,
         hasPermission,
         login,
         logout,

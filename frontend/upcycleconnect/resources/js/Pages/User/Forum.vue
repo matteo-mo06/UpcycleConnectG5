@@ -234,7 +234,7 @@
         </div>
 
         <div
-            v-if="openedTopic || openedTopicLoading"
+            v-if="openedTopic || openedTopicLoading || openedTopicError"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
             @click.self="closeTopic"
         >
@@ -335,6 +335,12 @@
                         class="text-center text-gray-400 text-sm py-6"
                     >
                         Chargement…
+                    </div>
+                    <div
+                        v-else-if="openedTopicError"
+                        class="text-center text-red-400 text-sm py-6"
+                    >
+                        {{ openedTopicError }}
                     </div>
 
                     <template v-else-if="openedTopic">
@@ -629,7 +635,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
+import { usePolling } from "@/composables/usePolling.js";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 import ReportModal from "@/Components/ReportModal.vue";
@@ -654,6 +661,7 @@ const topicError = ref("");
 
 const openedTopic = ref(null);
 const openedTopicLoading = ref(false);
+const openedTopicError = ref("");
 const replyBody = ref("");
 const replyLoading = ref(false);
 const replyingTo = ref(null);
@@ -675,22 +683,14 @@ const canEditTopic = computed(() => {
 });
 const canDeleteTopic = computed(() => {
     if (!openedTopic.value) return false;
-    return (
-        openedTopic.value.id_author === auth.user?.id ||
-        auth.isAdmin ||
-        auth.hasPermission("moderate_forum")
-    );
+    return openedTopic.value.id_author === auth.user?.id;
 });
 
 function canEditPost(post) {
     return post.id_author === auth.user?.id || auth.isAdmin;
 }
 function canDeletePost(post) {
-    return (
-        post.id_author === auth.user?.id ||
-        auth.isAdmin ||
-        auth.hasPermission("moderate_forum")
-    );
+    return post.id_author === auth.user?.id;
 }
 function canReportContent(authorId) {
     return authorId !== auth.user?.id;
@@ -738,6 +738,7 @@ async function fetchTopics() {
 
 async function openTopic(topic) {
     openedTopic.value = null;
+    openedTopicError.value = "";
     replyBody.value = "";
     replyingTo.value = null;
     openedTopicLoading.value = true;
@@ -745,6 +746,7 @@ async function openTopic(topic) {
         const { data } = await api.get(`/forum/topics/${topic.id}`);
         openedTopic.value = data;
     } catch {
+        openedTopicError.value = "Impossible de charger ce sujet.";
     } finally {
         openedTopicLoading.value = false;
     }
@@ -753,6 +755,7 @@ async function openTopic(topic) {
 function closeTopic() {
     openedTopic.value = null;
     openedTopicLoading.value = false;
+    openedTopicError.value = "";
     replyingTo.value = null;
     replyBody.value = "";
     editTopic.value = false;
@@ -877,5 +880,5 @@ async function submitReply() {
 
 watch(page, fetchTopics);
 
-onMounted(fetchTopics);
+usePolling(fetchTopics, 2000, () => !openedTopic.value);
 </script>

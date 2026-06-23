@@ -3,7 +3,7 @@ CREATE TABLE `score_action` (
   `points`      int         NOT NULL,
   `description` varchar(255) NOT NULL,
   PRIMARY KEY (`action_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 CREATE TABLE `score_log` (
   `id`           char(36)    NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE `score_log` (
   KEY `fk_score_log_action` (`action_type`),
   CONSTRAINT `fk_score_log_user`   FOREIGN KEY (`id_user`)     REFERENCES `user`         (`id_user`),
   CONSTRAINT `fk_score_log_action` FOREIGN KEY (`action_type`) REFERENCES `score_action` (`action_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 INSERT INTO `score_action` (`action_type`, `points`, `description`) VALUES
   ('project_created', 50, 'Création d''un projet collectif'),

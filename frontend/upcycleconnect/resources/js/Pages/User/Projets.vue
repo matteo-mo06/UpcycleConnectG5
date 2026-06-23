@@ -12,63 +12,6 @@
                     Rejoignez des projets collaboratifs d'upcycling
                 </p>
             </div>
-            <button
-                v-if="canCreate"
-                @click="openCreate"
-                class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
-            >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                </svg>
-                Créer un projet
-            </button>
-        </div>
-
-        <div v-if="canCreate && myCreated.length > 0" class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <h2 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">
-                Mes projets créés
-            </h2>
-            <div class="space-y-3">
-                <div
-                    v-for="p in myCreated"
-                    :key="p.id"
-                    class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors"
-                >
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="font-medium text-gray-800 truncate">{{ p.title }}</span>
-                            <span :class="statusClass(p.status)" class="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0">
-                                {{ statusLabel(p.status) }}
-                            </span>
-                        </div>
-                        <p v-if="p.status === 'rejected' && p.rejection_reason" class="text-xs text-red-500 mt-0.5">
-                            Raison : {{ p.rejection_reason }}
-                        </p>
-                        <p class="text-xs text-gray-400">{{ p.members_count }} membre(s)</p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                        <button
-                            v-if="p.status === 'pending' || p.status === 'rejected'"
-                            @click="openEdit(p)"
-                            class="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                            title="Modifier"
-                        >
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                        </button>
-                        <button
-                            @click="confirmDelete(p)"
-                            class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Supprimer"
-                        >
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="flex gap-3 mb-6">
@@ -163,22 +106,12 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
             @click.self="selected = null"
         >
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
                     <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ selected.title }}
                     </h2>
                     <div class="flex items-center gap-1">
-                        <button
-                            v-if="canDeleteProject(selected)"
-                            @click="confirmDelete(selected); selected = null"
-                            title="Supprimer le projet"
-                            class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        >
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
                         <button
                             v-if="canReportProject(selected)"
                             @click="openReport(selected)"
@@ -199,7 +132,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div v-if="selected.start_date">
                             <p class="text-xs text-gray-400 mb-0.5">Début</p>
@@ -235,8 +168,50 @@
                         </svg>
                         <p class="text-sm text-secondary font-medium">Vous êtes membre de ce projet</p>
                     </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Matériaux</p>
+                        <p v-if="materials.length === 0" class="text-xs text-gray-400">Aucun matériau renseigné.</p>
+                        <table v-else class="w-full text-xs">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-100">
+                                    <th class="text-left pb-1 font-medium">Nom</th>
+                                    <th class="text-right pb-1 font-medium">Qté</th>
+                                    <th class="text-left pb-1 font-medium pl-2">Unité</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in materials" :key="m.id" class="border-b border-gray-50 last:border-0">
+                                    <td class="py-1.5 pr-2 text-gray-700">{{ m.name }}</td>
+                                    <td class="py-1.5 text-right text-gray-600">{{ m.quantity }}</td>
+                                    <td class="py-1.5 pl-2 text-gray-500">{{ m.unit ?? '-' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Étapes</p>
+                        <p v-if="steps.length === 0" class="text-xs text-gray-400">Aucune étape renseignée.</p>
+                        <div v-else class="space-y-1">
+                            <div v-for="s in steps" :key="s.id" class="flex items-center gap-2 py-1.5 px-2 rounded-lg">
+                                <span
+                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                    :class="{ 'border-gray-300 text-gray-300': s.status === 'todo', 'border-primary text-primary': s.status === 'in_progress', 'border-secondary bg-secondary text-white': s.status === 'done' }"
+                                >
+                                    <svg v-if="s.status === 'done'" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span v-else-if="s.status === 'in_progress'" class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-700 truncate" :class="{ 'line-through text-gray-400': s.status === 'done' }">{{ s.title }}</p>
+                                    <p v-if="s.description" class="text-xs text-gray-500 truncate">{{ s.description }}</p>
+                                </div>
+                                <span class="px-1.5 py-0.5 rounded text-xs flex-shrink-0" :class="{ 'bg-gray-100 text-gray-500': s.status === 'todo', 'bg-primary/10 text-primary': s.status === 'in_progress', 'bg-secondary/10 text-secondary': s.status === 'done' }">{{ stepStatusLabel(s.status) }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
                     <button
                         @click="selected = null"
                         class="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
@@ -262,84 +237,6 @@
             </div>
         </div>
 
-        <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" @click="toDelete = null"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <h3 class="font-semibold text-gray-800 mb-2">Supprimer le projet ?</h3>
-                <p class="text-sm text-gray-500 mb-5">« {{ toDelete.title }} » sera définitivement supprimé.</p>
-                <div class="flex gap-3">
-                    <button @click="toDelete = null" class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">Annuler</button>
-                    <button @click="deleteProject" :disabled="deleting" class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60">
-                        {{ deleting ? 'Suppression…' : 'Supprimer' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" @click="formModal = false"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
-                        {{ editTarget ? 'Modifier le projet' : 'Créer un projet' }}
-                    </h3>
-                    <button @click="formModal = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
-                        <input v-model="form.title" type="text"
-                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                            placeholder="Titre du projet"/>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
-                        <textarea v-model="form.description" rows="3"
-                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
-                            placeholder="Décrivez votre projet…"/>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date de début</label>
-                            <input v-model="form.start_date" type="date"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date de fin</label>
-                            <input v-model="form.end_date" type="date"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
-                            <input v-model="form.location" type="text"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                                placeholder="Adresse ou lieu"/>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
-                            <input v-model.number="form.capacity" type="number" min="1"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                                placeholder="0 = illimitée"/>
-                        </div>
-                    </div>
-                    <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
-                </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
-                    <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        Annuler
-                    </button>
-                    <button @click="submitForm" :disabled="submitting"
-                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Soumettre') }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <ReportModal
             v-model="showReport"
             content-type="project"
@@ -361,39 +258,25 @@ import { useAuthStore } from '@/stores/auth.js'
 const auth = useAuthStore()
 
 const projects = ref([])
-const myCreated = ref([])
 const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
 const search = ref('')
 const filterStatus = ref('')
 const selected = ref(null)
-const toDelete = ref(null)
-const deleting = ref(false)
-const formModal = ref(false)
-const editTarget = ref(null)
-const submitting = ref(false)
-const formError = ref('')
-const form = ref({ title: '', description: '', start_date: '', end_date: '', location: '', capacity: null })
 const showReport = ref(false)
 const reportTarget = ref(null)
+const materials = ref([])
+const steps = ref([])
 
-const canCreate = computed(() => auth.hasPermission('create_project'))
 const canRegister = computed(() => auth.hasPermission('register_project'))
 
-function canDeleteProject(p) {
-    return p.id_creator === auth.user?.id || auth.isAdmin || auth.hasPermission('moderate_projects')
-}
 function canReportProject(p) {
     return p.id_creator !== auth.user?.id
 }
 
 const publicProjects = computed(() =>
     projects.value.filter(p => ['open', 'in_progress', 'completed'].includes(p.status))
-)
-
-const filteredProjects = computed(() =>
-    publicProjects.value.filter(p => !filterStatus.value || p.status === filterStatus.value)
 )
 
 let debounceTimer = null
@@ -423,31 +306,6 @@ function isFull(p) {
 
 function openDetail(project) {
     selected.value = project
-}
-
-function openCreate() {
-    editTarget.value = null
-    form.value = { title: '', description: '', start_date: '', end_date: '', location: '', capacity: null }
-    formError.value = ''
-    formModal.value = true
-}
-
-function openEdit(p) {
-    editTarget.value = p
-    form.value = {
-        title: p.title,
-        description: p.description ?? '',
-        start_date: p.start_date ? p.start_date.slice(0, 10) : '',
-        end_date: p.end_date ? p.end_date.slice(0, 10) : '',
-        location: p.location ?? '',
-        capacity: p.capacity ?? null,
-    }
-    formError.value = ''
-    formModal.value = true
-}
-
-function confirmDelete(p) {
-    toDelete.value = p
 }
 
 function openReport(project) {
@@ -489,51 +347,6 @@ async function toggleRegistration(project) {
     }
 }
 
-async function deleteProject() {
-    if (!toDelete.value) return
-    deleting.value = true
-    try {
-        await api.delete(`/projects/${toDelete.value.id}`)
-        myCreated.value = myCreated.value.filter(p => p.id !== toDelete.value.id)
-        projects.value = projects.value.filter(p => p.id !== toDelete.value.id)
-        toDelete.value = null
-    } catch (e) {
-        alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
-    } finally {
-        deleting.value = false
-    }
-}
-
-async function submitForm() {
-    if (!form.value.title.trim()) {
-        formError.value = 'Le titre est requis.'
-        return
-    }
-    submitting.value = true
-    formError.value = ''
-    try {
-        const payload = {
-            title: form.value.title,
-            description: form.value.description || null,
-            start_date: form.value.start_date || null,
-            end_date: form.value.end_date || null,
-            location: form.value.location || null,
-            capacity: form.value.capacity || null,
-        }
-        if (editTarget.value) {
-            await api.patch(`/projects/${editTarget.value.id}`, payload)
-        } else {
-            await api.post('/projects', payload)
-        }
-        formModal.value = false
-        await fetchMyCreated()
-    } catch (e) {
-        formError.value = e.response?.data?.error ?? 'Erreur lors de l\'enregistrement.'
-    } finally {
-        submitting.value = false
-    }
-}
-
 async function fetchProjects(silent = false) {
     if (!silent) loading.value = true
     try {
@@ -548,20 +361,25 @@ async function fetchProjects(silent = false) {
     }
 }
 
-async function fetchMyCreated() {
-    if (!canCreate.value) return
-    try {
-        const { data } = await api.get('/user/my-projects')
-        myCreated.value = data ?? []
-    } catch {
-    }
+function stepStatusLabel(s) {
+    return { todo: 'À faire', in_progress: 'En cours', done: 'Fait' }[s] ?? s
 }
 
 watch(page, fetchProjects)
 
-async function fetchAll(silent = false) {
-    await Promise.all([fetchProjects(silent), fetchMyCreated()])
-}
+watch(selected, async (p) => {
+    materials.value = []
+    steps.value = []
+    if (!p) return
+    try {
+        const [mRes, sRes] = await Promise.all([
+            api.get(`/projects/${p.id}/materials`),
+            api.get(`/projects/${p.id}/steps`),
+        ])
+        materials.value = mRes.data ?? []
+        steps.value = sRes.data ?? []
+    } catch {}
+})
 
-usePolling(fetchAll)
+usePolling(fetchProjects)
 </script>

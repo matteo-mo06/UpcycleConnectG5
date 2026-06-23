@@ -6,7 +6,7 @@
             <button
                 v-if="auth.hasPermission('create_announcement')"
                 @click="showDepot = true"
-                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -97,7 +97,7 @@
                             <template v-if="activeTab === 'mine'">
                                 <span v-if="a.state === 'En attente'" class="px-2 py-0.5 bg-orange-100 text-orange-600 rounded-full text-xs font-medium">En attente de validation</span>
                                 <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Validée</span>
-                                <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium" :title="a.rejection_reason ?? ''">Refusée{{ a.rejection_reason ? ' — voir détail' : '' }}</span>
+                                <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium" :title="a.rejection_reason ?? ''">Refusée{{ a.rejection_reason ? ' - voir détail' : '' }}</span>
                                 <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
                             </template>
 
@@ -256,7 +256,6 @@
             </div>
         </div>
 
-        <!-- Modale de modification -->
         <div v-if="editModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="editModal = false"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -438,9 +437,10 @@ async function fetchAnnouncements(silent = false) {
             announcements.value = data.data ?? []
             total.value = data.total ?? 0
         }
-    } catch {
+    } catch (e) {
         announcements.value = []
         total.value = 0
+        alert(e.response?.data?.error ?? 'Erreur lors du chargement des annonces.')
     } finally {
         loading.value = false
     }
@@ -507,6 +507,10 @@ async function claimAnnouncement(a) {
         await api.post(`/announcements/${a.id}/claim`)
         announcements.value = announcements.value.filter(x => x.id !== a.id)
     } catch (e) {
+        if (e.response?.status === 403) {
+            router.push(auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
+            return
+        }
         alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')
     }
 }
@@ -623,6 +627,12 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => fetchCategories())
-usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine')
+onMounted(() => {
+    fetchCategories()
+    if (route.query.publish === '1') {
+        showDepot.value = true
+        router.replace({ query: { ...route.query, publish: undefined } })
+    }
+})
+usePolling(fetchAnnouncements, 2000, () => activeTab.value !== 'mine')
 </script>

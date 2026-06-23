@@ -10,7 +10,7 @@ import (
 func GetUserById(id string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done, announcement_count
 		FROM USER
 		WHERE id_user = ? AND deleted_at IS NULL`, id,
 	).Scan(
@@ -25,8 +25,20 @@ func GetUserById(id string) (models.User, error) {
 		&user.CreatedAt,
 		&user.AvatarUrl,
 		&user.TutorialDone,
+		&user.AnnouncementCount,
 	)
 	return user, err
+}
+
+func IncrementUserAnnouncementCount(userID string) error {
+	_, err := config.Conn.Exec(`UPDATE USER SET announcement_count = announcement_count + 1 WHERE id_user = ?`, userID)
+	return err
+}
+
+func GetUserAnnouncementCount(userID string) (int, error) {
+	var count int
+	err := config.Conn.QueryRow(`SELECT announcement_count FROM USER WHERE id_user = ?`, userID).Scan(&count)
+	return count, err
 }
 
 func GetAllUsersByNameOrFirstName(firstName string, lastName string) ([]models.User, error) {
@@ -215,6 +227,12 @@ func MarkTutorialDone(id string) error {
 	return err
 }
 
+func ResetTutorial(id string) error {
+	_, err := config.Conn.Exec(
+		`UPDATE USER SET tutorial_done = 0 WHERE id_user = ? AND deleted_at IS NULL`, id)
+	return err
+}
+
 func DeleteUser(id string) error {
 	_, err := config.Conn.Exec(`
 		UPDATE USER SET
@@ -278,6 +296,25 @@ func GetUserByEmail(email string) (models.User, error) {
 	return user, err
 }
 
+
+func SaveStripeAccountID(userID, accountID string) error {
+	_, err := config.Conn.Exec(
+		"UPDATE user SET stripe_account_id = ? WHERE id_user = ?",
+		accountID, userID,
+	)
+	return err
+}
+
+func GetStripeAccountID(userID string) string {
+	var id *string
+	_ = config.Conn.QueryRow(
+		"SELECT stripe_account_id FROM user WHERE id_user = ?", userID,
+	).Scan(&id)
+	if id == nil {
+		return ""
+	}
+	return *id
+}
 
 func SaveOnesignalPlayerID(userID, playerID string) error {
 	_, err := config.Conn.Exec(

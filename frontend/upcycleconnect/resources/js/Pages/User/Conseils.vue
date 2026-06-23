@@ -29,24 +29,30 @@
                 </svg>
                 <input
                     v-model="search"
+                    @input="debouncedFetch"
                     type="text"
                     placeholder="Rechercher un conseil…"
                     class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
             </div>
             <select
-                v-model="filterTag"
+                v-model="filterCategory"
+                @change="debouncedFetch"
                 class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
                 <option value="">Tous les thèmes</option>
-                <option v-for="tag in tags" :key="tag" :value="tag">
-                    {{ tag }}
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                    {{ cat.name }}
                 </option>
             </select>
         </div>
 
+        <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+            Chargement…
+        </div>
+
         <div
-            v-if="conseils.length === 0"
+            v-else-if="conseils.length === 0"
             class="bg-white rounded-2xl shadow-sm p-12 text-center"
         >
             <svg
@@ -95,18 +101,16 @@
                     {{ conseil.title }}
                 </h3>
                 <p class="text-xs text-gray-500 line-clamp-3">
-                    {{ conseil.summary }}
+                    {{ conseil.description }}
                 </p>
-                <div
-                    class="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50 flex-wrap"
-                >
+                <div class="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50">
                     <span
-                        v-for="tag in conseil.tags"
-                        :key="tag"
+                        v-if="conseil.category_name"
                         class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
                     >
-                        {{ tag }}
+                        {{ conseil.category_name }}
                     </span>
+                    <span class="text-xs text-gray-400 ml-auto">{{ conseil.creator_name }}</span>
                 </div>
             </div>
         </div>
@@ -122,15 +126,18 @@
                 <div
                     class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0"
                 >
-                    <h2
-                        class="font-semibold text-gray-800"
-                        style="font-family: var(--font-family-title)"
-                    >
-                        {{ selected.title }}
-                    </h2>
+                    <div class="flex-1 min-w-0">
+                        <h2
+                            class="font-semibold text-gray-800"
+                            style="font-family: var(--font-family-title)"
+                        >
+                            {{ selected.title }}
+                        </h2>
+                        <p v-if="selected.category_name" class="text-xs text-primary mt-0.5">{{ selected.category_name }}</p>
+                    </div>
                     <button
                         @click="selected = null"
-                        class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+                        class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors ml-3 flex-shrink-0"
                     >
                         <svg
                             class="w-4 h-4"
@@ -148,21 +155,28 @@
                     </button>
                 </div>
                 <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-                    <div class="flex flex-wrap gap-2">
-                        <span
-                            v-for="tag in selected.tags"
-                            :key="tag"
-                            class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                    <p v-if="selected.description" class="text-sm text-gray-600 whitespace-pre-line">
+                        {{ selected.description }}
+                    </p>
+                    <p v-else class="text-sm text-gray-400 italic">Aucun contenu.</p>
+
+                    <div v-if="docsLoading" class="text-xs text-gray-400">Chargement des photos…</div>
+                    <div v-else-if="selectedDocs.length" class="flex gap-2 flex-wrap">
+                        <a
+                            v-for="doc in selectedDocs"
+                            :key="doc.id"
+                            :href="doc.link"
+                            target="_blank"
+                            class="block w-24 h-24 rounded-lg overflow-hidden border border-gray-100"
                         >
-                            {{ tag }}
-                        </span>
+                            <img :src="doc.link" class="w-full h-full object-cover" />
+                        </a>
                     </div>
-                    <p class="text-sm text-gray-600 whitespace-pre-line">
-                        {{ selected.content }}
-                    </p>
-                    <p class="text-xs text-gray-400 text-center py-4">
-                        Le contenu complet sera chargé depuis l'API.
-                    </p>
+
+                    <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
+                        <span>{{ selected.creator_name }}</span>
+                        <span>{{ selected.created_at?.slice(0, 10) }}</span>
+                    </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 flex-shrink-0">
                     <button
@@ -178,25 +192,60 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import UserLayout from "@/Layouts/UserLayout.vue";
-import api from "@/api.js";
+import { ref, watch, onMounted } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
+import UserLayout from '@/Layouts/UserLayout.vue'
+import api from '@/api.js'
 
-const conseils = ref([]);
-const tags = ref([]);
-const search = ref("");
-const filterTag = ref("");
-const selected = ref(null);
+const conseils = ref([])
+const categories = ref([])
+const loading = ref(false)
+const search = ref('')
+const filterCategory = ref('')
+const selected = ref(null)
+const selectedDocs = ref([])
+const docsLoading = ref(false)
 
-
-function openDetail(conseil) {
-    selected.value = conseil;
+let debounceTimer = null
+function debouncedFetch() {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(fetchConseils, 300)
 }
 
-// Les conseils et thèmes seront chargés depuis l'API
-// onMounted(async () => {
-//     const { data } = await api.get('/conseils')
-//     conseils.value = data
-//     tags.value = [...new Set(data.flatMap(c => c.tags ?? []))]
-// })
+async function fetchConseils() {
+    loading.value = true
+    try {
+        const params = {}
+        if (search.value) params.search = search.value
+        if (filterCategory.value) params.id_category = filterCategory.value
+        const { data } = await api.get('/conseils', { params })
+        conseils.value = data?.data ?? data ?? []
+    } catch {
+        conseils.value = []
+    } finally {
+        loading.value = false
+    }
+}
+
+async function openDetail(conseil) {
+    selected.value = conseil
+    selectedDocs.value = []
+    docsLoading.value = true
+    try {
+        const { data } = await api.get(`/conseils/${conseil.id}/documents`)
+        selectedDocs.value = data ?? []
+    } catch {
+        selectedDocs.value = []
+    } finally {
+        docsLoading.value = false
+    }
+}
+
+onMounted(() => {
+    api.get('/categories').then(({ data }) => {
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+    })
+})
+
+usePolling(fetchConseils, 2000, () => !selected.value)
 </script>

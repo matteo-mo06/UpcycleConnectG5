@@ -280,22 +280,32 @@
                     <label
                         v-for="role in roles"
                         :key="role.value"
-                        class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors duration-150"
-                        :class="
-                            rightsModal.selectedRole === role.value
-                                ? 'border-primary bg-primary/5'
-                                : 'border-gray-100 hover:border-gray-200'
-                        "
+                        class="flex items-center gap-3 p-3 rounded-lg border transition-colors duration-150"
+                        :class="[
+                            role.value === 'admin' && rightsModal.user?.id === auth.user?.id
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'cursor-pointer',
+                            role.value === 'admin'
+                                ? (rightsModal.selectedRole === 'admin' ? 'border-red-300 bg-red-50' : 'border-red-100 hover:border-red-200')
+                                : (rightsModal.selectedRole === role.value ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200')
+                        ]"
                     >
                         <input
                             type="radio"
                             :value="role.value"
                             v-model="rightsModal.selectedRole"
+                            :disabled="role.value === 'admin' && rightsModal.user?.id === auth.user?.id"
                             class="accent-primary"
                         />
-                        <p class="text-sm font-medium text-gray-800">
-                            {{ role.label }}
-                        </p>
+                        <div class="flex items-center gap-2 flex-1">
+                            <p class="text-sm font-medium text-gray-800">{{ role.label }}</p>
+                            <span v-if="role.value === 'admin'" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Admin
+                            </span>
+                        </div>
                     </label>
                 </div>
                 <div class="flex gap-2 mt-5">
@@ -314,6 +324,25 @@
                 </div>
             </div>
         </div>
+        <div v-if="adminConfirm.open" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="adminConfirm.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 z-10">
+                <h3 class="font-semibold text-gray-800 mb-2">Attribuer le rôle administrateur ?</h3>
+                <p class="text-sm text-gray-500 mb-5">Vous allez attribuer le rôle administrateur à cet utilisateur. Cette action lui donnera un accès complet à la plateforme.</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="adminConfirm.open = false"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150">
+                        Annuler
+                    </button>
+                    <button
+                        @click="doSaveRights"
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150">
+                        Confirmer
+                    </button>
+                </div>
+            </div>
+        </div>
     </AdminLayout>
 </template>
 
@@ -323,6 +352,7 @@ import api from "@/api.js";
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 import { roleLabel, fullName } from "@/utils.js";
+import { useAuthStore } from "@/stores/auth.js";
 
 const search = ref("");
 const filterType = ref("");
@@ -339,6 +369,8 @@ const deleting = ref(false);
 
 const rightsModal = ref({ open: false, user: null, selectedRole: "" });
 const roles = ref([]);
+const auth = useAuthStore()
+const adminConfirm = ref({ open: false })
 
 function changePage(p) { page.value = p }
 
@@ -421,6 +453,14 @@ function openRights(user) {
 }
 
 async function saveRights() {
+    if (rightsModal.value.selectedRole === 'admin') {
+        adminConfirm.value.open = true
+        return
+    }
+    await doSaveRights()
+}
+
+async function doSaveRights() {
     const user = rightsModal.value.user;
     const newRole = rightsModal.value.selectedRole;
 
@@ -439,6 +479,7 @@ async function saveRights() {
         await api.post(`/admin/user/${user.id}/roles`, { role_id: roleObj.id });
         user.type = roleToType([newRole]);
         rightsModal.value.open = false;
+        adminConfirm.value.open = false;
     } catch (e) {
         alert("Erreur lors de la mise à jour du rôle");
     }

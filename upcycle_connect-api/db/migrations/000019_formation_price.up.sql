@@ -1,0 +1,1 @@
+ALTER TABLE `formation` ADD COLUMN `price` DECIMAL(10,2) DEFAULT NULL;

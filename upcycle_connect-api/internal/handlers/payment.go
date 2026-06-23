@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v85"
 
 	"upcycle_connect-api/internal/config"
@@ -26,6 +28,13 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 
 	announcementID := r.PathValue("id")
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "abonnement premium requis pour acheter des annonces"})
+		return
+	}
 
 	ann, err := db.GetAnnouncementById(announcementID)
 	if err != nil {
@@ -46,6 +55,19 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sellerID, err := db.GetAnnouncementOwnerID(announcementID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	sellerStripeAccountID := db.GetStripeAccountID(sellerID)
+	if sellerStripeAccountID == "" {
+		w.WriteHeader(http.StatusPaymentRequired)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le vendeur n'a pas encore configuré son compte de paiement"})
+		return
+	}
+
 	commissionRate, _ := db.GetCommissionRate()
 	priceCents := int64(ann.Price * 100)
 	commissionCents := int64(float64(priceCents) * commissionRate / 100.0)
@@ -54,8 +76,12 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	client := stripe.NewClient(config.StripeSecretKey())
 
 	params := &stripe.PaymentIntentCreateParams{
-		Amount:   stripe.Int64(totalCents),
-		Currency: stripe.String("eur"),
+		Amount:                  stripe.Int64(totalCents),
+		Currency:                stripe.String("eur"),
+		ApplicationFeeAmount:    stripe.Int64(commissionCents),
+		TransferData: &stripe.PaymentIntentCreateTransferDataParams{
+			Destination: stripe.String(sellerStripeAccountID),
+		},
 		Metadata: map[string]string{
 			"announcement_id":  announcementID,
 			"buyer_id":         userID,
@@ -86,6 +112,62 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func CreateFormationPaymentIntent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	formationID := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	formation, err := db.GetFormationById(formationID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "formation introuvable"})
+		return
+	}
+
+	if formation.Status != "approved" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette formation n'est pas disponible"})
+		return
+	}
+
+	if formation.Price == nil || *formation.Price <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "cette formation est gratuite"})
+		return
+	}
+
+	priceCents := int64(*formation.Price * 100)
+
+	client := stripe.NewClient(config.StripeSecretKey())
+
+	params := &stripe.PaymentIntentCreateParams{
+		Amount:   stripe.Int64(priceCents),
+		Currency: stripe.String("eur"),
+		Metadata: map[string]string{
+			"formation_id": formationID,
+			"buyer_id":     userID,
+		},
+		AutomaticPaymentMethods: &stripe.PaymentIntentCreateAutomaticPaymentMethodsParams{
+			Enabled: stripe.Bool(true),
+		},
+	}
+
+	pi, err := client.V1PaymentIntents.Create(context.Background(), params)
+	if err != nil {
+		fmt.Println("Stripe CreateFormationPaymentIntent error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création du paiement"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"client_secret": pi.ClientSecret,
+		"price_cents":   priceCents,
+	})
+}
+
 func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -112,6 +194,76 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	switch event.Type {
+	case "checkout.session.completed":
+		var session stripe.CheckoutSession
+		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if session.Mode == "subscription" {
+			userID := session.Metadata["user_id"]
+			planID := session.Metadata["plan_id"]
+			stripeSubID := ""
+			if session.Subscription != nil {
+				stripeSubID = session.Subscription.ID
+			}
+			customerID := ""
+			if session.Customer != nil {
+				customerID = session.Customer.ID
+			}
+			if userID != "" && planID != "" && stripeSubID != "" && !db.SubscriptionExistsByStripeID(stripeSubID) {
+				subID := uuid.New().String()
+				if err := db.CreateSubscriptionRecord(subID, stripeSubID, customerID, planID, userID); err != nil {
+					fmt.Println("CreateSubscriptionRecord error:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+
+	case "customer.subscription.updated":
+		var sub stripe.Subscription
+		if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		var endStr *string
+		if sub.CancelAt > 0 {
+			t := time.Unix(sub.CancelAt, 0).UTC().Format("2006-01-02 15:04:05")
+			endStr = &t
+		}
+		cancelled := sub.Status == "canceled"
+		if err := db.UpdateSubscriptionByStripeID(sub.ID, endStr, cancelled); err != nil {
+			fmt.Println("UpdateSubscriptionByStripeID (updated) error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+
+	case "customer.subscription.deleted":
+		var sub stripe.Subscription
+		if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		var endStr *string
+		if sub.EndedAt > 0 {
+			t := time.Unix(sub.EndedAt, 0).UTC().Format("2006-01-02 15:04:05")
+			endStr = &t
+		}
+		if err := db.UpdateSubscriptionByStripeID(sub.ID, endStr, true); err != nil {
+			fmt.Println("UpdateSubscriptionByStripeID (deleted) error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if event.Type == stripe.EventTypePaymentIntentSucceeded {
 		var pi stripe.PaymentIntent
 		if err := json.Unmarshal(event.Data.Raw, &pi); err != nil {
@@ -121,7 +273,16 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 
 		announcementID := pi.Metadata["announcement_id"]
+		formationID := pi.Metadata["formation_id"]
 		buyerID := pi.Metadata["buyer_id"]
+
+		if formationID != "" {
+			if err := db.RegisterUserForFormation(buyerID, formationID); err != nil {
+				fmt.Println("RegisterUserForFormation (webhook) error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
 
 		if announcementID != "" {
 			if err := db.MarkAnnouncementSold(announcementID, buyerID); err != nil {
@@ -133,6 +294,8 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			commissionCents, _ := strconv.Atoi(pi.Metadata["commission_cents"])
 			if err := db.StorePayment(pi.ID, announcementID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount), commissionCents); err != nil {
 				fmt.Println("StorePayment error:", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
 
 			go generateAndStoreInvoice(pi.ID, announcementID, buyerID, pi.Amount, int64(commissionCents), pi.Created)
@@ -190,13 +353,11 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 		numDisplay = numDisplay[:26]
 	}
 
-	// --- LOGO ---
 	pdf.SetTextColor(45, 106, 79)
 	pdf.SetFont("Helvetica", "B", 20)
 	pdf.SetXY(20, 15)
 	pdf.Cell(80, 10, "UpcycleConnect")
 
-	// --- FACTURE BOX (top right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(122, 10, 68, 38, "D")
 	pdf.SetTextColor(40, 40, 40)
@@ -212,7 +373,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetX(124)
 	pdf.CellFormat(64, 5, tr("Page n°1 sur 1"), "", 0, "L", false, 0, "")
 
-	// --- PLATFORM INFO (left) ---
 	pdf.SetTextColor(60, 60, 60)
 	pdf.SetFont("Helvetica", "B", 10)
 	pdf.SetXY(20, 56)
@@ -223,10 +383,8 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(20, 67)
 	pdf.Cell(85, 5, "upcycleconnect.fr")
 
-	// --- CLIENT BOX (right) ---
 	pdf.SetDrawColor(150, 150, 150)
 	pdf.Rect(110, 55, 80, 34, "D")
-	// "Client" label on the top border (fieldset style)
 	pdf.SetFillColor(255, 255, 255)
 	pdf.Rect(118, 52, 16, 6, "F")
 	pdf.SetFont("Helvetica", "", 8)
@@ -241,11 +399,9 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(115, 68)
 	pdf.Cell(70, 5, tr("E-mail : "+buyer.Email))
 
-	// --- SEPARATOR ---
 	pdf.SetDrawColor(200, 200, 200)
 	pdf.Line(20, 92, 190, 92)
 
-	// --- TABLE HEADER ---
 	pdf.SetFillColor(220, 220, 220)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "B", 9)
@@ -254,7 +410,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.CellFormat(25, 7, tr("Quantité"), "1", 0, "C", true, 0, "")
 	pdf.CellFormat(35, 7, "Total TTC", "1", 0, "R", true, 0, "")
 
-	// --- TABLE ROW ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetFillColor(255, 255, 255)
 	title := ann.TitleAnnouncement
@@ -271,7 +426,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.SetXY(22, 112)
 	pdf.Cell(108, 4, tr("Vendeur : "+ann.AuthorName))
 
-	// --- "Payé" WATERMARK ---
 	pdf.SetTextColor(220, 90, 90)
 	pdf.SetFont("Helvetica", "B", 72)
 	pdf.TransformBegin()
@@ -280,7 +434,6 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.Cell(135, 25, tr("Payé"))
 	pdf.TransformEnd()
 
-	// --- TOTALS (right) ---
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetXY(115, 169)
@@ -300,13 +453,11 @@ func buildInvoicePDF(destPath, paymentID string, ann models.Announcement, buyer 
 	pdf.CellFormat(40, 7, "Total TTC", "1", 0, "L", false, 0, "")
 	pdf.CellFormat(35, 7, totalPrice, "1", 0, "R", false, 0, "")
 
-	// --- RÈGLEMENT ---
 	pdf.SetFont("Helvetica", "", 9)
 	pdf.SetTextColor(40, 40, 40)
 	pdf.SetXY(20, 202)
 	pdf.CellFormat(170, 7, tr("Règlement   Payé par carte bancaire le ")+date+" - Total : "+totalPrice, "1", 0, "L", false, 0, "")
 
-	// --- FOOTER ---
 	pdf.SetTextColor(120, 120, 120)
 	pdf.SetFont("Helvetica", "", 7.5)
 	pdf.SetXY(20, 268)

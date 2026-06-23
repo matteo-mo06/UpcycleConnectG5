@@ -27,12 +27,12 @@
 
             <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 class="text-base font-semibold text-gray-800">Dernières annonces ajoutées</h2>
-                    <span class="text-xs text-gray-400">Vérifiez la conformité des nouvelles publications</span>
+                    <h2 class="text-base font-semibold text-gray-800">Annonces en attente de validation</h2>
+                    <span class="text-xs text-gray-400">{{ pendingListings.length }} annonce(s) à traiter</span>
                 </div>
                 <div class="divide-y divide-gray-50">
                     <div
-                        v-for="listing in recentListings"
+                        v-for="listing in pendingListings"
                         :key="listing.id"
                         class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/60 transition-colors">
                         <div class="flex-1 mr-4">
@@ -46,21 +46,47 @@
                             </div>
                             <p class="text-xs text-gray-500 mt-0.5">
                                 Par <span class="font-medium text-gray-700">{{ listing.author }}</span>
-                                · {{ listing.category }} · {{ listing.date }}
+                                · {{ listing.category }} · {{ listing.createdAt }}
                             </p>
                         </div>
-                        <div class="flex-shrink-0 flex items-center gap-2">
+                        <div class="flex-shrink-0 flex items-center gap-1">
                             <button
                                 @click="openDetail(listing)"
-                                class="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
-                                Voir
+                                title="Voir"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                            <button
+                                @click="approveAnnouncement(listing)"
+                                title="Approuver"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-secondary hover:bg-secondary/10 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </button>
+                            <button
+                                @click="rejectAnnouncement(listing)"
+                                title="Rejeter"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                             </button>
                             <button
                                 @click="confirmDelete(listing)"
-                                class="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                                Retirer
+                                title="Supprimer"
+                                class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
                             </button>
                         </div>
+                    </div>
+                    <div v-if="pendingListings.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
+                        Aucune annonce en attente de validation
                     </div>
                 </div>
             </div>
@@ -442,7 +468,7 @@
                             <select
                                 v-model="listingForm.idCategory"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
-                                <option value="">— Aucune —</option>
+                                <option value="">- Aucune -</option>
                                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                             </select>
                         </div>
@@ -504,7 +530,7 @@
                             <select
                                 v-model="listingForm.condition"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
-                                <option value="">—</option>
+                                <option value="">-</option>
                                 <option value="neuf">Neuf</option>
                                 <option value="tres_bon">Très bon état</option>
                                 <option value="bon">Bon état</option>
@@ -609,7 +635,7 @@ const stats = computed(() => [
     },
 ])
 
-const recentListings = computed(() => listings.value.slice(0, 3))
+const pendingListings = ref([])
 
 function resetAndFetch() {
     page.value = 1
@@ -660,6 +686,33 @@ watch(search, () => {
 })
 watch(page, fetchListings)
 
+async function fetchPendingListings() {
+    try {
+        const { data: pendingData } = await api.get('/admin/announcements', { params: { status: 'En attente', limit: 100 } })
+        const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
+        pendingListings.value = (pendingData.data ?? []).map(a => ({
+            id: a.id,
+            title: a.title,
+            author: a.author_name || '-',
+            type: a.type === 'vente' ? 'Vente' : 'Don',
+            category: catMap[a.id_category] ?? '-',
+            status: a.state ?? 'En attente',
+            createdAt: a.created_at?.slice(0, 10) ?? '-',
+            rawCreatedAt: a.created_at ?? '',
+            date: a.availability_date?.slice(0, 10) ?? '-',
+            description: a.description ?? '-',
+            idCategory: a.id_category ?? '',
+            address: a.address ?? '',
+            city: a.city ?? '',
+            postal: a.postal ?? '',
+            price: a.price ?? 0,
+            condition: a.condition ?? '',
+            featured: false,
+            tags: [],
+        })).sort((a, b) => b.rawCreatedAt.localeCompare(a.rawCreatedAt))
+    } catch {}
+}
+
 onMounted(async () => {
     try {
         const [{ data: catsData }, { data: announcementStats }] = await Promise.all([
@@ -668,7 +721,7 @@ onMounted(async () => {
         ])
         categories.value = catsData ?? []
         statsData.value = announcementStats
-        await fetchListings()
+        await Promise.all([fetchPendingListings(), fetchListings()])
     } catch {
         error.value = 'Impossible de charger les annonces.'
     } finally {
@@ -695,7 +748,7 @@ async function deleteListing() {
         await api.delete(`/admin/announcement/${toDelete.value.id}`)
         if (detailListing.value?.id === toDelete.value.id) detailListing.value = null
         toDelete.value = null
-        await fetchListings()
+        await Promise.all([fetchListings(), fetchPendingListings()])
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {
@@ -762,7 +815,7 @@ async function saveListing() {
 async function approveAnnouncement(listing) {
     try {
         await api.patch(`/admin/announcement/${listing.id}/approve`)
-        await fetchListings()
+        await Promise.all([fetchListings(), fetchPendingListings()])
     } catch {
         alert('Erreur lors de l\'approbation.')
     }
@@ -778,7 +831,7 @@ async function confirmRejectAnnouncement() {
     try {
         await api.patch(`/admin/announcement/${rejectModal.value.listing.id}/reject`, { reason: rejectModal.value.reason })
         rejectModal.value.open = false
-        await fetchListings()
+        await Promise.all([fetchListings(), fetchPendingListings()])
     } catch {
         alert('Erreur lors du rejet.')
     } finally {

@@ -23,7 +23,7 @@
                         Conditions Générales d'Utilisation
                     </h1>
                 </div>
-                <p class="text-xs text-gray-400 mb-8">Dernière mise à jour : 1er avril 2025 — UpcycleConnect SAS</p>
+                <p class="text-xs text-gray-400 mb-8">Dernière mise à jour : 1er avril 2025, UpcycleConnect SAS</p>
 
                 <div class="prose prose-sm max-w-none text-gray-700 space-y-8">
 
@@ -44,7 +44,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 1 — Objet</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 1 :Objet</h2>
                         <p>
                             Les présentes conditions générales d'utilisation (CGU) ont pour objet de définir les modalités et conditions dans lesquelles
                             UpcycleConnect SAS (ci-après « UpcycleConnect ») met à disposition des utilisateurs sa plateforme en ligne permettant la mise en
@@ -58,7 +58,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 2 — Définitions</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 2 :Définitions</h2>
                         <ul class="list-disc pl-5 space-y-1">
                             <li><strong>« Utilisateur »</strong> : toute personne physique ou morale accédant au Service.</li>
                             <li><strong>« Compte »</strong> : espace personnel créé lors de l'inscription, permettant à l'utilisateur d'accéder aux fonctionnalités du Service.</li>
@@ -69,7 +69,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 3 — Accès au Service</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 3 :Accès au Service</h2>
                         <p>
                             Le Service est accessible à tout utilisateur disposant d'un accès à internet. UpcycleConnect ne peut être tenu responsable
                             des coûts de connexion ou de l'équipement nécessaire à cet accès.
@@ -86,7 +86,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 4 — Inscription et Compte utilisateur</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 4 :Inscription et Compte utilisateur</h2>
                         <p>
                             La création d'un Compte est gratuite. L'utilisateur s'engage à fournir son prénom, son nom et une adresse e-mail valide.
                             Un mot de passe d'au moins 8 caractères est requis. L'utilisateur est seul responsable de la conservation et de l'utilisation
@@ -104,7 +104,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 5 — Publication d'annonces</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 5 :Publication d'annonces</h2>
                         <p>
                             Tout utilisateur titulaire d'un Compte actif peut déposer des annonces sur le Service. Le dépôt d'annonces est gratuit
                             dans la limite des conditions en vigueur, UpcycleConnect se réservant la possibilité de proposer des options payantes.
@@ -130,7 +130,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 6 — Transactions entre utilisateurs</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 6 :Transactions entre utilisateurs</h2>
                         <p>
                             UpcycleConnect est un intermédiaire de mise en relation. Les transactions conclues entre utilisateurs sont des contrats
                             directs entre les parties, auxquels UpcycleConnect est étranger. UpcycleConnect n'est donc pas partie aux transactions
@@ -148,7 +148,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 7 — Responsabilité d'UpcycleConnect</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 7 :Responsabilité d'UpcycleConnect</h2>
                         <p>
                             UpcycleConnect met tout en œuvre pour assurer la disponibilité et la sécurité du Service, mais ne peut garantir
                             une disponibilité ininterrompue. Des opérations de maintenance peuvent entraîner des interruptions temporaires.
@@ -165,7 +165,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 8 — Propriété intellectuelle</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 8 :Propriété intellectuelle</h2>
                         <p>
                             L'ensemble des éléments constitutifs du Service (logo, charte graphique, logiciels, bases de données, textes)
                             sont la propriété exclusive d'UpcycleConnect ou font l'objet de licences dûment autorisées.
@@ -179,7 +179,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 9 — Données personnelles</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 9 :Données personnelles</h2>
                         <p>
                             Le traitement des données personnelles des utilisateurs est régi par la
                             <router-link to="/politique-confidentialite" class="text-primary hover:underline">politique de confidentialité</router-link>
@@ -190,7 +190,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 10 — Signalement de contenus illicites</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 10 :Signalement de contenus illicites</h2>
                         <p>
                             Tout utilisateur qui constate un contenu manifestement illicite (contrefaçon, contenu haineux, escroquerie, etc.)
                             est invité à le signaler à UpcycleConnect via l'adresse
@@ -201,7 +201,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 11 — Modification des CGU</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 11 :Modification des CGU</h2>
                         <p>
                             UpcycleConnect se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés
                             de toute modification substantielle par e-mail ou par notification sur le Service. L'utilisation continue du Service
@@ -210,7 +210,7 @@
                     </section>
 
                     <section>
-                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 12 — Droit applicable et juridiction</h2>
+                        <h2 class="text-base font-semibold text-gray-800 mb-2">Article 12 :Droit applicable et juridiction</h2>
                         <p>
                             Les présentes CGU sont soumises au droit français. En cas de litige relatif à leur interprétation ou à leur exécution,
                             les parties s'engagent à rechercher une solution amiable avant tout recours judiciaire.

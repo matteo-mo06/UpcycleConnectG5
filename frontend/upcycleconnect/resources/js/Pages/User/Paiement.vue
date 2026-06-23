@@ -63,10 +63,12 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { loadStripe } from '@stripe/stripe-js'
 import UserLayout from '@/Layouts/UserLayout.vue'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuthStore()
 
 const announcementId = route.params.id
 
@@ -108,7 +110,10 @@ onMounted(async () => {
         paymentElement.on('ready', () => { stripeReady.value = true })
 
     } catch (e) {
-        console.error('Paiement error:', e)
+        if (e?.response?.status === 403) {
+            router.replace(auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
+            return
+        }
         error.value = e?.response?.data?.error ?? 'Impossible de charger le paiement.'
         loading.value = false
     }

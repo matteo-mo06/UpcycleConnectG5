@@ -17,31 +17,34 @@ type Formation struct {
 	CreatorName          *string `json:"creator_name"`
 	IdFormateur          *string `json:"id_formateur"`
 	FormateurName        *string `json:"formateur_name"`
-	InscriptionCount     int     `json:"inscription_count"`
-	IsRegistered         bool    `json:"is_registered"`
-	CreatedAt            string  `json:"created_at"`
+	Price            *float64 `json:"price"`
+	InscriptionCount int      `json:"inscription_count"`
+	IsRegistered     bool     `json:"is_registered"`
+	CreatedAt        string   `json:"created_at"`
 }
 
 type CreateFormationRequest struct {
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-	Date        *string `json:"date"`
-	Location    *string `json:"location"`
-	Capacity    *int    `json:"capacity"`
-	Level       string  `json:"level"`
-	DurationH   *int    `json:"duration_hours"`
-	IdCategory  *string `json:"id_category"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description"`
+	Date        *string  `json:"date"`
+	Location    *string  `json:"location"`
+	Capacity    *int     `json:"capacity"`
+	Level       string   `json:"level"`
+	DurationH   *int     `json:"duration_hours"`
+	IdCategory  *string  `json:"id_category"`
+	Price       *float64 `json:"price"`
 }
 
 type UpdateFormationRequest struct {
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-	Date        *string `json:"date"`
-	Location    *string `json:"location"`
-	Capacity    *int    `json:"capacity"`
-	Level       string  `json:"level"`
-	DurationH   *int    `json:"duration_hours"`
-	IdCategory  *string `json:"id_category"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description"`
+	Date        *string  `json:"date"`
+	Location    *string  `json:"location"`
+	Capacity    *int     `json:"capacity"`
+	Level       string   `json:"level"`
+	DurationH   *int     `json:"duration_hours"`
+	IdCategory  *string  `json:"id_category"`
+	Price       *float64 `json:"price"`
 }
 
 type RejectFormationRequest struct {

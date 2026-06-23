@@ -100,9 +100,19 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 		typ = "don"
 	}
 
-	perms, _ := r.Context().Value(middleware.ContextPermissions).([]string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
+		count, _ := db.GetUserAnnouncementCount(userID)
+		if count >= 3 {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 3 annonces atteinte, passez à l'abonnement premium pour en publier davantage"})
+			return
+		}
+	}
+
 	state := "En attente"
-	if slices.Contains(perms, "manage_announcements") {
+	if slices.Contains(roles, config.RoleAdmin) {
 		state = "Active"
 	}
 
@@ -127,6 +137,10 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create announcement"})
 		return
+	}
+
+	if slices.Contains(roles, config.RoleArtisan) {
+		_ = db.IncrementUserAnnouncementCount(userID)
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -456,7 +470,6 @@ func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Champs de contenu uniquement — state_annoucement, request, id_buyer préservés
 	ann.TitleAnnouncement = body.TitleAnnouncement
 	ann.DescriptionAnnouncement = body.DescriptionAnnouncement
 	ann.Price = body.Price
@@ -484,6 +497,13 @@ func UpdateMyAnnouncement(w http.ResponseWriter, r *http.Request) {
 func ClaimAnnouncement(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	id := r.PathValue("id")
+
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "abonnement premium requis pour acquérir des annonces"})
+		return
+	}
 
 	owner, err := db.IsAnnouncementOwner(id, userID)
 	if err != nil {

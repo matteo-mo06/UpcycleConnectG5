@@ -119,7 +119,7 @@ onMounted(async () => {
         const { data } = await api.get('/user/score-breakdown')
         score.value = data.score
         breakdown.value = data.breakdown
-    } catch {
+    } catch (e) {
     } finally {
         loading.value = false
     }

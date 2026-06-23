@@ -410,32 +410,33 @@ const formModal = ref({ open: false, mode: 'create', id: null })
 const rejectModal = ref({ open: false, event: null, reason: '', loading: false })
 const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
 const saving = ref(false)
+const statCounts = ref({ total: 0, pending: 0, upcoming: 0, rejected: 0 })
 
 const stats = computed(() => [
     {
         label: 'Total événements',
-        value: total.value,
+        value: statCounts.value.total,
         bgClass: 'bg-red-100',
         iconClass: 'text-red-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
     },
     {
         label: 'En attente',
-        value: events.value.filter(e => e.dbStatus === 'pending').length,
+        value: statCounts.value.pending,
         bgClass: 'bg-orange-100',
         iconClass: 'text-orange-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
     {
         label: 'À venir',
-        value: events.value.filter(e => e.status === 'À venir').length,
+        value: statCounts.value.upcoming,
         bgClass: 'bg-green-100',
         iconClass: 'text-green-600',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
     {
         label: 'Refusés',
-        value: events.value.filter(e => e.dbStatus === 'rejected').length,
+        value: statCounts.value.rejected,
         bgClass: 'bg-red-100',
         iconClass: 'text-red-500',
         icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
@@ -495,7 +496,24 @@ function mapEvent(e) {
     }
 }
 
-onMounted(fetchEvents)
+async function fetchStats() {
+    try {
+        const [all, pending, upcoming, rejected] = await Promise.all([
+            api.get('/admin/events', { params: { limit: 1 } }),
+            api.get('/admin/events', { params: { limit: 1, status: 'pending' } }),
+            api.get('/admin/events', { params: { limit: 1, status: 'upcoming' } }),
+            api.get('/admin/events', { params: { limit: 1, status: 'rejected' } }),
+        ])
+        statCounts.value = {
+            total:    all.data.total ?? 0,
+            pending:  pending.data.total ?? 0,
+            upcoming: upcoming.data.total ?? 0,
+            rejected: rejected.data.total ?? 0,
+        }
+    } catch {}
+}
+
+onMounted(() => Promise.all([fetchEvents(), fetchStats()]))
 
 function openDetail(event) {
     detailEvent.value = event
@@ -512,7 +530,7 @@ async function deleteEvent() {
         await api.delete(`/admin/event/${toDelete.value.id}`)
         if (detailEvent.value?.id === toDelete.value.id) detailEvent.value = null
         toDelete.value = null
-        await fetchEvents()
+        await Promise.all([fetchEvents(), fetchStats()])
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {
@@ -582,7 +600,7 @@ function statusText(status) {
 async function approveEvent(event) {
     try {
         await api.patch(`/admin/event/${event.id}/approve`)
-        await fetchEvents()
+        await Promise.all([fetchEvents(), fetchStats()])
     } catch {
         alert('Erreur lors de l\'approbation.')
     }
@@ -598,7 +616,7 @@ async function confirmRejectEvent() {
     try {
         await api.patch(`/admin/event/${rejectModal.value.event.id}/reject`, { reason: rejectModal.value.reason })
         rejectModal.value.open = false
-        await fetchEvents()
+        await Promise.all([fetchEvents(), fetchStats()])
     } catch {
         alert('Erreur lors du refus.')
     } finally {

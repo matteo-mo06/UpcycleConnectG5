@@ -3,7 +3,7 @@ CREATE TABLE `platform_settings` (
   `value_setting` varchar(255) NOT NULL,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`key_setting`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+);
 
 INSERT INTO `platform_settings` (`key_setting`, `value_setting`) VALUES ('commission_rate', '5.00');
 

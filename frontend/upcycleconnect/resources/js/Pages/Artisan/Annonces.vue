@@ -2,10 +2,10 @@
     <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes annonces</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Annonces</h1>
             <button
                 @click="showCreate = true"
-                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors"
+                class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary-dark transition-colors"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -16,7 +16,7 @@
 
         <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="announcements.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+        <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400 text-sm">
             Vous n'avez aucune annonce publiée.
         </div>
 
@@ -76,7 +76,6 @@
             </div>
         </div>
 
-        <!-- Modale de détail -->
         <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
             <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
@@ -141,7 +140,6 @@
             </div>
         </div>
 
-        <!-- Modale de modification -->
         <div v-if="editModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="editModal = false"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -231,7 +229,6 @@
             </div>
         </div>
 
-        <!-- Confirmation de suppression -->
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -252,7 +249,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import api from '@/api.js'
@@ -261,6 +259,8 @@ import { formatDate, conditionLabel } from '@/utils.js'
 const announcements = ref([])
 const categories = ref([])
 const loading = ref(true)
+const route = useRoute()
+const router = useRouter()
 const showCreate = ref(false)
 const selected = ref(null)
 const selectedPhotos = ref([])
@@ -284,6 +284,15 @@ async function fetchAnnouncements() {
         loading.value = false
     }
 }
+
+async function silentFetch() {
+    try {
+        const { data } = await api.get('/user/announcements')
+        announcements.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch {}
+}
+
+let pollInterval = null
 
 async function openDetail(a) {
     selected.value = a
@@ -367,9 +376,8 @@ async function deleteAnnouncement() {
 
 async function requestDeposit(a) {
     try {
-        const { data } = await api.post(`/announcements/${a.id}/deposit-request`)
+        await api.post(`/announcements/${a.id}/deposit-request`)
         a.request = 1
-        if (data?.locker_number) a.locker_number = data.locker_number
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de la demande de dépôt.')
     }
@@ -382,5 +390,16 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => Promise.all([fetchAnnouncements(), fetchCategories()]))
+onMounted(() => {
+    Promise.all([fetchAnnouncements(), fetchCategories()])
+    if (route.query.publish === '1') {
+        showCreate.value = true
+        router.replace({ query: { ...route.query, publish: undefined } })
+    }
+    pollInterval = setInterval(silentFetch, 2000)
+})
+
+onUnmounted(() => {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
+})
 </script>

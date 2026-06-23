@@ -43,6 +43,7 @@
                             </svg>
                         </button>
                         <button
+                            v-if="role.name !== 'admin'"
                             @click="confirmDelete(role)"
                             title="Supprimer le rôle"
                             class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors duration-150">
@@ -87,9 +88,12 @@
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
 
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
-                        Permissions — {{modal.roleName}}
-                    </h3>
+                    <div>
+                        <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                            Permissions : {{modal.roleName}}
+                        </h3>
+                        <p v-if="isAdminRole" class="text-xs text-amber-600 mt-1">L'administrateur possède toutes les permissions par défaut.</p>
+                    </div>
                     <button
                         @click="modal.open = false"
                         class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -109,13 +113,14 @@
                                 v-for="perm in cat.perms"
                                 :key="perm.id"
                                 class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors duration-150"
-                                :class="modal.permIds.includes(perm.id)
+                                :class="(isAdminRole || modal.permIds.includes(perm.id))
                                     ? 'border-primary/30 bg-primary/5'
                                     : 'border-gray-100 hover:border-gray-200'">
                                 <input
                                     type="checkbox"
-                                    :value="perm.id"
-                                    v-model="modal.permIds"
+                                    :checked="isAdminRole || modal.permIds.includes(perm.id)"
+                                    :disabled="isAdminRole"
+                                    @change="togglePerm(perm.id)"
                                     class="accent-primary w-3.5 h-3.5"
                                 />
                                 <p class="text-sm text-gray-800">{{perm.name}}</p>
@@ -143,7 +148,8 @@
         <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <h3 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">Créer un rôle</h3>
+                <h3 class="font-semibold text-gray-800 mb-3" style="font-family: var(--font-family-title)">Créer un rôle</h3>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nom du rôle <span class="text-red-400">*</span></label>
                 <input
                     v-model="formModal.name"
                     type="text"
@@ -235,6 +241,8 @@ const modal = ref({
     permIds: [],
 })
 
+const isAdminRole = computed(() => modal.value.roleName === 'admin')
+
 onMounted(async () => {
     try {
         const [{ data: permsData }, { data: rolesData }] = await Promise.all([
@@ -294,6 +302,13 @@ async function deleteRole() {
     }
 }
 
+function togglePerm(permId) {
+    if (isAdminRole.value) return
+    const idx = modal.value.permIds.indexOf(permId)
+    if (idx === -1) modal.value.permIds.push(permId)
+    else modal.value.permIds.splice(idx, 1)
+}
+
 function openEdit(role) {
     modal.value = {
         open: true,
@@ -305,6 +320,7 @@ function openEdit(role) {
 }
 
 async function savePermissions() {
+    if (isAdminRole.value) return
     saving.value = true
     try {
         const orig = new Set(modal.value.originalPermIds)

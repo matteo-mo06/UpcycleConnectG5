@@ -90,6 +90,18 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Date == nil || *req.Date == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date est requise"})
+		return
+	}
+
+	if req.Location == nil || *req.Location == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
+		return
+	}
+
 	if req.Date != nil && *req.Date != "" {
 		parsed, err := time.Parse("2006-01-02T15:04:05", *req.Date)
 		if err != nil {
@@ -122,6 +134,7 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 		Level:                req.Level,
 		DurationHours:        req.DurationH,
 		IdCategory:           req.IdCategory,
+		Price:                req.Price,
 		IdCreator:            &userID,
 		IdFormateur:          &userID,
 	}
@@ -180,6 +193,18 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Date == nil || *req.Date == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date est requise"})
+		return
+	}
+
+	if req.Location == nil || *req.Location == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
+		return
+	}
+
 	if req.Date != nil && *req.Date != "" {
 		parsed, err := time.Parse("2006-01-02T15:04:05", *req.Date)
 		if err != nil {
@@ -200,6 +225,7 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 	formation.Level = req.Level
 	formation.DurationHours = req.DurationH
 	formation.IdCategory = req.IdCategory
+	formation.Price = req.Price
 
 	if err := db.UpdateFormation(formation); err != nil {
 		fmt.Println("UpdateMyFormation error:", err)
@@ -255,7 +281,7 @@ func GetPendingFormations(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	page, limit, offset := parsePage(r, 20)
-	formations, total, err := db.GetAllFormations("", "pending", limit, offset)
+	formations, total, err := db.GetAllFormations("", "pending", "", limit, offset)
 	if err != nil {
 		fmt.Println("GetPendingFormations error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -362,6 +388,12 @@ func RegisterForFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if formation.Price != nil && *formation.Price > 0 {
+		w.WriteHeader(http.StatusPaymentRequired)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "paiement requis", "price": *formation.Price})
+		return
+	}
+
 	if err := db.RegisterUserForFormation(userID, id); err != nil {
 		fmt.Println("RegisterForFormation error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -382,6 +414,13 @@ func UnregisterFromFormation(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	id := r.PathValue("id")
+
+	formation, err := db.GetFormationById(id)
+	if err == nil && formation.Price != nil && *formation.Price > 0 {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "impossible de se désinscrire d'une formation payante"})
+		return
+	}
 
 	if err := db.UnregisterUserFromFormation(userID, id); err != nil {
 		fmt.Println("UnregisterFromFormation error:", err)
@@ -436,7 +475,6 @@ func GetMyCreatedFormations(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(formations)
 }
 
-// Admin handlers
 
 func GetAllFormationsAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -444,8 +482,9 @@ func GetAllFormationsAdmin(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := parsePage(r, 20)
 	search := r.URL.Query().Get("search")
 	status := r.URL.Query().Get("status")
+	level := r.URL.Query().Get("level")
 
-	formations, total, err := db.GetAllFormations(search, status, limit, offset)
+	formations, total, err := db.GetAllFormations(search, status, level, limit, offset)
 	if err != nil {
 		fmt.Println("GetAllFormationsAdmin error:", err)
 		w.WriteHeader(http.StatusInternalServerError)

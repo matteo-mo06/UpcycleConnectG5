@@ -18,7 +18,6 @@
             </div>
         </div>
 
-        <!-- Cartes résumé -->
         <div class="grid grid-cols-4 gap-5 mb-8">
             <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
                 <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
@@ -69,7 +68,6 @@
             </div>
         </div>
 
-        <!-- Onglet Transactions -->
         <div v-if="activeTab === 'transactions'">
             <div v-if="loadingTx" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
             <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune transaction pour le moment.</div>
@@ -92,9 +90,9 @@
                                 :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
                             >
                                 <td class="px-5 py-3 text-gray-700 max-w-xs truncate">
-                                    {{ tx.announcement_title || '—' }}
+                                    {{ tx.announcement_title || '-' }}
                                 </td>
-                                <td class="px-5 py-3 text-gray-600">{{ tx.buyer_name || '—' }}</td>
+                                <td class="px-5 py-3 text-gray-600">{{ tx.buyer_name || '-' }}</td>
                                 <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(tx.amount_cents) }}</td>
                                 <td class="px-5 py-3 text-right">
                                     <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">
@@ -125,7 +123,6 @@
             </div>
         </div>
 
-        <!-- Onglet Abonnements -->
         <div v-if="activeTab === 'abonnements'">
             <div class="bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center gap-4">
                 <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -140,7 +137,6 @@
             </div>
         </div>
 
-        <!-- Onglet Paramètres -->
         <div v-if="activeTab === 'parametres'">
             <div class="bg-white rounded-xl shadow-sm p-6 max-w-md">
                 <h2 class="font-semibold text-gray-800 mb-1">Taux de commission</h2>
@@ -202,7 +198,7 @@ function formatEuros(cents) {
 }
 
 function formatDate(str) {
-    if (!str) return '—'
+    if (!str) return '-'
     return new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 

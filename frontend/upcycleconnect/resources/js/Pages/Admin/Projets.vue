@@ -65,11 +65,11 @@
                                     <p class="text-xs text-gray-500 truncate">{{ p.creator_name }}</p>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <p class="text-gray-800 text-xs font-medium">{{ p.start_date ? p.start_date.slice(0,10) : '—' }}</p>
-                                    <p class="text-gray-500 text-xs">{{ p.end_date ? p.end_date.slice(0,10) : '—' }}</p>
+                                    <p class="text-gray-800 text-xs font-medium">{{ p.start_date ? p.start_date.slice(0,10) : '-' }}</p>
+                                    <p class="text-gray-500 text-xs">{{ p.end_date ? p.end_date.slice(0,10) : '-' }}</p>
                                 </td>
                                 <td class="px-5 py-3 text-xs text-gray-500 truncate max-w-36">
-                                    {{ p.location ?? '—' }}
+                                    {{ p.location ?? '-' }}
                                 </td>
                                 <td class="px-5 py-3 text-xs text-gray-700 font-medium">
                                     {{ p.members_count }}<span v-if="p.capacity">/{{ p.capacity }}</span>
@@ -318,7 +318,7 @@ function openRejectModal(p) {
 async function approveProject(p) {
     try {
         await api.patch(`/admin/project/${p.id}/approve`)
-        p.status = 'open'
+        await Promise.all([fetchProjects(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de l\'approbation.')
     }
@@ -328,12 +328,8 @@ async function submitReject() {
     if (!rejectModal.value) return
     try {
         await api.patch(`/admin/project/${rejectModal.value.id}/reject`, { reason: rejectReason.value || null })
-        const p = projects.value.find(x => x.id === rejectModal.value.id)
-        if (p) {
-            p.status = 'rejected'
-            p.rejection_reason = rejectReason.value || null
-        }
         rejectModal.value = null
+        await Promise.all([fetchProjects(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors du rejet.')
     }

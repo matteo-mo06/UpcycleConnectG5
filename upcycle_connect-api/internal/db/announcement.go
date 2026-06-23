@@ -347,6 +347,14 @@ func GetInvoicePath(announcementID string) (string, error) {
 	return path.String, err
 }
 
+func GetAnnouncementBuyerID(announcementID string) (string, error) {
+	var buyerID sql.NullString
+	err := config.Conn.QueryRow(
+		"SELECT id_buyer FROM ANNOUNCEMENT WHERE id_announcement = ?", announcementID,
+	).Scan(&buyerID)
+	return buyerID.String, err
+}
+
 func IsAnnouncementBuyer(announcementID, userID string) (bool, error) {
 	var count int
 	err := config.Conn.QueryRow(
@@ -401,6 +409,7 @@ func MarkAnnouncementSold(announcementID, buyerID string) error {
 	}
 	return tx.Commit()
 }
+
 
 func DeleteAnnouncement(id string) error {
 	_, err := config.Conn.Exec(

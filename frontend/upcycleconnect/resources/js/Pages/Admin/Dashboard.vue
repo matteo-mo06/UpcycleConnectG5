@@ -2,7 +2,9 @@
     <AdminLayout>
 
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Dashboard</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
+                Espace admin
+            </h1>
         </div>
 
         <div v-if="loading" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
@@ -14,7 +16,7 @@
                 <div
                     v-for="stat in stats"
                     :key="stat.label"
-                    class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+                    class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
                     <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
                         <div :class="stat.iconClass" v-html="stat.icon" />
                     </div>
@@ -25,72 +27,89 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-5 gap-6">
+            <div class="grid grid-cols-2 gap-5">
 
-                <div class="col-span-3 bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-800">Derniers utilisateurs</h2>
-                        <a href="/admin/users" class="text-xs font-medium text-primary hover:underline">Voir tout</a>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Dernières annonces</p>
+                        <RouterLink to="/admin/annonces" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="bg-primary">
-                                    <th class="text-left text-white font-medium px-5 py-3">Nom</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Email</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Type</th>
-                                    <th class="text-left text-white font-medium px-5 py-3">Inscription</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="(user, i) in recentUsers"
-                                    :key="user.email"
-                                    :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50']">
-                                    <td class="px-5 py-3 font-medium text-gray-800">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                                                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                                                </svg>
-                                            </div>
-                                            {{ user.name }}
-                                        </div>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500">{{ user.email }}</td>
-                                    <td class="px-5 py-3">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                            {{ user.type }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500">{{ user.date }}</td>
-                                </tr>
-                                <tr v-if="recentUsers.length === 0">
-                                    <td colspan="4" class="px-5 py-8 text-center text-gray-400 text-sm">Aucun utilisateur</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="divide-y divide-gray-50">
+                        <div v-for="a in lastItems.announcements" :key="a.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ a.title }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ a.date }}</p>
+                        </div>
+                        <p v-if="lastItems.announcements.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucune annonce</p>
                     </div>
                 </div>
 
-                <div class="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-800">Prochains événements</h2>
-                        <a href="/admin/events" class="text-xs font-medium text-primary hover:underline">Voir tout</a>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Derniers événements</p>
+                        <RouterLink to="/admin/events" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
                     </div>
                     <div class="divide-y divide-gray-50">
-                        <div
-                            v-for="event in upcomingEvents"
-                            :key="event.id"
-                            class="px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/60 transition-colors duration-100">
-                            <div class="min-w-0 mr-3">
-                                <p class="font-medium text-gray-800 text-sm truncate">{{ event.title }}</p>
-                                <p class="text-xs text-gray-500 mt-0.5">{{ event.date }} · {{ event.location }}</p>
-                            </div>
+                        <div v-for="e in lastItems.events" :key="e.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ e.title }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ e.date }}</p>
                         </div>
-                        <div v-if="upcomingEvents.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
-                            Aucun événement
+                        <p v-if="lastItems.events.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucun événement</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Dernières formations</p>
+                        <RouterLink to="/admin/formations" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
+                    </div>
+                    <div class="divide-y divide-gray-50">
+                        <div v-for="f in lastItems.formations" :key="f.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ f.title }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ f.date }}</p>
                         </div>
+                        <p v-if="lastItems.formations.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucune formation</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Derniers projets</p>
+                        <RouterLink to="/admin/projets" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
+                    </div>
+                    <div class="divide-y divide-gray-50">
+                        <div v-for="p in lastItems.projects" :key="p.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ p.title }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ p.date }}</p>
+                        </div>
+                        <p v-if="lastItems.projects.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucun projet</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Derniers utilisateurs inscrits</p>
+                        <RouterLink to="/admin/utilisateurs" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
+                    </div>
+                    <div class="divide-y divide-gray-50">
+                        <div v-for="u in lastItems.users" :key="u.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ u.name }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ u.date }}</p>
+                        </div>
+                        <p v-if="lastItems.users.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucun utilisateur</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <p class="text-sm font-semibold text-gray-800">Derniers signalements</p>
+                        <RouterLink to="/admin/signalements" class="text-xs text-primary hover:underline">Voir tout</RouterLink>
+                    </div>
+                    <div class="divide-y divide-gray-50">
+                        <div v-for="r in lastItems.reports" :key="r.id" class="px-4 py-2 flex items-center justify-between gap-2">
+                            <p class="text-xs text-gray-700 truncate flex-1">{{ r.reason }}</p>
+                            <p class="text-xs text-gray-400 flex-shrink-0">{{ r.date }}</p>
+                        </div>
+                        <p v-if="lastItems.reports.length === 0" class="px-4 py-4 text-xs text-gray-400">Aucun signalement</p>
                     </div>
                 </div>
 
@@ -103,15 +122,16 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
-import { roleLabel, fullName } from '@/utils.js'
 
+const auth = useAuthStore()
 const loading = ref(true)
 const error = ref('')
 const statsData = ref({})
-const recentUsers = ref([])
-const upcomingEvents = ref([])
+const lastItems = ref({ announcements: [], events: [], formations: [], projects: [], users: [], reports: [] })
 
 const stats = computed(() => [
     {
@@ -146,27 +166,23 @@ const stats = computed(() => [
 
 onMounted(async () => {
     try {
-        const [{ data: usersData }, { data: eventsData }, { data: apiStats }] = await Promise.all([
-            api.get('/admin/users'),
-            api.get('/admin/events'),
+        const [{ data: apiStats }, { data: annData }, { data: evtData }, { data: fmtData }, { data: prjData }, { data: usrData }, { data: rptData }] = await Promise.all([
             api.get('/admin/stats'),
+            api.get('/admin/announcements', { params: { limit: 10 } }),
+            api.get('/admin/events', { params: { limit: 10 } }),
+            api.get('/admin/formations', { params: { limit: 10 } }),
+            api.get('/admin/projects', { params: { limit: 10 } }),
+            api.get('/admin/users', { params: { limit: 10 } }),
+            api.get('/admin/reports', { params: { limit: 10 } }),
         ])
 
         statsData.value = apiStats
-
-        recentUsers.value = (usersData.data ?? usersData).slice(0, 5).map(u => ({
-            name: fullName(u),
-            email: u.email,
-            type: roleLabel(u.roles?.[0] ?? ''),
-            date: u.created_at?.slice(0, 10) ?? '-',
-        }))
-
-        upcomingEvents.value = (eventsData.data ?? eventsData).slice(0, 5).map(e => ({
-            id: e.id,
-            title: e.title,
-            date: e.date ?? '-',
-            location: e.location ?? '-',
-        }))
+        lastItems.value.announcements = (annData.data ?? annData).map(a => ({ id: a.id_announcement ?? a.id, title: a.title, date: a.created_at?.slice(0, 10) ?? '-' }))
+        lastItems.value.events = (evtData.data ?? evtData).map(e => ({ id: e.id_event ?? e.id, title: e.title, date: e.date?.slice(0, 10) ?? e.created_at?.slice(0, 10) ?? '-' }))
+        lastItems.value.formations = (fmtData.data ?? fmtData).map(f => ({ id: f.id_formation ?? f.id, title: f.title, date: f.date?.slice(0, 10) ?? f.created_at?.slice(0, 10) ?? '-' }))
+        lastItems.value.projects = (prjData.data ?? prjData).map(p => ({ id: p.id_project ?? p.id, title: p.title, date: p.created_at?.slice(0, 10) ?? '-' }))
+        lastItems.value.users = (usrData.data ?? usrData).map(u => ({ id: u.id, name: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email, date: u.created_at?.slice(0, 10) ?? '-' }))
+        lastItems.value.reports = (rptData.data ?? rptData).map(r => ({ id: r.id_report, reason: r.reason || r.content_type || 'Signalement', date: r.created_at?.slice(0, 10) ?? '-' }))
     } catch {
         error.value = 'Impossible de charger les données.'
     } finally {

@@ -3,77 +3,90 @@
 
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">
-                Bonjour {{ auth.user?.first_name ?? '' }}
+                {{ t('accueil.title') }}
             </h1>
         </div>
 
-        <div class="grid grid-cols-4 gap-5 mb-8" data-tutorial="stats">
-            <div
-                v-for="stat in stats"
-                :key="stat.label"
-                class="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4"
-            >
-                <div :class="['flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center', stat.bgClass]">
-                    <div :class="stat.iconClass" v-html="stat.icon" />
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        {{ t('accueil.announcements.sectionTitle') }}
+                    </h2>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ t('accueil.announcements.sectionSubtitle') }}</p>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ stat.value }}</p>
-                    <p class="text-sm text-gray-500 mt-1">{{ stat.label }}</p>
-                    <span v-if="stat.badge" class="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                        {{ stat.badge }}
-                    </span>
-                </div>
+                <RouterLink to="/annonces" class="text-xs font-medium text-primary hover:underline">
+                    {{ t('accueil.announcements.seeAll') }}
+                </RouterLink>
+            </div>
+
+            <div v-if="announcesLoading" class="grid grid-cols-4 gap-4">
+                <div v-for="i in 4" :key="i" class="bg-white rounded-2xl shadow-sm h-48 animate-pulse" />
+            </div>
+
+            <div v-else-if="featuredAnnounces.length === 0" class="bg-white rounded-2xl shadow-sm p-10 text-center text-sm text-gray-400">
+                {{ t('accueil.announcements.empty') }}
+            </div>
+
+            <div v-else class="grid grid-cols-4 gap-4">
+                <RouterLink
+                    v-for="ann in featuredAnnounces"
+                    :key="ann.id"
+                    :to="`/annonces/${ann.id}`"
+                    class="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
+                >
+                    <div class="h-32 bg-gray-100 overflow-hidden">
+                        <img v-if="ann.first_photo" :src="ann.first_photo" :alt="ann.title"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
+                            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-medium text-gray-800 truncate">{{ ann.title }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 truncate">{{ ann.city || ann.address }}</p>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-xs font-semibold text-primary">
+                                {{ ann.price > 0 ? ann.price.toFixed(2) + ' €' : t('accueil.announcements.free') }}
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded text-xs font-medium"
+                                :class="ann.type === 'don' ? 'bg-secondary/10 text-secondary' : 'bg-primary/10 text-primary'">
+                                {{ ann.type === 'don' ? t('accueil.announcements.gift') : t('accueil.announcements.sale') }}
+                            </span>
+                        </div>
+                    </div>
+                </RouterLink>
             </div>
         </div>
 
         <div class="grid grid-cols-5 gap-6">
 
-            <div class="col-span-3 bg-white rounded-2xl shadow-sm p-5">
-                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Activité récente</h2>
-                <p class="text-xs text-gray-400 mb-4">Dernières actualités de la plateforme</p>
-                <div class="space-y-4">
-                    <p v-if="activity.length === 0" class="text-sm text-gray-400 text-center py-6">Aucune activité récente pour le moment.</p>
-                    <div v-for="item in activity" :key="item.id" class="flex items-start gap-3">
-                        <div :class="['w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold', item.avatarColor]">
-                            {{ item.initials }}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm text-gray-700">
-                                <span class="font-medium">{{ item.author }}</span>
-                                {{ item.action }}
-                                <span class="font-medium">{{ item.subject }}</span>
-                            </p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-gray-400">{{ item.time }}</span>
-                                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', item.tagClass]">{{ item.tag }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="col-span-2 bg-white rounded-2xl shadow-sm p-5" data-tutorial="quick-actions">
-                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Actions rapides</h2>
-                <p class="text-xs text-gray-400 mb-4">Accès direct à vos actions</p>
+                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">
+                    {{ t('accueil.actions.sectionTitle') }}
+                </h2>
+                <p class="text-xs text-gray-400 mb-4">{{ t('accueil.actions.sectionSubtitle') }}</p>
                 <div class="grid grid-cols-2 gap-3">
                     <button
-                        @click="showDepot = true"
+                        @click="router.push('/annonces?tab=mine')"
                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-primary text-white hover:bg-primary-dark transition-colors min-h-24"
                     >
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
-                        <span class="text-sm font-medium text-center">Déposer un objet</span>
+                        <span class="text-sm font-medium text-center">{{ t('accueil.actions.deposit') }}</span>
                     </button>
 
                     <button
-                        @click="showDepot = true"
+                        @click="router.push('/annonces?publish=1')"
                         class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-primary text-primary hover:bg-primary/5 transition-colors min-h-24"
                     >
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                         </svg>
-                        <span class="text-sm font-medium text-center">+ Publier une annonce</span>
+                        <span class="text-sm font-medium text-center">{{ t('accueil.actions.publish') }}</span>
                     </button>
 
                     <RouterLink
@@ -83,7 +96,7 @@
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
-                        <span class="text-sm font-medium text-center">+ Voir les formations</span>
+                        <span class="text-sm font-medium text-center">{{ t('accueil.actions.formations') }}</span>
                     </RouterLink>
 
                     <RouterLink
@@ -93,8 +106,22 @@
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        <span class="text-sm font-medium text-center">+ Rejoindre un projet</span>
+                        <span class="text-sm font-medium text-center">{{ t('accueil.actions.projects') }}</span>
                     </RouterLink>
+                </div>
+            </div>
+
+            <div class="col-span-3 bg-white rounded-2xl shadow-sm p-5 flex flex-col">
+                <h2 class="font-semibold text-gray-800 mb-1" style="font-family: var(--font-family-title)">
+                    {{ t('accueil.partners.sectionTitle') }}
+                </h2>
+                <p class="text-xs text-gray-400 mb-4">{{ t('accueil.partners.sectionSubtitle') }}</p>
+                <div class="flex-1 flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl">
+                    <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <p class="text-sm font-medium text-gray-400">{{ t('accueil.partners.empty') }}</p>
+                    <p class="text-xs text-gray-300 text-center max-w-xs">{{ t('accueil.partners.emptyDetail') }}</p>
                 </div>
             </div>
 
@@ -112,82 +139,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { usePolling } from '@/composables/usePolling.js'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import CreateAnnouncementModal from '@/Components/CreateAnnouncementModal.vue'
 import OnboardingTutorial from '@/Components/OnboardingTutorial.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
+const { t, tm, rt } = useI18n()
+
 const auth = useAuthStore()
+const router = useRouter()
 const showDepot = ref(false)
-
 const showTutorial = ref(false)
+const featuredAnnounces = ref([])
+const announcesLoading = ref(true)
 
-const tutorialSteps = [
-    {
-        target: 'sidebar',
+const TUTORIAL_TARGETS = ['sidebar', 'nav-annonces', 'nav-depot', 'nav-projets', 'nav-forum', 'nav-formations', 'nav-evenements', 'nav-calendrier', 'nav-conseils', 'quick-actions']
+
+const tutorialSteps = computed(() =>
+    tm('accueil.tutorial.steps').map((step, i) => ({
+        target: TUTORIAL_TARGETS[i],
         placement: 'right',
-        title: 'Bienvenue sur UpcycleConnect !',
-        description: 'Ce menu latéral vous donne accès à toutes les sections de la plateforme. Faisons un rapide tour ensemble.',
-    },
-    {
-        target: 'stats',
-        placement: 'bottom',
-        title: 'Votre tableau de bord',
-        description: 'Ces indicateurs résument votre activité : score upcycling, annonces actives, dépôts en attente et événements à venir.',
-    },
-    {
-        target: 'nav-annonces',
-        placement: 'right',
-        title: 'Annonces',
-        description: 'Parcourez les objets disponibles à l\'adoption ou à la vente, et publiez vos propres annonces pour donner une seconde vie à vos objets.',
-    },
-    {
-        target: 'nav-depot',
-        placement: 'right',
-        title: 'Dépôt d\'objet',
-        description: 'Une fois votre objet vendu, demandez l\'attribution d\'un casier. L\'acheteur recevra un code d\'accès pour venir le récupérer.',
-    },
-    {
-        target: 'nav-projets',
-        placement: 'right',
-        title: 'Projets collaboratifs',
-        description: 'Rejoignez ou créez des projets de création et de réparation avec d\'autres membres de la communauté.',
-    },
-    {
-        target: 'nav-forum',
-        placement: 'right',
-        title: 'Forum',
-        description: 'Échangez avec la communauté, posez vos questions, partagez vos astuces et participez aux discussions autour de l\'upcycling.',
-    },
-    {
-        target: 'nav-formations',
-        placement: 'right',
-        title: 'Formations',
-        description: 'Accédez à des formations pratiques pour apprendre à réparer, transformer et revaloriser vos objets.',
-    },
-    {
-        target: 'nav-evenements',
-        placement: 'right',
-        title: 'Événements',
-        description: 'Découvrez et inscrivez-vous aux ateliers, marchés et rencontres organisés près de chez vous.',
-    },
-    {
-        target: 'nav-conseils',
-        placement: 'right',
-        title: 'Conseils',
-        description: 'Retrouvez des guides et astuces pour prendre soin de vos objets, les réparer et leur donner une nouvelle vie.',
-    },
-    {
-        target: 'quick-actions',
-        placement: 'left',
-        title: 'Actions rapides',
-        description: 'Depuis votre accueil, accédez directement aux actions les plus courantes sans passer par les menus.',
-    },
-]
+        title: rt(step.title),
+        description: rt(step.description),
+    }))
+)
 
 async function finishTutorial() {
     showTutorial.value = false
@@ -197,61 +176,14 @@ async function finishTutorial() {
     } catch {}
 }
 
-const stats = ref([
-    {
-        label: 'Upcycling Score',
-        value: '-',
-        key: 'upcycling_score',
-        badge: null,
-        bgClass: 'bg-secondary/20',
-        iconClass: 'text-secondary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>`,
-    },
-    {
-        label: 'Annonces actives',
-        value: '-',
-        key: 'active_announcements',
-        badge: null,
-        bgClass: 'bg-primary/10',
-        iconClass: 'text-primary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>`,
-    },
-    {
-        label: 'Dépôts en attente',
-        value: '-',
-        key: 'pending_deposits',
-        badge: 'En attente',
-        bgClass: 'bg-primary/10',
-        iconClass: 'text-primary',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
-    },
-    {
-        label: 'Événements à venir',
-        value: '-',
-        key: 'upcoming_events',
-        badge: null,
-        bgClass: 'bg-blue-100',
-        iconClass: 'text-blue-500',
-        icon: `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
-    },
-])
-
-const activity = []
-
-async function fetchStats() {
-    try {
-        const { data } = await api.get('/user/stats')
-        stats.value.forEach(s => {
-            if (data[s.key] !== undefined) s.value = data[s.key]
-        })
-    } catch {}
-}
-
-onMounted(() => {
+onMounted(async () => {
     if (!auth.user?.tutorial_done) {
         showTutorial.value = true
     }
+    try {
+        const { data } = await api.get('/announcements?limit=4')
+        featuredAnnounces.value = (data.data ?? []).slice(0, 4)
+    } catch {}
+    announcesLoading.value = false
 })
-
-usePolling(fetchStats)
 </script>

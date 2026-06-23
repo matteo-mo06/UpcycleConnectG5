@@ -20,7 +20,7 @@
                 <p v-if="contentTitle" class="text-sm text-gray-500">« {{ contentTitle }} »</p>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Raison du signalement</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Raison du signalement <span class="text-red-400">*</span></label>
                     <textarea
                         v-model="reason"
                         rows="4"

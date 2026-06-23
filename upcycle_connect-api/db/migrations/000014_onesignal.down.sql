@@ -1,1 +1,1 @@
-ALTER TABLE `user` DROP COLUMN IF EXISTS `onesignal_player_id`;
+ALTER TABLE `user` DROP COLUMN `onesignal_player_id`;

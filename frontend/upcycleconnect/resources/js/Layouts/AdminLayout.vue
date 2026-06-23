@@ -44,13 +44,11 @@
                     <p class="text-white text-sm font-medium truncate">
                         {{ auth.user?.first_name }} {{ auth.user?.last_name }}
                     </p>
-                    <p class="text-white/50 text-xs truncate">
-                        {{ auth.user?.email }}
-                    </p>
+                    <p class="text-white/50 text-xs truncate capitalize">{{ primaryRole }}</p>
                 </div>
                 <RouterLink
                     to="/accueil"
-                    title="Interface utilisateur"
+                    title="Espace utilisateur"
                     class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors duration-150"
                 >
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
@@ -81,13 +79,14 @@
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.js";
-import { initials as getInitials } from "@/utils.js";
+import { initials as getInitials, primaryRole as getPrimaryRole } from "@/utils.js";
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
 const initials = computed(() => getInitials(auth.user));
+const primaryRole = computed(() => getPrimaryRole(auth.user?.roles ?? []));
 
 function handleLogout() {
     auth.logout()
@@ -96,7 +95,7 @@ function handleLogout() {
 
 const navItems = [
     {
-        label: "Dashboard",
+        label: "Accueil",
         href: "/admin/dashboard",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
     },
@@ -117,8 +116,8 @@ const navItems = [
     },
     {
         label: "Annonces",
-        href: "/admin/listings",
-        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>`,
+        href: "/admin/annonces",
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`,
     },
     {
         label: "Événements",
@@ -146,7 +145,7 @@ const navItems = [
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>`,
     },
     {
-        label: "Score",
+        label: "Mon Score",
         href: "/admin/score",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
     },
@@ -159,6 +158,11 @@ const navItems = [
         label: "Revenus",
         href: "/admin/revenus",
         icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    },
+    {
+        label: "Abonnements",
+        href: "/admin/abonnements",
+        icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9a2 2 0 10-4 0v5a2 2 0 01-2 2h6m-6-4h4m8 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
     },
 ];
 

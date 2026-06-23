@@ -148,7 +148,7 @@ func GetProjectById(id string) (models.Project, error) {
 		SELECT p.id_project, p.title_project, p.description_project, p.start_date_project,
 		       p.end_date, p.location_project, p.capacity, p.status, p.rejection_reason,
 		       p.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
-		       COUNT(ins.id_user) AS members_count,
+		       (COUNT(ins.id_user) + 1) AS members_count,
 		       p.created_at
 		FROM PROJECT p
 		LEFT JOIN USER u ON u.id_user = p.id_creator
@@ -176,6 +176,13 @@ func GetProjectOwnerID(projectID string) (string, error) {
 		return "", err
 	}
 	return ownerID.String, nil
+}
+
+func CountUserProjects(userID string) (int, error) {
+	var count int
+	err := config.Conn.QueryRow(
+		`SELECT COUNT(*) FROM PROJECT WHERE id_creator = ? AND status != 'Supprimé'`, userID).Scan(&count)
+	return count, err
 }
 
 func CreateProject(p models.Project) error {

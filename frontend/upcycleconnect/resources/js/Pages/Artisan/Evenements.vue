@@ -2,7 +2,7 @@
     <ArtisanLayout>
 
         <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Mes événements</h1>
+            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Événements</h1>
             <button
                 @click="openCreate"
                 class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
@@ -74,7 +74,6 @@
             </div>
         </div>
 
-        <!-- Modale de détail -->
         <div v-if="selectedEvent" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="selectedEvent = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
@@ -118,7 +117,6 @@
             </div>
         </div>
 
-        <!-- Confirmation de suppression -->
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -133,7 +131,6 @@
             </div>
         </div>
 
-        <!-- Modale de création / modification -->
         <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal = false" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">

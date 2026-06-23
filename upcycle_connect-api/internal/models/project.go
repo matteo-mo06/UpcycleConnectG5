@@ -51,3 +51,48 @@ type ProjectStats struct {
 	Completed  int `json:"completed"`
 	Rejected   int `json:"rejected"`
 }
+
+type ProjectMaterial struct {
+	IdMaterial string  `json:"id"`
+	IdProject  string  `json:"id_project"`
+	Name       string  `json:"name"`
+	Quantity   float64 `json:"quantity"`
+	Unit       *string `json:"unit"`
+}
+
+type CreateMaterialRequest struct {
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	Unit     *string `json:"unit"`
+}
+
+type UpdateMaterialRequest struct {
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	Unit     *string `json:"unit"`
+}
+
+type ProjectStep struct {
+	IdStep      string  `json:"id"`
+	IdProject   string  `json:"id_project"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	Status      string  `json:"status"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type CreateStepRequest struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type UpdateStepRequest struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type UpdateStepStatusRequest struct {
+	Status string `json:"status"`
+}

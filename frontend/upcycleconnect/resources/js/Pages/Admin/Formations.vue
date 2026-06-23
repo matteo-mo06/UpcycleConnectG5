@@ -33,6 +33,13 @@
                         <input v-model="search" type="text" placeholder="Rechercher une formation…"
                             class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
                     </div>
+                    <select v-model="filterLevel"
+                        class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
+                        <option value="">Tous les niveaux</option>
+                        <option value="beginner">Débutant</option>
+                        <option value="intermediate">Intermédiaire</option>
+                        <option value="advanced">Avancé</option>
+                    </select>
                     <select v-model="filterStatus"
                         class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
                         <option value="">Tous les statuts</option>
@@ -63,8 +70,8 @@
                                     <p class="text-xs text-gray-500 truncate">{{ f.creator_name }}</p>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <p class="text-gray-800 text-xs font-medium">{{ f.date ? f.date.slice(0,10) : '—' }}</p>
-                                    <p class="text-gray-500 text-xs truncate">{{ f.location ?? '—' }}</p>
+                                    <p class="text-gray-800 text-xs font-medium">{{ f.date ? f.date.slice(0,10) : '-' }}</p>
+                                    <p class="text-gray-500 text-xs truncate">{{ f.location ?? '-' }}</p>
                                 </td>
                                 <td class="px-5 py-3">
                                     <span :class="levelClass(f.level)" class="px-2 py-0.5 rounded-full text-xs font-medium">
@@ -129,7 +136,6 @@
 
         </template>
 
-        <!-- Modal détail -->
         <div v-if="detailFormation" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="detailFormation = null">
             <div class="absolute inset-0 bg-black/40" @click="detailFormation = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
@@ -160,7 +166,7 @@
                         </div>
                         <div v-if="detailFormation.date">
                             <p class="text-xs text-gray-400 mb-0.5">Date</p>
-                            <p class="font-medium text-gray-800">{{ detailFormation.date.slice(0,10) }}</p>
+                            <p class="font-medium text-gray-800">{{ formatDateTime(detailFormation.date) }}</p>
                         </div>
                         <div v-if="detailFormation.location">
                             <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
@@ -203,7 +209,6 @@
             </div>
         </div>
 
-        <!-- Modal rejet -->
         <div v-if="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="rejectModal = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -222,7 +227,6 @@
             </div>
         </div>
 
-        <!-- Modal suppression -->
         <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toDelete = null"/>
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -253,6 +257,7 @@ const loading = ref(false)
 const error = ref('')
 const search = ref('')
 const filterStatus = ref('')
+const filterLevel = ref('')
 const detailFormation = ref(null)
 const rejectModal = ref(null)
 const rejectReason = ref('')
@@ -296,6 +301,17 @@ function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
 }
 
+function formatDateTime(dateStr) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function endDateTime(dateStr, hours) {
+    if (!dateStr || !hours) return null
+    return new Date(new Date(dateStr).getTime() + hours * 3600000)
+}
+
 function levelClass(level) {
     return {
         beginner: 'bg-secondary/10 text-secondary',
@@ -332,7 +348,7 @@ function openRejectModal(f) {
 async function approveFormation(f) {
     try {
         await api.patch(`/formations/${f.id}/approve`)
-        f.status = 'approved'
+        await Promise.all([fetchFormations(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de l\'approbation.')
     }
@@ -342,12 +358,8 @@ async function submitReject() {
     if (!rejectModal.value) return
     try {
         await api.patch(`/formations/${rejectModal.value.id}/reject`, { reason: rejectReason.value || null })
-        const f = formations.value.find(x => x.id === rejectModal.value.id)
-        if (f) {
-            f.status = 'rejected'
-            f.rejection_reason = rejectReason.value || null
-        }
         rejectModal.value = null
+        await Promise.all([fetchFormations(), fetchStats()])
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors du rejet.')
     }
@@ -377,7 +389,7 @@ async function fetchFormations() {
     error.value = ''
     try {
         const { data } = await api.get('/admin/formations', {
-            params: { page: page.value, limit: 20, search: search.value, status: filterStatus.value }
+            params: { page: page.value, limit: 20, search: search.value, status: filterStatus.value, level: filterLevel.value }
         })
         formations.value = data.data ?? []
         total.value = data.total ?? 0
@@ -405,7 +417,7 @@ async function fetchStats() {
     } catch {}
 }
 
-watch([page, filterStatus], fetchFormations)
+watch([page, filterStatus, filterLevel], fetchFormations)
 watch(search, () => { page.value = 1; fetchFormations() })
 
 onMounted(() => { fetchFormations(); fetchStats() })
