@@ -634,5 +634,5 @@ onMounted(() => {
         router.replace({ query: { ...route.query, publish: undefined } })
     }
 })
-usePolling(fetchAnnouncements, 2000, () => activeTab.value !== 'mine')
+usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine' || activeTab.value === 'acquisitions')
 </script>

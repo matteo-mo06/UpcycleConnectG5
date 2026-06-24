@@ -635,8 +635,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import { usePolling } from "@/composables/usePolling.js";
+import { ref, computed, watch, onMounted } from "vue";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 import ReportModal from "@/Components/ReportModal.vue";
@@ -880,5 +879,5 @@ async function submitReply() {
 
 watch(page, fetchTopics);
 
-usePolling(fetchTopics, 2000, () => !openedTopic.value);
+onMounted(fetchTopics);
 </script>
