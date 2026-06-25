@@ -627,11 +627,23 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => {
+onMounted(async () => {
     fetchCategories()
     if (route.query.publish === '1') {
         showDepot.value = true
         router.replace({ query: { ...route.query, publish: undefined } })
+    }
+    if (route.query.highlight) {
+        const id = route.query.highlight
+        router.replace({ query: { tab: route.query.tab } })
+        try {
+            const { data } = await api.get(`/announcements/${id}`)
+            const ann = data.announcement ?? data
+            selected.value = ann
+            photoIndex.value = 0
+            selectedPhotos.value = (data.photos ?? []).map(d => d.link).filter(Boolean)
+            if (!selectedPhotos.value.length && ann.first_photo) selectedPhotos.value = [ann.first_photo]
+        } catch {}
     }
 })
 usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine' || activeTab.value === 'acquisitions')

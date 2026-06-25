@@ -32,7 +32,7 @@
                 <RouterLink
                     v-for="ann in featuredAnnounces"
                     :key="ann.id"
-                    :to="`/annonces/${ann.id}`"
+                    :to="`/annonces?highlight=${ann.id}`"
                     class="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
                 >
                     <div class="h-32 bg-gray-100 overflow-hidden">
