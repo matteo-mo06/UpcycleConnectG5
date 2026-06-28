@@ -260,6 +260,19 @@ func DeactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "désactivée"})
 }
 
+func ReactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+
+	if err := db.ReactivateAdvertisement(id); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "réactivée"})
+}
+
 func GetAdvertisementPrice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	price, err := db.GetAdvertisementPriceCents()

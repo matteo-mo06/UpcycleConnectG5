@@ -197,6 +197,12 @@ func DeactivateAdvertisement(id string) error {
 	return err
 }
 
+func ReactivateAdvertisement(id string) error {
+	_, err := config.Conn.Exec(`
+		UPDATE advertisement SET state = 'active' WHERE id_advertisement = ?`, id)
+	return err
+}
+
 func SaveAdvertisementCheckoutSession(id, sessionID string) error {
 	_, err := config.Conn.Exec(`
 		UPDATE advertisement SET stripe_checkout_session_id = ? WHERE id_advertisement = ?`, sessionID, id)

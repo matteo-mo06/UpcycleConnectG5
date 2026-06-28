@@ -157,6 +157,7 @@ func InitRoutes() {
 	http.Handle("PATCH /admin/advertisement/{id}/approve", admin(handlers.ApproveAdvertisement))
 	http.Handle("PATCH /admin/advertisement/{id}/reject", admin(handlers.RejectAdvertisement))
 	http.Handle("PATCH /admin/advertisement/{id}/deactivate", admin(handlers.DeactivateAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/reactivate", admin(handlers.ReactivateAdvertisement))
 	http.Handle("GET /admin/advertisement-price", admin(handlers.GetAdvertisementPrice))
 	http.Handle("PUT /admin/advertisement-price", admin(handlers.UpdateAdvertisementPrice))
 

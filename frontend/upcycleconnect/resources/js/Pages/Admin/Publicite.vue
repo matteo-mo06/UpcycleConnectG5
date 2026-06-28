@@ -155,6 +155,15 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
                                             </svg>
                                         </button>
+                                        <button
+                                            v-if="ad.state === 'expired'"
+                                            @click="doReactivate(ad)"
+                                            title="Réactiver"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -506,6 +515,15 @@ async function doReject() {
         rejectError.value = err?.response?.data?.error ?? 'Erreur lors du refus.'
     } finally {
         rejectSubmitting.value = false
+    }
+}
+
+async function doReactivate(ad) {
+    try {
+        await api.patch(`/admin/advertisement/${ad.id}/reactivate`)
+        await reload()
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la réactivation.')
     }
 }
 
