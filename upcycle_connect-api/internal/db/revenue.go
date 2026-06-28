@@ -53,8 +53,52 @@ func GetRevenueSummary() (models.RevenueSummary, error) {
 	if err != nil {
 		return s, err
 	}
+	config.Conn.QueryRow(`
+		SELECT COALESCE(SUM(sp.price_cents), 0)
+		FROM user_subscription us
+		JOIN subscription s ON s.id_subscription = us.id_subscription
+		JOIN sub_sub_plan ssp ON ssp.id_subscription = s.id_subscription
+		JOIN subscription_plans sp ON sp.id_plan = ssp.id_plan
+	`).Scan(&s.TotalSubscriptionsCents)
+	config.Conn.QueryRow(`
+		SELECT COALESCE(SUM(price_cents), 0)
+		FROM advertisement
+		WHERE state IN ('active', 'expired')
+	`).Scan(&s.TotalAdsCents)
 	s.CommissionRate, _ = GetCommissionRate()
 	return s, nil
+}
+
+func GetAdPaymentsPaginated(page, limit int) ([]models.AdPayment, int, error) {
+	var total int
+	if err := config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM advertisement WHERE state IN ('active', 'expired')
+	`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * limit
+	rows, err := config.Conn.Query(`
+		SELECT a.id_advertisement, a.title, a.id_user,
+		       u.first_name, u.last_name, u.email,
+		       a.price_cents, a.paid_at, a.state
+		FROM advertisement a
+		JOIN user u ON u.id_user = a.id_user
+		WHERE a.state IN ('active', 'expired')
+		ORDER BY a.paid_at DESC
+		LIMIT ? OFFSET ?`, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var list []models.AdPayment
+	for rows.Next() {
+		var p models.AdPayment
+		if err := rows.Scan(&p.ID, &p.Title, &p.UserID, &p.FirstName, &p.LastName, &p.Email, &p.PriceCents, &p.PaidAt, &p.State); err != nil {
+			return nil, 0, err
+		}
+		list = append(list, p)
+	}
+	return list, total, nil
 }
 
 func GetRevenueTransactions(page, limit int) ([]models.RevenueTransaction, int, error) {

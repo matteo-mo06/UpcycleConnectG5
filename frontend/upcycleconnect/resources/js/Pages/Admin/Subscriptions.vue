@@ -233,13 +233,21 @@ async function submitPlan() {
 }
 
 async function fetchPlans() {
-    const { data } = await api.get('/admin/subscription/plans')
-    plans.value = data ?? []
+    try {
+        const { data } = await api.get('/admin/subscription/plans')
+        plans.value = data ?? []
+    } catch (err) {
+        console.error('fetchPlans error:', err)
+    }
 }
 
 async function fetchSubscriptions() {
-    const { data } = await api.get('/admin/subscriptions')
-    subscriptions.value = data ?? []
+    try {
+        const { data } = await api.get('/admin/subscriptions')
+        subscriptions.value = data.subscriptions ?? []
+    } catch (err) {
+        console.error('fetchSubscriptions error:', err)
+    }
 }
 
 onMounted(() => {

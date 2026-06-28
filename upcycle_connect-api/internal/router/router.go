@@ -143,6 +143,7 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/revenue/summary", admin(handlers.GetRevenueSummary))
 	http.Handle("GET /admin/revenue/transactions", admin(handlers.GetRevenueTransactions))
+	http.Handle("GET /admin/revenue/advertisements", admin(handlers.GetAdPayments))
 	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
 	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
 
