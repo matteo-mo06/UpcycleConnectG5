@@ -155,7 +155,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                             </svg>
                         </button>
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        <div v-if="advertisements.length <= 8" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
                             <button
                                 v-for="(_, i) in advertisements"
                                 :key="i"
@@ -163,6 +163,9 @@
                                 class="w-2 h-2 rounded-full transition-colors"
                                 :class="i === currentAdIndex ? 'bg-white' : 'bg-white/50'"
                             />
+                        </div>
+                        <div v-else class="absolute bottom-2 right-3 text-white text-xs font-medium bg-black/30 rounded px-1.5 py-0.5 select-none">
+                            {{ currentAdIndex + 1 }} / {{ advertisements.length }}
                         </div>
                     </template>
                 </div>
