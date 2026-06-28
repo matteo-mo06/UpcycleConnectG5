@@ -213,7 +213,8 @@ async function fetchTopics() {
         const { data } = await api.get('/forum/topics', { params })
         topics.value = data.data ?? []
         total.value = data.total ?? 0
-    } catch {
+    } catch (err) {
+        console.error('fetchTopics error:', err)
         topics.value = []
         total.value = 0
     } finally {

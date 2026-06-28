@@ -146,6 +146,19 @@ func InitRoutes() {
 	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
 	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
 
+	http.HandleFunc("GET /advertisements/active", handlers.GetActiveAdvertisements)
+	http.Handle("POST /advertisement", auth(handlers.CreateAdvertisement))
+	http.Handle("GET /user/advertisements", auth(handlers.GetMyAdvertisements))
+	http.Handle("POST /advertisement/{id}/checkout", auth(handlers.CreateAdvertisementCheckout))
+
+	http.Handle("GET /admin/advertisements/stats", admin(handlers.GetAdminAdvertisementStats))
+	http.Handle("GET /admin/advertisements", admin(handlers.GetAdminAdvertisements))
+	http.Handle("PATCH /admin/advertisement/{id}/approve", admin(handlers.ApproveAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/reject", admin(handlers.RejectAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/deactivate", admin(handlers.DeactivateAdvertisement))
+	http.Handle("GET /admin/advertisement-price", admin(handlers.GetAdvertisementPrice))
+	http.Handle("PUT /admin/advertisement-price", admin(handlers.UpdateAdvertisementPrice))
+
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))
 	http.Handle("DELETE /admin/locker/{id}", perm("manage_lockers", handlers.DeleteLocker))

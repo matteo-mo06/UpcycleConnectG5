@@ -221,6 +221,23 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		if session.Mode == "payment" {
+			adID := session.Metadata["advertisement_id"]
+			if adID != "" {
+				if err := db.ActivateAdvertisement(adID, session.ID); err != nil {
+					fmt.Println("ActivateAdvertisement error:", err)
+				} else {
+					ad, _ := db.GetAdvertisementByID(adID)
+					if ad != nil {
+						go utils.SendPushNotification(
+							db.GetOnesignalPlayerID(ad.IdUser),
+							"Publicité en ligne !",
+							"Votre publicité \""+ad.Title+"\" est maintenant visible sur l'accueil.",
+						)
+					}
+				}
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		return
 

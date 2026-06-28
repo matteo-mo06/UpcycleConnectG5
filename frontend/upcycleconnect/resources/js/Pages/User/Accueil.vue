@@ -116,12 +116,55 @@
                     {{ t('accueil.partners.sectionTitle') }}
                 </h2>
                 <p class="text-xs text-gray-400 mb-4">{{ t('accueil.partners.sectionSubtitle') }}</p>
-                <div class="flex-1 flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl">
+                <div v-if="advertisements.length === 0" class="flex-1 flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl">
                     <svg class="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     <p class="text-sm font-medium text-gray-400">{{ t('accueil.partners.empty') }}</p>
                     <p class="text-xs text-gray-300 text-center max-w-xs">{{ t('accueil.partners.emptyDetail') }}</p>
+                </div>
+                <div v-else class="relative overflow-hidden rounded-xl bg-gray-50" style="aspect-ratio: 3/1">
+                    <component
+                        :is="advertisements[currentAdIndex].link_url ? 'a' : 'div'"
+                        :href="advertisements[currentAdIndex].link_url || undefined"
+                        :target="advertisements[currentAdIndex].link_url ? '_blank' : undefined"
+                        :rel="advertisements[currentAdIndex].link_url ? 'noopener noreferrer' : undefined"
+                        class="block w-full h-full"
+                    >
+                        <img
+                            :src="advertisements[currentAdIndex].image_url"
+                            :alt="advertisements[currentAdIndex].title"
+                            class="w-full h-full object-contain"
+                        />
+                    </component>
+
+                    <template v-if="advertisements.length > 1">
+                        <button
+                            @click.stop="prevAd"
+                            class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <button
+                            @click.stop="nextAd"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            <button
+                                v-for="(_, i) in advertisements"
+                                :key="i"
+                                @click.stop="goToAd(i)"
+                                class="w-2 h-2 rounded-full transition-colors"
+                                :class="i === currentAdIndex ? 'bg-white' : 'bg-white/50'"
+                            />
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -139,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import UserLayout from '@/Layouts/UserLayout.vue'
@@ -156,6 +199,35 @@ const showDepot = ref(false)
 const showTutorial = ref(false)
 const featuredAnnounces = ref([])
 const announcesLoading = ref(true)
+const advertisements = ref([])
+const currentAdIndex = ref(0)
+let slideInterval = null
+
+function nextAd() {
+    currentAdIndex.value = (currentAdIndex.value + 1) % advertisements.value.length
+    startInterval()
+}
+
+function prevAd() {
+    currentAdIndex.value = (currentAdIndex.value - 1 + advertisements.value.length) % advertisements.value.length
+    startInterval()
+}
+
+function goToAd(i) {
+    currentAdIndex.value = i
+    startInterval()
+}
+
+function startInterval() {
+    clearInterval(slideInterval)
+    if (advertisements.value.length > 1) {
+        slideInterval = setInterval(() => {
+            currentAdIndex.value = (currentAdIndex.value + 1) % advertisements.value.length
+        }, 5000)
+    }
+}
+
+onUnmounted(() => clearInterval(slideInterval))
 
 const TUTORIAL_TARGETS = ['sidebar', 'nav-annonces', 'nav-depot', 'nav-projets', 'nav-forum', 'nav-formations', 'nav-evenements', 'nav-calendrier', 'nav-conseils', 'quick-actions']
 
@@ -185,5 +257,12 @@ onMounted(async () => {
         featuredAnnounces.value = (data.data ?? []).slice(0, 4)
     } catch {}
     announcesLoading.value = false
+    try {
+        const { data } = await api.get('/advertisements/active')
+        advertisements.value = data ?? []
+        startInterval()
+    } catch (err) {
+        console.error('Erreur chargement publicités:', err)
+    }
 })
 </script>

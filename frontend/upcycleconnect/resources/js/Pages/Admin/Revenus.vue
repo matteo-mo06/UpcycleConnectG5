@@ -209,6 +209,32 @@
                 <p v-if="rateSuccess" class="text-xs text-green-600 mt-2">Taux mis à jour avec succès.</p>
                 <p v-if="rateError" class="text-xs text-red-500 mt-2">{{ rateError }}</p>
             </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6 max-w-md mt-4">
+                <h2 class="font-semibold text-gray-800 mb-1">Prix d'une publicité</h2>
+                <p class="text-sm text-gray-500 mb-4">Montant facturé aux artisans premium pour publier une publicité sur l'accueil.</p>
+                <div class="flex items-center gap-3">
+                    <div class="relative flex-1">
+                        <input
+                            v-model.number="editAdPrice"
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"
+                        />
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                    </div>
+                    <button
+                        @click="saveAdPrice"
+                        :disabled="savingAdPrice"
+                        class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
+                    >
+                        {{ savingAdPrice ? 'Enregistrement…' : 'Enregistrer' }}
+                    </button>
+                </div>
+                <p v-if="adPriceSuccess" class="text-xs text-green-600 mt-2">Prix mis à jour avec succès.</p>
+                <p v-if="adPriceError" class="text-xs text-red-500 mt-2">{{ adPriceError }}</p>
+            </div>
         </div>
 
     </AdminLayout>
@@ -237,6 +263,11 @@ const limitSub = 20
 const loadingSub = ref(false)
 
 const totalSubPages = computed(() => Math.max(1, Math.ceil(totalSub.value / limitSub)))
+
+const editAdPrice = ref(0)
+const savingAdPrice = ref(false)
+const adPriceSuccess = ref(false)
+const adPriceError = ref('')
 
 const editRate = ref(0)
 const savingRate = ref(false)
@@ -293,6 +324,21 @@ async function changeSubPage(p) {
     await fetchSubscriptions()
 }
 
+async function saveAdPrice() {
+    adPriceSuccess.value = false
+    adPriceError.value = ''
+    if (editAdPrice.value < 0) { adPriceError.value = 'Le prix doit être positif.'; return }
+    savingAdPrice.value = true
+    try {
+        await api.put('/admin/advertisement-price', { price_cents: Math.round(editAdPrice.value * 100) })
+        adPriceSuccess.value = true
+    } catch {
+        adPriceError.value = 'Erreur lors de la mise à jour.'
+    } finally {
+        savingAdPrice.value = false
+    }
+}
+
 async function saveRate() {
     rateSuccess.value = false
     rateError.value = ''
@@ -312,7 +358,14 @@ async function saveRate() {
     }
 }
 
+async function fetchAdPrice() {
+    try {
+        const { data } = await api.get('/admin/advertisement-price')
+        editAdPrice.value = (data.price_cents ?? 50000) / 100
+    } catch { /* silencieux */ }
+}
+
 onMounted(async () => {
-    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions()])
+    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions(), fetchAdPrice()])
 })
 </script>

@@ -326,7 +326,8 @@ async function vote(project, value) {
             await api.put(`/projects/${project.id}/vote`, { value })
         }
         await fetchProjects()
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors du vote.')
     }
 }
 
@@ -355,7 +356,8 @@ async function fetchProjects(silent = false) {
         const { data } = await api.get('/projects', { params })
         projects.value = data.data ?? []
         total.value = data.total ?? 0
-    } catch {
+    } catch (err) {
+        console.error('fetchProjects error:', err)
     } finally {
         loading.value = false
     }
@@ -378,7 +380,9 @@ watch(selected, async (p) => {
         ])
         materials.value = mRes.data ?? []
         steps.value = sRes.data ?? []
-    } catch {}
+    } catch (err) {
+        console.error('project details error:', err)
+    }
 })
 
 usePolling(fetchProjects)

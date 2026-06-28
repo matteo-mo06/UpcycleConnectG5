@@ -120,6 +120,7 @@ onMounted(async () => {
         score.value = data.score
         breakdown.value = data.breakdown
     } catch (e) {
+        console.error('score fetch error:', e)
     } finally {
         loading.value = false
     }
