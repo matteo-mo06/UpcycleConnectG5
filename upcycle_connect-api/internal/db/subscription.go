@@ -117,29 +117,39 @@ func UpdateSubscriptionByStripeID(stripeSubID string, endTimestamp *string, canc
 	return err
 }
 
-func GetAllSubscriptions() ([]models.UserSubscriptionSummary, error) {
+func GetAllSubscriptionsPaginated(page, limit int) ([]models.UserSubscriptionSummary, int, error) {
+	var total int
+	if err := config.Conn.QueryRow(`
+		SELECT COUNT(*)
+		FROM user_subscription us
+		JOIN subscription s ON s.id_subscription = us.id_subscription`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
 	rows, err := config.Conn.Query(`
 		SELECT u.id_user, u.first_name, u.last_name, u.email,
-		       sp.name, s.start_timestamp, s.end_timestamp, s.cancelled
+		       sp.name, sp.price_cents, s.start_timestamp, s.end_timestamp, s.cancelled
 		FROM user_subscription us
 		JOIN user u ON u.id_user = us.id_user
 		JOIN subscription s ON s.id_subscription = us.id_subscription
 		JOIN sub_sub_plan ssp ON ssp.id_subscription = s.id_subscription
 		JOIN subscription_plans sp ON sp.id_plan = ssp.id_plan
-		ORDER BY s.start_timestamp DESC`)
+		ORDER BY s.start_timestamp DESC
+		LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var list []models.UserSubscriptionSummary
 	for rows.Next() {
 		var s models.UserSubscriptionSummary
-		if err := rows.Scan(&s.UserID, &s.FirstName, &s.LastName, &s.Email, &s.PlanName, &s.StartDate, &s.EndDate, &s.Cancelled); err != nil {
-			return nil, err
+		if err := rows.Scan(&s.UserID, &s.FirstName, &s.LastName, &s.Email, &s.PlanName, &s.PriceCents, &s.StartDate, &s.EndDate, &s.Cancelled); err != nil {
+			return nil, 0, err
 		}
 		list = append(list, s)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func CreateSubscriptionPlan(p models.SubscriptionPlan) error {

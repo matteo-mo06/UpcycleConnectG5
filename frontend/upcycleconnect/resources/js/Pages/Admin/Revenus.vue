@@ -124,15 +124,58 @@
         </div>
 
         <div v-if="activeTab === 'abonnements'">
-            <div class="bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-                    </svg>
+            <div v-if="loadingSub" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
+            <div v-else-if="subscriptions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucun abonnement pour le moment.</div>
+            <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Utilisateur</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Email</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Plan</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Prix</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Début</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Fin</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(sub, i) in subscriptions"
+                                :key="sub.user_id + sub.start_date"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3 text-gray-700 font-medium">{{ sub.first_name }} {{ sub.last_name }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ sub.email }}</td>
+                                <td class="px-5 py-3 text-gray-700">{{ sub.plan_name }}</td>
+                                <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(sub.price_cents) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(sub.start_date) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ sub.end_date ? formatDate(sub.end_date) : '-' }}</td>
+                                <td class="px-5 py-3">
+                                    <span v-if="sub.cancelled" class="bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-xs font-semibold">Annulé</span>
+                                    <span v-else-if="sub.end_date && new Date(sub.end_date) < new Date()" class="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full text-xs font-semibold">Expiré</span>
+                                    <span v-else class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">Actif</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-700">Abonnements - à venir</p>
-                    <p class="text-sm text-gray-400 mt-1">La gestion des abonnements premium sera disponible prochainement.</p>
+                <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>{{ totalSub }} abonnement(s)</span>
+                    <div class="flex gap-2">
+                        <button
+                            :disabled="pageSub <= 1"
+                            @click="changeSubPage(pageSub - 1)"
+                            class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                        >Précédent</button>
+                        <span class="px-3 py-1">{{ pageSub }} / {{ totalSubPages }}</span>
+                        <button
+                            :disabled="pageSub >= totalSubPages"
+                            @click="changeSubPage(pageSub + 1)"
+                            class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                        >Suivant</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -187,6 +230,14 @@ const loadingTx = ref(true)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit)))
 
+const subscriptions = ref([])
+const totalSub = ref(0)
+const pageSub = ref(1)
+const limitSub = 20
+const loadingSub = ref(false)
+
+const totalSubPages = computed(() => Math.max(1, Math.ceil(totalSub.value / limitSub)))
+
 const editRate = ref(0)
 const savingRate = ref(false)
 const rateSuccess = ref(false)
@@ -226,6 +277,22 @@ async function changePage(p) {
     await fetchTransactions()
 }
 
+async function fetchSubscriptions() {
+    loadingSub.value = true
+    try {
+        const { data } = await api.get('/admin/subscriptions', { params: { page: pageSub.value, limit: limitSub } })
+        subscriptions.value = data.subscriptions ?? []
+        totalSub.value = data.total ?? 0
+    } catch { /* silencieux */ } finally {
+        loadingSub.value = false
+    }
+}
+
+async function changeSubPage(p) {
+    pageSub.value = p
+    await fetchSubscriptions()
+}
+
 async function saveRate() {
     rateSuccess.value = false
     rateError.value = ''
@@ -246,6 +313,6 @@ async function saveRate() {
 }
 
 onMounted(async () => {
-    await Promise.all([fetchSummary(), fetchTransactions()])
+    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions()])
 })
 </script>
