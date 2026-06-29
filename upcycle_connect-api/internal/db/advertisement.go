@@ -18,13 +18,13 @@ func CreateAdvertisement(ad models.Advertisement) error {
 
 func GetAdvertisementByID(id string) (*models.Advertisement, error) {
 	var ad models.Advertisement
-	var linkURL, rejectionReason, checkoutSessionID, approvedAt, paidAt sql.NullString
+	var linkURL, rejectionReason, checkoutSessionID, approvedAt, paidAt, expiresAt sql.NullString
 	err := config.Conn.QueryRow(`
 		SELECT id_advertisement, id_user, title, image_url, link_url, state, price_cents,
-		       rejection_reason, stripe_checkout_session_id, created_at, approved_at, paid_at
+		       rejection_reason, stripe_checkout_session_id, created_at, approved_at, paid_at, expires_at
 		FROM advertisement WHERE id_advertisement = ?`, id).
 		Scan(&ad.IdAdvertisement, &ad.IdUser, &ad.Title, &ad.ImageURL, &linkURL, &ad.State, &ad.PriceCents,
-			&rejectionReason, &checkoutSessionID, &ad.CreatedAt, &approvedAt, &paidAt)
+			&rejectionReason, &checkoutSessionID, &ad.CreatedAt, &approvedAt, &paidAt, &expiresAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -46,13 +46,19 @@ func GetAdvertisementByID(id string) (*models.Advertisement, error) {
 	if paidAt.Valid {
 		ad.PaidAt = &paidAt.String
 	}
+	if expiresAt.Valid {
+		ad.ExpiresAt = &expiresAt.String
+	}
 	return &ad, nil
 }
 
 func GetActiveAdvertisements() ([]models.Advertisement, error) {
+	_ = ExpireOverdueAdvertisements()
 	rows, err := config.Conn.Query(`
 		SELECT id_advertisement, id_user, title, image_url, link_url, price_cents, paid_at
-		FROM advertisement WHERE state = 'active' ORDER BY paid_at DESC`)
+		FROM advertisement
+		WHERE state = 'active' AND (expires_at IS NULL OR expires_at >= CURDATE())
+		ORDER BY paid_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +117,7 @@ func GetUserAdvertisements(userID string) ([]models.Advertisement, error) {
 }
 
 func GetAllAdvertisementsPaginated(page, limit int, state, search string) ([]models.Advertisement, int, error) {
+	_ = ExpireOverdueAdvertisements()
 	where := "WHERE 1=1"
 	args := []any{}
 	if state != "" {
@@ -135,7 +142,7 @@ func GetAllAdvertisementsPaginated(page, limit int, state, search string) ([]mod
 	queryArgs := append(args, limit, offset)
 	rows, err := config.Conn.Query(`
 		SELECT a.id_advertisement, a.id_user, a.title, a.image_url, a.link_url, a.state, a.price_cents,
-		       a.rejection_reason, a.created_at, a.approved_at, a.paid_at,
+		       a.rejection_reason, a.created_at, a.approved_at, a.paid_at, a.expires_at,
 		       u.first_name, u.last_name, u.email
 		FROM advertisement a
 		JOIN user u ON u.id_user = a.id_user
@@ -149,9 +156,9 @@ func GetAllAdvertisementsPaginated(page, limit int, state, search string) ([]mod
 	var list []models.Advertisement
 	for rows.Next() {
 		var ad models.Advertisement
-		var linkURL, rejectionReason, approvedAt, paidAt sql.NullString
+		var linkURL, rejectionReason, approvedAt, paidAt, expiresAt sql.NullString
 		if err := rows.Scan(&ad.IdAdvertisement, &ad.IdUser, &ad.Title, &ad.ImageURL, &linkURL, &ad.State, &ad.PriceCents,
-			&rejectionReason, &ad.CreatedAt, &approvedAt, &paidAt,
+			&rejectionReason, &ad.CreatedAt, &approvedAt, &paidAt, &expiresAt,
 			&ad.UserFirstName, &ad.UserLastName, &ad.UserEmail); err != nil {
 			return nil, 0, err
 		}
@@ -166,6 +173,9 @@ func GetAllAdvertisementsPaginated(page, limit int, state, search string) ([]mod
 		}
 		if paidAt.Valid {
 			ad.PaidAt = &paidAt.String
+		}
+		if expiresAt.Valid {
+			ad.ExpiresAt = &expiresAt.String
 		}
 		list = append(list, ad)
 	}
@@ -194,6 +204,22 @@ func ActivateAdvertisement(id, sessionID string) error {
 func DeactivateAdvertisement(id string) error {
 	_, err := config.Conn.Exec(`
 		UPDATE advertisement SET state = 'expired' WHERE id_advertisement = ?`, id)
+	return err
+}
+
+func ExpireOverdueAdvertisements() error {
+	_, err := config.Conn.Exec(`
+		UPDATE advertisement SET state = 'expired'
+		WHERE state = 'active' AND expires_at IS NOT NULL AND expires_at < CURDATE()`)
+	return err
+}
+
+func SetAdvertisementExpiresAt(id string, expiresAt *string) error {
+	if expiresAt == nil || *expiresAt == "" {
+		_, err := config.Conn.Exec(`UPDATE advertisement SET expires_at = NULL WHERE id_advertisement = ?`, id)
+		return err
+	}
+	_, err := config.Conn.Exec(`UPDATE advertisement SET expires_at = ? WHERE id_advertisement = ?`, *expiresAt, id)
 	return err
 }
 

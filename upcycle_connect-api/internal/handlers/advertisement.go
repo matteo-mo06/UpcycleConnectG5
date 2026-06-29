@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v85"
@@ -258,6 +259,42 @@ func DeactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "désactivée"})
+}
+
+func SetAdExpiresAt(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+
+	var body struct {
+		ExpiresAt *string `json:"expires_at"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps de requête invalide"})
+		return
+	}
+
+	if body.ExpiresAt != nil && *body.ExpiresAt != "" {
+		t, err := time.Parse("2006-01-02", *body.ExpiresAt)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "format de date invalide (YYYY-MM-DD attendu)"})
+			return
+		}
+		if t.Before(time.Now().Truncate(24 * time.Hour)) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date d'expiration ne peut pas être dans le passé"})
+			return
+		}
+	}
+
+	if err := db.SetAdvertisementExpiresAt(id, body.ExpiresAt); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "date de fin mise à jour"})
 }
 
 func ReactivateAdvertisement(w http.ResponseWriter, r *http.Request) {

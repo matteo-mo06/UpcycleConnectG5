@@ -113,7 +113,12 @@
                                     </span>
                                 </td>
 
-                                <td class="px-5 py-3 text-xs text-gray-500">{{ formatDate(ad.created_at) }}</td>
+                                <td class="px-5 py-3 text-xs text-gray-500">
+                                    {{ formatDate(ad.created_at) }}
+                                    <span v-if="ad.expires_at" class="block text-amber-500 mt-0.5">
+                                        Expire {{ formatDate(ad.expires_at) }}
+                                    </span>
+                                </td>
 
                                 <td class="px-5 py-3">
                                     <div class="flex items-center justify-end gap-1">
@@ -235,6 +240,16 @@
                         <div v-if="detailAd.paid_at">
                             <p class="text-xs text-gray-400 mb-0.5">Payé le</p>
                             <p class="font-medium text-gray-800">{{ formatDate(detailAd.paid_at) }}</p>
+                        </div>
+                        <div v-if="detailAd.state === 'active' || detailAd.state === 'expired'">
+                            <p class="text-xs text-gray-400 mb-0.5">Expire le</p>
+                            <input
+                                type="date"
+                                v-model="detailExpiresAt"
+                                :min="new Date().toISOString().slice(0, 10)"
+                                @change="saveExpiresAt"
+                                class="text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary w-full"
+                            />
                         </div>
                         <div v-if="detailAd.link_url" class="col-span-2">
                             <p class="text-xs text-gray-400 mb-0.5">Lien</p>
@@ -373,6 +388,7 @@ const search = ref('')
 const filterState = ref('')
 
 const detailAd = ref(null)
+const detailExpiresAt = ref('')
 const rejectTarget = ref(null)
 const rejectReason = ref('')
 const rejectError = ref('')
@@ -456,6 +472,21 @@ function statusLabel(state) {
 
 function openDetail(ad) {
     detailAd.value = ad
+    detailExpiresAt.value = ad.expires_at ? ad.expires_at.slice(0, 10) : ''
+}
+
+async function saveExpiresAt() {
+    if (!detailAd.value) return
+    try {
+        await api.patch(`/admin/advertisement/${detailAd.value.id}/expires-at`, {
+            expires_at: detailExpiresAt.value || null
+        })
+        detailAd.value.expires_at = detailExpiresAt.value || null
+        const ad = advertisements.value.find(a => a.id === detailAd.value.id)
+        if (ad) ad.expires_at = detailExpiresAt.value || null
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la mise à jour de la date.')
+    }
 }
 
 function openReject(ad) {

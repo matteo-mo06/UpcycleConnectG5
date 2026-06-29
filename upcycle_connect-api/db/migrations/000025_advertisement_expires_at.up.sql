@@ -1,0 +1,1 @@
+ALTER TABLE advertisement ADD COLUMN expires_at DATE NULL DEFAULT NULL;

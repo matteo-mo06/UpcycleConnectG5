@@ -22,6 +22,7 @@ type Advertisement struct {
 	CreatedAt               *string `json:"created_at"`
 	ApprovedAt              *string `json:"approved_at"`
 	PaidAt                  *string `json:"paid_at"`
+	ExpiresAt               *string `json:"expires_at"`
 	UserFirstName           string  `json:"user_first_name,omitempty"`
 	UserLastName            string  `json:"user_last_name,omitempty"`
 	UserEmail               string  `json:"user_email,omitempty"`
