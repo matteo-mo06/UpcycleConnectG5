@@ -535,6 +535,43 @@ func GetProjectStats(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(stats)
 }
 
+func CreateProjectAdmin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req models.CreateProjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.Title == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le titre est requis"})
+		return
+	}
+
+	p := models.Project{
+		IdProject:          uuid.New().String(),
+		TitleProject:       req.Title,
+		DescriptionProject: req.Description,
+		StartDateProject:   req.StartDate,
+		EndDate:            req.EndDate,
+		LocationProject:    req.Location,
+		Capacity:           req.Capacity,
+	}
+
+	if err := db.CreateProjectAdmin(p); err != nil {
+		fmt.Println("CreateProjectAdmin error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create project"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]any{"message": "projet créé", "project": p})
+}
+
 func GetAllProjectsAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

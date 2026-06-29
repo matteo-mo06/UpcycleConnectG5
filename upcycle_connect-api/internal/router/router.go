@@ -197,6 +197,7 @@ func InitRoutes() {
 	http.Handle("DELETE /projects/{id}", auth(handlers.ModerateDeleteProject))
 
 	http.Handle("GET /admin/projects/stats", admin(handlers.GetProjectStats))
+	http.Handle("POST /admin/projects", admin(handlers.CreateProjectAdmin))
 	http.Handle("GET /admin/projects", admin(handlers.GetAllProjectsAdmin))
 	http.Handle("GET /admin/project/{id}", admin(handlers.GetProjectByIdAdmin))
 	http.Handle("PUT /admin/project/{id}", admin(handlers.UpdateProjectAdmin))

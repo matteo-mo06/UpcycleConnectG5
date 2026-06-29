@@ -42,6 +42,15 @@
                         <option value="completed">Terminé</option>
                         <option value="rejected">Rejeté</option>
                     </select>
+                    <button
+                        @click="openCreate"
+                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Créer
+                    </button>
+
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ total }} résultat(s)</span>
                 </div>
 
@@ -228,6 +237,88 @@
             </div>
         </div>
 
+        <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">Créer un projet</h3>
+                    <button
+                        @click="formModal.open = false"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <input
+                            v-model="projectForm.title"
+                            type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Titre du projet" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <textarea
+                            v-model="projectForm.description"
+                            rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Description du projet…" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Lieu</label>
+                        <input
+                            v-model="projectForm.location"
+                            type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Adresse ou ville" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date de début</label>
+                            <input
+                                v-model="projectForm.startDate"
+                                type="date"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date de fin</label>
+                            <input
+                                v-model="projectForm.endDate"
+                                type="date"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                        <input
+                            v-model.number="projectForm.capacity"
+                            type="number"
+                            min="1"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="0 = illimitée" />
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button
+                        @click="formModal.open = false"
+                        class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveProject"
+                        :disabled="saving"
+                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ saving ? 'Enregistrement…' : 'Créer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -250,6 +341,9 @@ const rejectReason = ref('')
 const toDelete = ref(null)
 const deleting = ref(false)
 const statsData = ref({ total: 0, pending: 0, open: 0, in_progress: 0, completed: 0, rejected: 0 })
+const formModal = ref({ open: false })
+const projectForm = ref({ title: '', description: '', location: '', startDate: '', endDate: '', capacity: null })
+const saving = ref(false)
 
 const stats = computed(() => [
     {
@@ -376,6 +470,34 @@ async function fetchStats() {
         const { data } = await api.get('/admin/projects/stats')
         statsData.value = data
     } catch {}
+}
+
+function openCreate() {
+    projectForm.value = { title: '', description: '', location: '', startDate: '', endDate: '', capacity: null }
+    formModal.value = { open: true }
+}
+
+async function saveProject() {
+    if (!projectForm.value.title.trim()) return
+    saving.value = true
+    try {
+        const payload = {
+            title: projectForm.value.title,
+            description: projectForm.value.description || null,
+            location: projectForm.value.location || null,
+            start_date: projectForm.value.startDate || null,
+            end_date: projectForm.value.endDate || null,
+            capacity: projectForm.value.capacity || null,
+        }
+        await api.post('/admin/projects', payload)
+        formModal.value.open = false
+        page.value = 1
+        await Promise.all([fetchProjects(), fetchStats()])
+    } catch {
+        alert('Erreur lors de la création du projet.')
+    } finally {
+        saving.value = false
+    }
 }
 
 watch(page, fetchProjects)

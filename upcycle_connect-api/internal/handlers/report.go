@@ -9,6 +9,7 @@ import (
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
+	"upcycle_connect-api/internal/utils"
 )
 
 func SubmitReport(w http.ResponseWriter, r *http.Request) {
@@ -256,6 +257,12 @@ func CreateSanction(w http.ResponseWriter, r *http.Request) {
 	if msg == "" {
 		msg = defaultMessages[body.Type]
 	}
+	titles := map[string]string{
+		"warning":    "Avertissement",
+		"suspension": "Suspension",
+		"ban":        "Bannissement",
+	}
+	go utils.SendPushNotification(db.GetOnesignalPlayerID(userID), titles[body.Type], msg)
 	if body.Type == "ban" {
 		if err := db.UpdateUserStatus(userID, "blacklisted"); err != nil {
 			fmt.Println("CreateSanction ban UpdateUserStatus error:", err)

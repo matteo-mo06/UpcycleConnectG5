@@ -197,6 +197,18 @@ func CreateProject(p models.Project) error {
 	return err
 }
 
+func CreateProjectAdmin(p models.Project) error {
+	_, err := config.Conn.Exec(`
+		INSERT INTO PROJECT (
+			id_project, title_project, description_project, start_date_project,
+			end_date, location_project, capacity, status, id_creator, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, NOW())`,
+		p.IdProject, p.TitleProject, p.DescriptionProject, p.StartDateProject,
+		p.EndDate, p.LocationProject, p.Capacity, p.IdCreator,
+	)
+	return err
+}
+
 func UpdateProject(p models.Project) error {
 	_, err := config.Conn.Exec(`
 		UPDATE PROJECT SET

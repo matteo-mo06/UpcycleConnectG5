@@ -17,6 +17,57 @@
             </div>
         </div>
 
+        <div v-if="pendingRequests.length > 0" class="mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3">Demandes en attente</h2>
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Annonce</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Demandeur</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Date</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(req, i) in pendingRequests"
+                                :key="req.id"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3 font-medium text-gray-800 truncate max-w-52">{{ req.title }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-sm">{{ req.author_name }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ req.created_at?.slice(0, 10) || '-' }}</td>
+                                <td class="px-5 py-3">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <button
+                                            @click="validateRequest(req)"
+                                            title="Valider"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-secondary hover:bg-secondary/10 transition-colors"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click="openRejectRequest(req)"
+                                            title="Refuser"
+                                            class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex gap-3 items-center">
             <select
                 v-model="filterStatus"
@@ -29,14 +80,13 @@
             </select>
             <span class="text-xs text-gray-400 ml-auto">{{ lockers.length }} casier(s)</span>
             <button
-                @click="addLocker"
-                :disabled="adding"
-                class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60 whitespace-nowrap"
+                @click="openAddModal"
+                class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap"
             >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                 </svg>
-                {{ adding ? 'Ajout…' : 'Ajouter un casier' }}
+                Ajouter un casier
             </button>
         </div>
 
@@ -121,6 +171,62 @@
             </div>
         </div>
 
+        <div v-if="toRejectRequest" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="toRejectRequest = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">Refuser la demande ?</h3>
+                <p class="text-sm text-gray-500 mb-5">L'annonce « {{ toRejectRequest.title }} » sera remise en disponibilité.</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="toRejectRequest = null"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="confirmRejectRequest"
+                        :disabled="rejectingRequest"
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60"
+                    >
+                        {{ rejectingRequest ? 'Refus…' : 'Refuser' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="showAddModal = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-3">Ajouter un casier</h3>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Numéro de casier <span class="text-red-400">*</span></label>
+                <input
+                    v-model.number="newLockerNumber"
+                    type="number"
+                    min="1"
+                    class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-1 mb-1"
+                    :class="addError ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-gray-200 focus:border-primary focus:ring-primary'"
+                    @keydown.enter="addLocker"
+                />
+                <p v-if="addError" class="text-xs text-red-500 mb-3">{{ addError }}</p>
+                <div v-else class="mb-3" />
+                <div class="flex gap-3">
+                    <button
+                        @click="showAddModal = false"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="addLocker"
+                        :disabled="adding || !newLockerNumber || newLockerNumber < 1"
+                        class="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
+                    >
+                        {{ adding ? 'Ajout…' : 'Ajouter' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="toEditCode" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="toEditCode = null" />
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -199,6 +305,12 @@ const filterStatus = ref('')
 const toEditCode = ref(null)
 const newAccessCode = ref('')
 const savingCode = ref(false)
+const showAddModal = ref(false)
+const newLockerNumber = ref(1)
+const addError = ref('')
+const pendingRequests = ref([])
+const toRejectRequest = ref(null)
+const rejectingRequest = ref(false)
 
 const stats = computed(() => [
     {
@@ -235,18 +347,78 @@ async function fetchLockers() {
     }
 }
 
+async function fetchPendingRequests() {
+    try {
+        const { data } = await api.get('/deposit-requests/pending')
+        pendingRequests.value = data ?? []
+    } catch {
+        pendingRequests.value = []
+    }
+}
+
+async function validateRequest(req) {
+    try {
+        await api.post(`/deposit-requests/${req.id}/validate`)
+        await Promise.all([fetchPendingRequests(), fetchLockers()])
+    } catch (e) {
+        if (e?.response?.status === 409) {
+            alert('Aucun casier disponible pour valider cette demande.')
+        } else {
+            alert('Erreur lors de la validation.')
+        }
+    }
+}
+
+function openRejectRequest(req) {
+    toRejectRequest.value = req
+}
+
+async function confirmRejectRequest() {
+    if (!toRejectRequest.value) return
+    rejectingRequest.value = true
+    try {
+        await api.post(`/deposit-requests/${toRejectRequest.value.id}/reject`)
+        toRejectRequest.value = null
+        await fetchPendingRequests()
+    } catch {
+        alert('Erreur lors du refus.')
+    } finally {
+        rejectingRequest.value = false
+    }
+}
+
 onMounted(async () => {
-    await fetchLockers()
+    await Promise.all([fetchLockers(), fetchPendingRequests()])
     loading.value = false
 })
 
+const nextSuggestedNumber = computed(() => {
+    const existing = new Set(lockers.value.map(l => l.number))
+    let n = 1
+    while (existing.has(n)) n++
+    return n
+})
+
+function openAddModal() {
+    newLockerNumber.value = nextSuggestedNumber.value
+    addError.value = ''
+    showAddModal.value = true
+}
+
 async function addLocker() {
+    if (!newLockerNumber.value || newLockerNumber.value < 1) return
     adding.value = true
+    addError.value = ''
     try {
-        await api.post('/admin/lockers')
+        await api.post('/admin/lockers', { number: newLockerNumber.value })
+        showAddModal.value = false
         await fetchLockers()
-    } catch {
-        alert('Erreur lors de la création du casier.')
+    } catch (e) {
+        if (e?.response?.status === 409) {
+            addError.value = 'Ce numéro de casier existe déjà.'
+        } else {
+            addError.value = 'Erreur lors de la création du casier.'
+        }
     } finally {
         adding.value = false
     }

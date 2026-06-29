@@ -49,31 +49,42 @@ func GetAllLockers(status string) ([]models.Locker, error) {
 	return list, nil
 }
 
-func CreateLocker() (models.Locker, error) {
-	rows, err := config.Conn.Query("SELECT locker_number FROM LOCKER ORDER BY locker_number ASC")
-	if err != nil {
-		return models.Locker{}, err
-	}
-	defer rows.Close()
-
-	next := 1
-	for rows.Next() {
-		var n int
-		if err := rows.Scan(&n); err != nil {
+func CreateLocker(number int) (models.Locker, error) {
+	if number == 0 {
+		rows, err := config.Conn.Query("SELECT locker_number FROM LOCKER ORDER BY locker_number ASC")
+		if err != nil {
 			return models.Locker{}, err
 		}
-		if n == next {
-			next++
-		} else {
-			break
+		defer rows.Close()
+
+		next := 1
+		for rows.Next() {
+			var n int
+			if err := rows.Scan(&n); err != nil {
+				return models.Locker{}, err
+			}
+			if n == next {
+				next++
+			} else {
+				break
+			}
+		}
+		number = next
+	} else {
+		var count int
+		if err := config.Conn.QueryRow("SELECT COUNT(*) FROM LOCKER WHERE locker_number = ?", number).Scan(&count); err != nil {
+			return models.Locker{}, err
+		}
+		if count > 0 {
+			return models.Locker{}, errors.New("locker_number_exists")
 		}
 	}
 
 	l := models.Locker{
 		ID:     uuid.New().String(),
-		Number: next,
+		Number: number,
 	}
-	_, err = config.Conn.Exec(
+	_, err := config.Conn.Exec(
 		"INSERT INTO LOCKER (id_locker, locker_number) VALUES (?, ?)",
 		l.ID, l.Number,
 	)

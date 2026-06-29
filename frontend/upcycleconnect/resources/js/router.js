@@ -58,6 +58,7 @@ const router = createRouter({
     routes: [
         { path: '/', redirect: '/accueil' },
         { path: '/login', component: Login },
+        { path: '/register', redirect: '/login' },
         {
             path: '/abonnement',
             redirect: to => {
