@@ -1,5 +1,12 @@
 package models
 
+type AdPlan struct {
+	ID         int  `json:"id"`
+	Weeks      int  `json:"weeks"`
+	PriceCents int  `json:"price_cents"`
+	IsActive   bool `json:"is_active"`
+}
+
 type AdvertisementStats struct {
 	Total    int `json:"total"`
 	Pending  int `json:"pending"`
@@ -23,6 +30,7 @@ type Advertisement struct {
 	ApprovedAt              *string `json:"approved_at"`
 	PaidAt                  *string `json:"paid_at"`
 	ExpiresAt               *string `json:"expires_at"`
+	PlanID                  *int    `json:"plan_id,omitempty"`
 	UserFirstName           string  `json:"user_first_name,omitempty"`
 	UserLastName            string  `json:"user_last_name,omitempty"`
 	UserEmail               string  `json:"user_email,omitempty"`

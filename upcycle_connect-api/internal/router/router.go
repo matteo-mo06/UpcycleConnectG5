@@ -144,6 +144,7 @@ func InitRoutes() {
 	http.Handle("GET /admin/revenue/summary", admin(handlers.GetRevenueSummary))
 	http.Handle("GET /admin/revenue/transactions", admin(handlers.GetRevenueTransactions))
 	http.Handle("GET /admin/revenue/advertisements", admin(handlers.GetAdPayments))
+	http.Handle("GET /admin/revenue/formations", admin(handlers.GetFormationPayments))
 	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
 	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
 
@@ -152,15 +153,16 @@ func InitRoutes() {
 	http.Handle("GET /user/advertisements", auth(handlers.GetMyAdvertisements))
 	http.Handle("POST /advertisement/{id}/checkout", auth(handlers.CreateAdvertisementCheckout))
 
+	http.Handle("GET /advertisement/plans", auth(handlers.GetAdPlans))
+	http.Handle("GET /admin/advertisement/plans", admin(handlers.GetAdPlans))
+	http.Handle("PUT /admin/advertisement/plan/{id}", admin(handlers.UpdateAdminAdPlan))
+
 	http.Handle("GET /admin/advertisements/stats", admin(handlers.GetAdminAdvertisementStats))
 	http.Handle("GET /admin/advertisements", admin(handlers.GetAdminAdvertisements))
 	http.Handle("PATCH /admin/advertisement/{id}/approve", admin(handlers.ApproveAdvertisement))
 	http.Handle("PATCH /admin/advertisement/{id}/reject", admin(handlers.RejectAdvertisement))
 	http.Handle("PATCH /admin/advertisement/{id}/deactivate", admin(handlers.DeactivateAdvertisement))
 	http.Handle("PATCH /admin/advertisement/{id}/reactivate", admin(handlers.ReactivateAdvertisement))
-	http.Handle("PATCH /admin/advertisement/{id}/expires-at", admin(handlers.SetAdExpiresAt))
-	http.Handle("GET /admin/advertisement-price", admin(handlers.GetAdvertisementPrice))
-	http.Handle("PUT /admin/advertisement-price", admin(handlers.UpdateAdvertisementPrice))
 
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))

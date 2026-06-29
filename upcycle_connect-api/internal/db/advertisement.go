@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"strconv"
 
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/models"
@@ -85,7 +84,7 @@ func GetActiveAdvertisements() ([]models.Advertisement, error) {
 func GetUserAdvertisements(userID string) ([]models.Advertisement, error) {
 	rows, err := config.Conn.Query(`
 		SELECT id_advertisement, id_user, title, image_url, link_url, state, price_cents,
-		       rejection_reason, created_at, approved_at, paid_at
+		       rejection_reason, created_at, approved_at, paid_at, expires_at
 		FROM advertisement WHERE id_user = ? ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -94,9 +93,9 @@ func GetUserAdvertisements(userID string) ([]models.Advertisement, error) {
 	var list []models.Advertisement
 	for rows.Next() {
 		var ad models.Advertisement
-		var linkURL, rejectionReason, approvedAt, paidAt sql.NullString
+		var linkURL, rejectionReason, approvedAt, paidAt, expiresAt sql.NullString
 		if err := rows.Scan(&ad.IdAdvertisement, &ad.IdUser, &ad.Title, &ad.ImageURL, &linkURL, &ad.State, &ad.PriceCents,
-			&rejectionReason, &ad.CreatedAt, &approvedAt, &paidAt); err != nil {
+			&rejectionReason, &ad.CreatedAt, &approvedAt, &paidAt, &expiresAt); err != nil {
 			return nil, err
 		}
 		if linkURL.Valid {
@@ -110,6 +109,9 @@ func GetUserAdvertisements(userID string) ([]models.Advertisement, error) {
 		}
 		if paidAt.Valid {
 			ad.PaidAt = &paidAt.String
+		}
+		if expiresAt.Valid {
+			ad.ExpiresAt = &expiresAt.String
 		}
 		list = append(list, ad)
 	}
@@ -194,7 +196,14 @@ func RejectAdvertisement(id, reason string) error {
 	return err
 }
 
-func ActivateAdvertisement(id, sessionID string) error {
+func ActivateAdvertisement(id, sessionID string, weeks int) error {
+	if weeks > 0 {
+		_, err := config.Conn.Exec(`
+			UPDATE advertisement SET state = 'active', paid_at = NOW(), stripe_checkout_session_id = ?,
+			expires_at = DATE_ADD(CURDATE(), INTERVAL ? WEEK)
+			WHERE id_advertisement = ?`, sessionID, weeks, id)
+		return err
+	}
 	_, err := config.Conn.Exec(`
 		UPDATE advertisement SET state = 'active', paid_at = NOW(), stripe_checkout_session_id = ?
 		WHERE id_advertisement = ?`, sessionID, id)
@@ -207,19 +216,47 @@ func DeactivateAdvertisement(id string) error {
 	return err
 }
 
+func GetAdPlans() ([]models.AdPlan, error) {
+	rows, err := config.Conn.Query(`SELECT id, weeks, price_cents, is_active FROM advertisement_plans ORDER BY weeks ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.AdPlan
+	for rows.Next() {
+		var p models.AdPlan
+		if err := rows.Scan(&p.ID, &p.Weeks, &p.PriceCents, &p.IsActive); err != nil {
+			return nil, err
+		}
+		list = append(list, p)
+	}
+	return list, nil
+}
+
+func GetAdPlanByID(id int) (*models.AdPlan, error) {
+	var p models.AdPlan
+	err := config.Conn.QueryRow(`SELECT id, weeks, price_cents, is_active FROM advertisement_plans WHERE id = ?`, id).
+		Scan(&p.ID, &p.Weeks, &p.PriceCents, &p.IsActive)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func UpdateAdPlan(id, weeks, priceCents int) error {
+	_, err := config.Conn.Exec(`UPDATE advertisement_plans SET weeks = ?, price_cents = ? WHERE id = ?`, weeks, priceCents, id)
+	return err
+}
+
+func SetAdvertisementPlan(adID string, planID, priceCents int) error {
+	_, err := config.Conn.Exec(`UPDATE advertisement SET plan_id = ?, price_cents = ? WHERE id_advertisement = ?`, planID, priceCents, adID)
+	return err
+}
+
 func ExpireOverdueAdvertisements() error {
 	_, err := config.Conn.Exec(`
 		UPDATE advertisement SET state = 'expired'
 		WHERE state = 'active' AND expires_at IS NOT NULL AND expires_at < CURDATE()`)
-	return err
-}
-
-func SetAdvertisementExpiresAt(id string, expiresAt *string) error {
-	if expiresAt == nil || *expiresAt == "" {
-		_, err := config.Conn.Exec(`UPDATE advertisement SET expires_at = NULL WHERE id_advertisement = ?`, id)
-		return err
-	}
-	_, err := config.Conn.Exec(`UPDATE advertisement SET expires_at = ? WHERE id_advertisement = ?`, *expiresAt, id)
 	return err
 }
 
@@ -265,25 +302,3 @@ func GetAdvertisementStats() (models.AdvertisementStats, error) {
 	return stats, nil
 }
 
-func GetAdvertisementPriceCents() (int, error) {
-	var val string
-	err := config.Conn.QueryRow(
-		"SELECT value_setting FROM platform_settings WHERE key_setting = 'advertisement_price_cents'",
-	).Scan(&val)
-	if err != nil {
-		return 50000, err
-	}
-	price, err := strconv.Atoi(val)
-	if err != nil {
-		return 50000, err
-	}
-	return price, nil
-}
-
-func SetAdvertisementPriceCents(price int) error {
-	_, err := config.Conn.Exec(
-		"UPDATE platform_settings SET value_setting = ? WHERE key_setting = 'advertisement_price_cents'",
-		strconv.Itoa(price),
-	)
-	return err
-}

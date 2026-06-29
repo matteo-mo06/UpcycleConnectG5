@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"strconv"
 
 	"upcycle_connect-api/internal/config"
@@ -40,6 +41,15 @@ func StorePayment(id, announcementID, buyerID, currency, providerRef string, amo
 	return err
 }
 
+func StoreFormationPayment(id, formationID, buyerID, currency, providerRef string, amountCents int) error {
+	_, err := config.Conn.Exec(`
+		INSERT INTO payement (id_payement, amount_cents, currency, provider_payement, provider_ref, status_payement, formation_id, buyer_id, commission_amount_cents, paid_at)
+		VALUES (?, ?, ?, 'stripe', ?, 'paid', ?, ?, 0, NOW())`,
+		id, amountCents, currency, providerRef, formationID, buyerID,
+	)
+	return err
+}
+
 func GetRevenueSummary() (models.RevenueSummary, error) {
 	var s models.RevenueSummary
 	err := config.Conn.QueryRow(`
@@ -65,6 +75,11 @@ func GetRevenueSummary() (models.RevenueSummary, error) {
 		FROM advertisement
 		WHERE state IN ('active', 'expired')
 	`).Scan(&s.TotalAdsCents)
+	config.Conn.QueryRow(`
+		SELECT COALESCE(SUM(amount_cents), 0)
+		FROM payement
+		WHERE formation_id IS NOT NULL AND status_payement = 'paid'
+	`).Scan(&s.TotalFormationsCents)
 	s.CommissionRate, _ = GetCommissionRate()
 	return s, nil
 }
@@ -97,6 +112,45 @@ func GetAdPaymentsPaginated(page, limit int) ([]models.AdPayment, int, error) {
 			return nil, 0, err
 		}
 		list = append(list, p)
+	}
+	return list, total, nil
+}
+
+func GetFormationPaymentsPaginated(page, limit int) ([]models.FormationPayment, int, error) {
+	var total int
+	if err := config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM payement WHERE formation_id IS NOT NULL AND status_payement = 'paid'
+	`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * limit
+	rows, err := config.Conn.Query(`
+		SELECT p.id_payement, p.formation_id, f.title_formation,
+		       p.buyer_id, u.first_name, u.last_name, u.email,
+		       p.amount_cents, p.paid_at
+		FROM payement p
+		JOIN formation f ON f.id_formation = p.formation_id
+		JOIN user u ON u.id_user = p.buyer_id
+		WHERE p.formation_id IS NOT NULL AND p.status_payement = 'paid'
+		ORDER BY p.paid_at DESC
+		LIMIT ? OFFSET ?`, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var list []models.FormationPayment
+	for rows.Next() {
+		var fp models.FormationPayment
+		var paidAt sql.NullString
+		if err := rows.Scan(&fp.ID, &fp.FormationID, &fp.FormationTitle,
+			&fp.BuyerID, &fp.FirstName, &fp.LastName, &fp.Email,
+			&fp.AmountCents, &paidAt); err != nil {
+			return nil, 0, err
+		}
+		if paidAt.Valid {
+			fp.PaidAt = &paidAt.String
+		}
+		list = append(list, fp)
 	}
 	return list, total, nil
 }

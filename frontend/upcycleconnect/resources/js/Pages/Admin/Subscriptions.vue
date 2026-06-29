@@ -138,10 +138,12 @@
                             class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-500 mb-1 block">Prix (centimes)</label>
-                        <input v-model.number="form.price_cents" type="number" min="0"
+                        <label class="text-xs text-gray-500 mb-1 block">Prix (€)</label>
+                        <input
+                            type="number" min="0.01" step="0.01"
+                            :value="(form.price_cents / 100).toFixed(2)"
+                            @input="form.price_cents = Math.round($event.target.value * 100)"
                             class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
-                        <p class="text-xs text-gray-400 mt-0.5">= {{ formatPrice(form.price_cents) }}</p>
                     </div>
                     <div>
                         <label class="text-xs text-gray-500 mb-1 block">Intervalle</label>

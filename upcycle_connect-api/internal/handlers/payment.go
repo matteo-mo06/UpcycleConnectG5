@@ -224,7 +224,8 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		if session.Mode == "payment" {
 			adID := session.Metadata["advertisement_id"]
 			if adID != "" {
-				if err := db.ActivateAdvertisement(adID, session.ID); err != nil {
+				weeks, _ := strconv.Atoi(session.Metadata["plan_weeks"])
+				if err := db.ActivateAdvertisement(adID, session.ID, weeks); err != nil {
 					fmt.Println("ActivateAdvertisement error:", err)
 				} else {
 					ad, _ := db.GetAdvertisementByID(adID)
@@ -298,6 +299,9 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("RegisterUserForFormation (webhook) error:", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
+			}
+			if err := db.StoreFormationPayment(pi.ID, formationID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount)); err != nil {
+				fmt.Println("StoreFormationPayment (webhook) error:", err)
 			}
 		}
 

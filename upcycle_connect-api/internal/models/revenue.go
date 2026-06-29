@@ -1,12 +1,13 @@
 package models
 
 type RevenueSummary struct {
-	TotalTransactions      int     `json:"total_transactions"`
-	TotalAmountCents       int64   `json:"total_amount_cents"`
-	TotalCommissionCents   int64   `json:"total_commission_cents"`
-	TotalSubscriptionsCents int64  `json:"total_subscriptions_cents"`
-	TotalAdsCents          int64   `json:"total_ads_cents"`
-	CommissionRate         float64 `json:"commission_rate"`
+	TotalTransactions       int     `json:"total_transactions"`
+	TotalAmountCents        int64   `json:"total_amount_cents"`
+	TotalCommissionCents    int64   `json:"total_commission_cents"`
+	TotalSubscriptionsCents int64   `json:"total_subscriptions_cents"`
+	TotalAdsCents           int64   `json:"total_ads_cents"`
+	TotalFormationsCents    int64   `json:"total_formations_cents"`
+	CommissionRate          float64 `json:"commission_rate"`
 }
 
 type RevenueTransaction struct {
@@ -31,4 +32,16 @@ type AdPayment struct {
 	PriceCents int     `json:"price_cents"`
 	PaidAt     *string `json:"paid_at"`
 	State      string  `json:"state"`
+}
+
+type FormationPayment struct {
+	ID             string  `json:"id"`
+	FormationID    string  `json:"formation_id"`
+	FormationTitle string  `json:"formation_title"`
+	BuyerID        string  `json:"buyer_id"`
+	FirstName      string  `json:"first_name"`
+	LastName       string  `json:"last_name"`
+	Email          string  `json:"email"`
+	AmountCents    int     `json:"amount_cents"`
+	PaidAt         *string `json:"paid_at"`
 }

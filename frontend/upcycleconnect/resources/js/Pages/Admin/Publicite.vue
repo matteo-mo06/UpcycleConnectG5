@@ -34,6 +34,46 @@
                 </div>
             </div>
 
+            <!-- Plans tarifaires -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="font-semibold text-gray-800">Plans tarifaires</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Durée (semaines)</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Prix (€)</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(plan, i) in adPlans" :key="plan.id"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']">
+                                <td class="px-5 py-3">
+                                    <input v-model.number="plan.weeks" type="number" min="1"
+                                        class="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
+                                </td>
+                                <td class="px-5 py-3">
+                                    <input
+                                        type="number" min="0.01" step="0.01"
+                                        :value="(plan.price_cents / 100).toFixed(2)"
+                                        @input="plan.price_cents = Math.round($event.target.value * 100)"
+                                        class="w-32 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
+                                </td>
+                                <td class="px-5 py-3 text-right">
+                                    <button @click="savePlan(plan)"
+                                        class="px-3 py-1 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors">
+                                        Enregistrer
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
 
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -115,9 +155,7 @@
 
                                 <td class="px-5 py-3 text-xs text-gray-500">
                                     {{ formatDate(ad.created_at) }}
-                                    <span v-if="ad.expires_at" class="block text-amber-500 mt-0.5">
-                                        Expire {{ formatDate(ad.expires_at) }}
-                                    </span>
+                                    <span v-if="ad.expires_at" class="block text-amber-500 mt-0.5">Expire {{ formatDate(ad.expires_at) }}</span>
                                 </td>
 
                                 <td class="px-5 py-3">
@@ -241,15 +279,9 @@
                             <p class="text-xs text-gray-400 mb-0.5">Payé le</p>
                             <p class="font-medium text-gray-800">{{ formatDate(detailAd.paid_at) }}</p>
                         </div>
-                        <div v-if="detailAd.state === 'active' || detailAd.state === 'expired'">
+                        <div v-if="detailAd.expires_at">
                             <p class="text-xs text-gray-400 mb-0.5">Expire le</p>
-                            <input
-                                type="date"
-                                v-model="detailExpiresAt"
-                                :min="new Date().toISOString().slice(0, 10)"
-                                @change="saveExpiresAt"
-                                class="text-sm font-medium text-gray-800 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary w-full"
-                            />
+                            <p class="font-medium text-gray-800">{{ formatDate(detailAd.expires_at) }}</p>
                         </div>
                         <div v-if="detailAd.link_url" class="col-span-2">
                             <p class="text-xs text-gray-400 mb-0.5">Lien</p>
@@ -381,6 +413,7 @@ import api from '@/api.js'
 const loading = ref(true)
 const loadError = ref('')
 const actionError = ref('')
+const adPlans = ref([])
 const advertisements = ref([])
 const total = ref(0)
 const page = ref(1)
@@ -388,7 +421,6 @@ const search = ref('')
 const filterState = ref('')
 
 const detailAd = ref(null)
-const detailExpiresAt = ref('')
 const rejectTarget = ref(null)
 const rejectReason = ref('')
 const rejectError = ref('')
@@ -472,21 +504,6 @@ function statusLabel(state) {
 
 function openDetail(ad) {
     detailAd.value = ad
-    detailExpiresAt.value = ad.expires_at ? ad.expires_at.slice(0, 10) : ''
-}
-
-async function saveExpiresAt() {
-    if (!detailAd.value) return
-    try {
-        await api.patch(`/admin/advertisement/${detailAd.value.id}/expires-at`, {
-            expires_at: detailExpiresAt.value || null
-        })
-        detailAd.value.expires_at = detailExpiresAt.value || null
-        const ad = advertisements.value.find(a => a.id === detailAd.value.id)
-        if (ad) ad.expires_at = detailExpiresAt.value || null
-    } catch (err) {
-        alert(err?.response?.data?.error ?? 'Erreur lors de la mise à jour de la date.')
-    }
 }
 
 function openReject(ad) {
@@ -549,6 +566,23 @@ async function doReject() {
     }
 }
 
+async function fetchAdPlans() {
+    try {
+        const { data } = await api.get('/admin/advertisement/plans')
+        adPlans.value = data ?? []
+    } catch (err) {
+        console.error('fetchAdPlans error:', err)
+    }
+}
+
+async function savePlan(plan) {
+    try {
+        await api.put(`/admin/advertisement/plan/${plan.id}`, { weeks: plan.weeks, price_cents: plan.price_cents })
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la sauvegarde du plan.')
+    }
+}
+
 async function doReactivate(ad) {
     try {
         await api.patch(`/admin/advertisement/${ad.id}/reactivate`)
@@ -586,7 +620,7 @@ watch(filterState, () => { page.value = 1; fetchAds() })
 
 onMounted(async () => {
     try {
-        await reload()
+        await Promise.all([reload(), fetchAdPlans()])
     } catch {
         loadError.value = 'Impossible de charger les publicités. Vérifiez votre connexion et rechargez la page.'
     } finally {

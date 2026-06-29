@@ -108,15 +108,32 @@
                         </div>
                         <p v-if="ad.link_url" class="text-xs text-gray-400 truncate mb-1">{{ ad.link_url }}</p>
                         <p class="text-xs text-gray-400">Soumis le {{ formatDate(ad.created_at) }}</p>
+                        <p v-if="ad.expires_at" class="text-xs mt-0.5" :class="ad.state === 'expired' ? 'text-red-400' : 'text-gray-400'">
+                            {{ ad.state === 'expired' ? 'Expirée le' : 'Expire le' }} {{ formatDate(ad.expires_at) }}
+                        </p>
                         <p v-if="ad.rejection_reason" class="mt-1 text-xs text-red-500">Raison : {{ ad.rejection_reason }}</p>
                         <div v-if="ad.state === 'approved'" class="mt-3">
-                            <p class="text-xs text-gray-500 mb-2">Votre publicité a été approuvée. Procédez au paiement pour la mettre en ligne.</p>
+                            <p class="text-xs text-gray-500 mb-2">Votre publicité a été approuvée. Choisissez une durée de campagne :</p>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button
+                                    v-for="plan in plans"
+                                    :key="plan.id"
+                                    @click="selectedPlan[ad.id] = plan.id"
+                                    :class="selectedPlan[ad.id] === plan.id
+                                        ? 'border-primary bg-primary/5 text-primary'
+                                        : 'border-gray-200 text-gray-600 hover:border-primary/50'"
+                                    class="flex flex-col items-center px-4 py-2 border rounded-lg text-sm transition-colors cursor-pointer"
+                                >
+                                    <span class="font-semibold">{{ plan.weeks }} semaines</span>
+                                    <span class="text-xs">{{ formatEuros(plan.price_cents) }}</span>
+                                </button>
+                            </div>
                             <button
                                 @click="pay(ad.id)"
-                                :disabled="paying === ad.id"
+                                :disabled="paying === ad.id || !selectedPlan[ad.id]"
                                 class="px-4 py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary-dark transition-colors disabled:opacity-60"
                             >
-                                {{ paying === ad.id ? 'Redirection…' : 'Payer ' + formatEuros(ad.price_cents) }}
+                                {{ paying === ad.id ? 'Redirection…' : selectedPlan[ad.id] ? 'Payer ' + formatEuros(planPrice(selectedPlan[ad.id])) : 'Sélectionnez une durée' }}
                             </button>
                         </div>
                     </div>
@@ -138,6 +155,8 @@ const route = useRoute()
 const isPremium = ref(false)
 const loading = ref(true)
 const ads = ref([])
+const plans = ref([])
+const selectedPlan = ref({})
 const showForm = ref(false)
 const submitting = ref(false)
 const uploadingImage = ref(false)
@@ -211,10 +230,16 @@ function cancelForm() {
     formError.value = ''
 }
 
+function planPrice(planId) {
+    return plans.value.find(p => p.id === planId)?.price_cents ?? 0
+}
+
 async function pay(id) {
+    const planId = selectedPlan.value[id]
+    if (!planId) return
     paying.value = id
     try {
-        const { data } = await api.post(`/advertisement/${id}/checkout`)
+        const { data } = await api.post(`/advertisement/${id}/checkout`, { plan_id: planId })
         window.location.href = data.url
     } catch (err) {
         alert(err?.response?.data?.error ?? 'Erreur paiement.')
@@ -240,6 +265,12 @@ onMounted(async () => {
         const { data } = await api.get('/user/subscription')
         isPremium.value = data.active === true
     } catch { /* silencieux */ }
+    try {
+        const { data } = await api.get('/advertisement/plans')
+        plans.value = data ?? []
+    } catch (err) {
+        console.error('fetchPlans error:', err)
+    }
     await fetchAds()
     loading.value = false
 })

@@ -84,6 +84,36 @@ func GetAdPayments(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func GetFormationPayments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	list, total, err := db.GetFormationPaymentsPaginated(page, limit)
+	if err != nil {
+		fmt.Println("GetFormationPayments error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if list == nil {
+		list = []models.FormationPayment{}
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"payments": list,
+		"total":    total,
+		"page":     page,
+		"limit":    limit,
+	})
+}
+
 func GetCommissionRate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

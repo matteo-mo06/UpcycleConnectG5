@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v85"
@@ -17,6 +16,41 @@ import (
 	"upcycle_connect-api/internal/models"
 	"upcycle_connect-api/internal/utils"
 )
+
+func GetAdPlans(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	plans, err := db.GetAdPlans()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if plans == nil {
+		plans = []models.AdPlan{}
+	}
+	_ = json.NewEncoder(w).Encode(plans)
+}
+
+func UpdateAdminAdPlan(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id, _ := strconv.Atoi(r.PathValue("id"))
+
+	var body struct {
+		Weeks      int `json:"weeks"`
+		PriceCents int `json:"price_cents"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Weeks < 1 || body.PriceCents < 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "semaines et prix requis"})
+		return
+	}
+	if err := db.UpdateAdPlan(id, body.Weeks, body.PriceCents); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "plan mis à jour"})
+}
 
 func GetActiveAdvertisements(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -53,15 +87,12 @@ func CreateAdvertisement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	priceCents, _ := db.GetAdvertisementPriceCents()
-
 	ad := models.Advertisement{
 		IdAdvertisement: uuid.New().String(),
 		IdUser:          userID,
 		Title:           body.Title,
 		ImageURL:        body.ImageURL,
 		LinkURL:         body.LinkURL,
-		PriceCents:      priceCents,
 	}
 
 	if err := db.CreateAdvertisement(ad); err != nil {
@@ -96,6 +127,15 @@ func CreateAdvertisementCheckout(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
+	var body struct {
+		PlanID int `json:"plan_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.PlanID < 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "plan requis"})
+		return
+	}
+
 	ad, err := db.GetAdvertisementByID(id)
 	if err != nil || ad == nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -113,6 +153,25 @@ func CreateAdvertisementCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	plan, err := db.GetAdPlanByID(body.PlanID)
+	if err != nil || plan == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "plan introuvable"})
+		return
+	}
+	if !plan.IsActive {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "plan indisponible"})
+		return
+	}
+
+	if err := db.SetAdvertisementPlan(id, plan.ID, plan.PriceCents); err != nil {
+		fmt.Println("SetAdvertisementPlan error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+
 	client := stripe.NewClient(config.StripeSecretKey())
 	session, err := client.V1CheckoutSessions.Create(context.Background(), &stripe.CheckoutSessionCreateParams{
 		Mode: stripe.String("payment"),
@@ -120,9 +179,9 @@ func CreateAdvertisementCheckout(w http.ResponseWriter, r *http.Request) {
 			{
 				PriceData: &stripe.CheckoutSessionCreateLineItemPriceDataParams{
 					Currency:   stripe.String("eur"),
-					UnitAmount: stripe.Int64(int64(ad.PriceCents)),
+					UnitAmount: stripe.Int64(int64(plan.PriceCents)),
 					ProductData: &stripe.CheckoutSessionCreateLineItemPriceDataProductDataParams{
-						Name: stripe.String("Publicité UpcycleConnect - " + ad.Title),
+						Name: stripe.String(fmt.Sprintf("Publicité UpcycleConnect - %s (%d semaines)", ad.Title, plan.Weeks)),
 					},
 				},
 				Quantity: stripe.Int64(1),
@@ -134,6 +193,7 @@ func CreateAdvertisementCheckout(w http.ResponseWriter, r *http.Request) {
 			"advertisement_id": id,
 			"user_id":          userID,
 			"type":             "advertisement",
+			"plan_weeks":       strconv.Itoa(plan.Weeks),
 		},
 	})
 	if err != nil {
@@ -144,7 +204,6 @@ func CreateAdvertisementCheckout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = db.SaveAdvertisementCheckoutSession(id, session.ID)
-
 	_ = json.NewEncoder(w).Encode(map[string]string{"url": session.URL})
 }
 
@@ -261,42 +320,6 @@ func DeactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "désactivée"})
 }
 
-func SetAdExpiresAt(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	id := r.PathValue("id")
-
-	var body struct {
-		ExpiresAt *string `json:"expires_at"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps de requête invalide"})
-		return
-	}
-
-	if body.ExpiresAt != nil && *body.ExpiresAt != "" {
-		t, err := time.Parse("2006-01-02", *body.ExpiresAt)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "format de date invalide (YYYY-MM-DD attendu)"})
-			return
-		}
-		if t.Before(time.Now().Truncate(24 * time.Hour)) {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "la date d'expiration ne peut pas être dans le passé"})
-			return
-		}
-	}
-
-	if err := db.SetAdvertisementExpiresAt(id, body.ExpiresAt); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"message": "date de fin mise à jour"})
-}
-
 func ReactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := r.PathValue("id")
@@ -310,32 +333,3 @@ func ReactivateAdvertisement(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "réactivée"})
 }
 
-func GetAdvertisementPrice(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	price, err := db.GetAdvertisementPriceCents()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
-		return
-	}
-	_ = json.NewEncoder(w).Encode(map[string]int{"price_cents": price})
-}
-
-func UpdateAdvertisementPrice(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var body struct {
-		PriceCents int `json:"price_cents"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.PriceCents < 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "prix invalide"})
-		return
-	}
-	if err := db.SetAdvertisementPriceCents(body.PriceCents); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
-		return
-	}
-	_ = json.NewEncoder(w).Encode(map[string]int{"price_cents": body.PriceCents})
-}

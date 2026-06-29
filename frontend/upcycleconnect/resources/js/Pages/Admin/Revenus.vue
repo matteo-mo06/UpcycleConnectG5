@@ -16,6 +16,10 @@
                     @click="activeTab = 'publicites'"
                 >Publicités</button>
                 <button
+                    :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'formations' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
+                    @click="activeTab = 'formations'"
+                >Formations</button>
+                <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'parametres' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'parametres'"
                 >Paramètres</button>
@@ -235,6 +239,48 @@
             </div>
         </div>
 
+        <div v-if="activeTab === 'formations'">
+            <div v-if="loadingFormations" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
+            <div v-else-if="formationPayments.length === 0" class="py-12 text-center text-sm text-gray-400">Aucun achat de formation pour le moment.</div>
+            <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Acheteur</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Formation</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Montant</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Date de paiement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(p, i) in formationPayments"
+                                :key="p.id"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3">
+                                    <p class="font-medium text-gray-800">{{ p.first_name }} {{ p.last_name }}</p>
+                                    <p class="text-xs text-gray-400">{{ p.email }}</p>
+                                </td>
+                                <td class="px-5 py-3 text-gray-700 max-w-xs truncate">{{ p.formation_title }}</td>
+                                <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(p.amount_cents) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(p.paid_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>{{ totalFormations }} achat(s)</span>
+                    <div class="flex gap-2">
+                        <button :disabled="pageFormations <= 1" @click="changeFormationsPage(pageFormations - 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Précédent</button>
+                        <span class="px-3 py-1">{{ pageFormations }} / {{ totalFormationsPages }}</span>
+                        <button :disabled="pageFormations >= totalFormationsPages" @click="changeFormationsPage(pageFormations + 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Suivant</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="activeTab === 'parametres'">
             <div class="bg-white rounded-xl shadow-sm p-6 max-w-md">
                 <h2 class="font-semibold text-gray-800 mb-1">Taux de commission</h2>
@@ -265,31 +311,6 @@
                 <p v-if="rateError" class="text-xs text-red-500 mt-2">{{ rateError }}</p>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm p-6 max-w-md mt-4">
-                <h2 class="font-semibold text-gray-800 mb-1">Prix d'une publicité</h2>
-                <p class="text-sm text-gray-500 mb-4">Montant facturé aux artisans premium pour publier une publicité sur l'accueil.</p>
-                <div class="flex items-center gap-3">
-                    <div class="relative flex-1">
-                        <input
-                            v-model.number="editAdPrice"
-                            type="number"
-                            min="0"
-                            step="1"
-                            class="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"
-                        />
-                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
-                    </div>
-                    <button
-                        @click="saveAdPrice"
-                        :disabled="savingAdPrice"
-                        class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-60"
-                    >
-                        {{ savingAdPrice ? 'Enregistrement…' : 'Enregistrer' }}
-                    </button>
-                </div>
-                <p v-if="adPriceSuccess" class="text-xs text-green-600 mt-2">Prix mis à jour avec succès.</p>
-                <p v-if="adPriceError" class="text-xs text-red-500 mt-2">{{ adPriceError }}</p>
-            </div>
         </div>
 
     </AdminLayout>
@@ -328,22 +349,28 @@ const loadingAds = ref(false)
 
 const totalAdsPages = computed(() => Math.max(1, Math.ceil(totalAds.value / limitAds)))
 
+const formationPayments = ref([])
+const totalFormations = ref(0)
+const pageFormations = ref(1)
+const limitFormations = 20
+const loadingFormations = ref(false)
+
+const totalFormationsPages = computed(() => Math.max(1, Math.ceil(totalFormations.value / limitFormations)))
+
 const totalVolume = computed(() =>
     (summary.value.total_amount_cents ?? 0) +
     (summary.value.total_subscriptions_cents ?? 0) +
-    (summary.value.total_ads_cents ?? 0)
+    (summary.value.total_ads_cents ?? 0) +
+    (summary.value.total_formations_cents ?? 0)
 )
 
 const totalRevenue = computed(() =>
     (summary.value.total_commission_cents ?? 0) +
     (summary.value.total_subscriptions_cents ?? 0) +
-    (summary.value.total_ads_cents ?? 0)
+    (summary.value.total_ads_cents ?? 0) +
+    (summary.value.total_formations_cents ?? 0)
 )
 
-const editAdPrice = ref(0)
-const savingAdPrice = ref(false)
-const adPriceSuccess = ref(false)
-const adPriceError = ref('')
 
 const editRate = ref(0)
 const savingRate = ref(false)
@@ -426,19 +453,22 @@ async function changeAdsPage(p) {
     await fetchAdPayments()
 }
 
-async function saveAdPrice() {
-    adPriceSuccess.value = false
-    adPriceError.value = ''
-    if (editAdPrice.value < 0) { adPriceError.value = 'Le prix doit être positif.'; return }
-    savingAdPrice.value = true
+async function fetchFormationPayments() {
+    loadingFormations.value = true
     try {
-        await api.put('/admin/advertisement-price', { price_cents: Math.round(editAdPrice.value * 100) })
-        adPriceSuccess.value = true
+        const { data } = await api.get('/admin/revenue/formations', { params: { page: pageFormations.value, limit: limitFormations } })
+        formationPayments.value = data.payments ?? []
+        totalFormations.value = data.total ?? 0
     } catch (err) {
-        adPriceError.value = err?.response?.data?.error ?? 'Erreur lors de la mise à jour.'
+        console.error('fetchFormationPayments error:', err)
     } finally {
-        savingAdPrice.value = false
+        loadingFormations.value = false
     }
+}
+
+async function changeFormationsPage(p) {
+    pageFormations.value = p
+    await fetchFormationPayments()
 }
 
 async function saveRate() {
@@ -460,16 +490,7 @@ async function saveRate() {
     }
 }
 
-async function fetchAdPrice() {
-    try {
-        const { data } = await api.get('/admin/advertisement-price')
-        editAdPrice.value = (data.price_cents ?? 50000) / 100
-    } catch (err) {
-        console.error('fetchAdPrice error:', err)
-    }
-}
-
 onMounted(async () => {
-    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions(), fetchAdPrice(), fetchAdPayments()])
+    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions(), fetchAdPayments(), fetchFormationPayments()])
 })
 </script>
