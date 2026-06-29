@@ -277,7 +277,17 @@ func UpdateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
 
 func GetAdminSubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	list, err := db.GetAllSubscriptions()
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	list, total, err := db.GetAllSubscriptionsPaginated(page, limit)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
@@ -286,7 +296,12 @@ func GetAdminSubscriptions(w http.ResponseWriter, r *http.Request) {
 	if list == nil {
 		list = []models.UserSubscriptionSummary{}
 	}
-	_ = json.NewEncoder(w).Encode(list)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"subscriptions": list,
+		"total":         total,
+		"page":          page,
+		"limit":         limit,
+	})
 }
 
 func GetMySubscriptionInvoicePDF(w http.ResponseWriter, r *http.Request) {

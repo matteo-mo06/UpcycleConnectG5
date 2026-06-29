@@ -603,7 +603,9 @@ async function loadInvoices(page) {
         invoices.value = data.invoices ?? []
         invoicePage.value = data.page ?? page
         invoicePages.value = data.pages ?? 0
-    } catch {}
+    } catch (err) {
+        console.error('loadInvoices error:', err)
+    }
     invoicesLoading.value = false
 }
 
@@ -617,7 +619,9 @@ async function downloadInvoicePDF(id) {
         a.download = `facture-${id}.pdf`
         a.click()
         URL.revokeObjectURL(url)
-    } catch {}
+    } catch {
+        alert('Facture non disponible.')
+    }
     downloadingInvoice.value = null
 }
 
@@ -626,8 +630,9 @@ async function goToPortal() {
     try {
         const { data } = await api.post('/user/subscription/portal')
         window.location.href = data.url
-    } catch {
+    } catch (err) {
         portalLoading.value = false
+        alert(err?.response?.data?.error ?? 'Erreur lors de l\'ouverture du portail de paiement.')
     }
 }
 
@@ -636,8 +641,9 @@ async function goToStripeOnboarding() {
     try {
         const { data } = await api.post('/user/stripe/connect/onboarding')
         window.location.href = data.url
-    } catch {
+    } catch (err) {
         stripeLoading.value = false
+        alert(err?.response?.data?.error ?? 'Erreur lors de la connexion à Stripe.')
     }
 }
 
@@ -652,7 +658,9 @@ async function restartTutorial() {
             sessionStorage.setItem("user", JSON.stringify(auth.user));
         }
         router.push("/accueil");
-    } catch {}
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la relance du tutoriel.')
+    }
     tutorialLoading.value = false;
 }
 
@@ -680,8 +688,8 @@ async function toggleNotifications() {
             if (playerId) await api.post("/user/onesignal-player-id", { player_id: playerId });
         }
         refreshNotifState();
-    } catch (e) {
-        console.error("Erreur notifications:", e);
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la mise à jour des notifications.')
     }
     notifLoading.value = false;
 }
@@ -739,7 +747,9 @@ async function uploadAvatar(e) {
         const updated = { ...auth.user, avatar_url: upload.url };
         auth.user = updated;
         sessionStorage.setItem("user", JSON.stringify(updated));
-    } catch {}
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors du téléversement de l\'avatar.')
+    }
 }
 
 async function submitProRequest() {
@@ -772,7 +782,7 @@ onMounted(async () => {
     try {
         const { data } = await api.get('/user/stripe/connect/status')
         stripeStatus.value = data
-    } catch {}
+    } catch (err) { console.error('stripe status error:', err) }
 
     try {
         const { data } = await api.get("/user/me");
@@ -780,17 +790,17 @@ onMounted(async () => {
         profile.value.last_name = data.last_name;
         profile.value.email = data.email;
         profile.value.avatar_url = data.avatar_url ?? null;
-    } catch {}
+    } catch (err) { console.error('user/me error:', err) }
     try {
         const { data } = await api.get("/user/professional-request");
         proRequest.value = data;
-    } catch {}
+    } catch (err) { console.error('professional-request error:', err) }
 
     if (isArtisan.value) {
         try {
             const { data } = await api.get('/user/subscription')
             if (data.active) subscription.value = data.subscription
-        } catch {}
+        } catch (err) { console.error('subscription error:', err) }
         if (subscription.value) {
             await loadInvoices(1)
         }

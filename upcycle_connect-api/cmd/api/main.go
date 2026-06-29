@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"upcycle_connect-api/internal/config"
+	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/router"
 
@@ -28,6 +30,15 @@ func main() {
 	os.MkdirAll(config.InvoicesDir(), 0755)
 
 	router.InitRoutes()
+
+	go func() {
+		for {
+			if err := db.ExpireOverdueAdvertisements(); err != nil {
+				fmt.Println("ExpireOverdueAdvertisements error:", err)
+			}
+			time.Sleep(1 * time.Hour)
+		}
+	}()
 
 	port := os.Getenv("PORT")
 	fmt.Println("Listening at http://localhost:" + port)

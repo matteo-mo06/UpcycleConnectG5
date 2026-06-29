@@ -23,14 +23,15 @@ type Subscription struct {
 }
 
 type UserSubscriptionSummary struct {
-	UserID    string  `json:"user_id"`
-	FirstName string  `json:"first_name"`
-	LastName  string  `json:"last_name"`
-	Email     string  `json:"email"`
-	PlanName  string  `json:"plan_name"`
-	StartDate *string `json:"start_date"`
-	EndDate   *string `json:"end_date"`
-	Cancelled bool    `json:"cancelled"`
+	UserID     string  `json:"user_id"`
+	FirstName  string  `json:"first_name"`
+	LastName   string  `json:"last_name"`
+	Email      string  `json:"email"`
+	PlanName   string  `json:"plan_name"`
+	PriceCents int     `json:"price_cents"`
+	StartDate  *string `json:"start_date"`
+	EndDate    *string `json:"end_date"`
+	Cancelled  bool    `json:"cancelled"`
 }
 
 type UpdateSubscriptionPlanRequest struct {

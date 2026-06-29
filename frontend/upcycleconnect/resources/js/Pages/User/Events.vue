@@ -290,7 +290,7 @@ async function toggleRegistration(event) {
             }
         }
     } catch (err) {
-        console.error('toggleRegistration error:', err)
+        alert(err?.response?.data?.error ?? 'Erreur lors de l\'inscription / désinscription.')
     } finally {
         event.loading = false
     }
@@ -305,7 +305,7 @@ async function fetchEvents() {
         events.value = (data.data ?? []).map(mapEvent)
         total.value = data.total ?? 0
     } catch (e) {
-        console.error('Events fetch error:', e)
+        console.error('fetchEvents error:', e)
     }
 }
 

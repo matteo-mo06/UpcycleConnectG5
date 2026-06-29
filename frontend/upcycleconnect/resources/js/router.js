@@ -25,6 +25,7 @@ import AdminProjets from './Pages/Admin/Projets.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import Revenus from './Pages/Admin/Revenus.vue'
+import AdminPublicite from './Pages/Admin/Publicite.vue'
 import AdminSubscriptions from './Pages/Admin/Subscriptions.vue'
 import Paiement from './Pages/User/Paiement.vue'
 import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
@@ -43,7 +44,8 @@ const ArtisanFormations = () => import('./Pages/Artisan/Formations.vue')
 const ArtisanProjets    = () => import('./Pages/Artisan/Projets.vue')
 const ArtisanCalendrier = () => import('./Pages/Artisan/Calendrier.vue')
 const ArtisanScore      = () => import('./Pages/Artisan/Score.vue')
-const ArtisanAbonnement = () => import('./Pages/Artisan/Abonnement.vue')
+const ArtisanAbonnement  = () => import('./Pages/Artisan/Abonnement.vue')
+const ArtisanPublicites  = () => import('./Pages/Artisan/Publicites.vue')
 
 const SalarieDashboard  = () => import('./Pages/Salarie/Dashboard.vue')
 const SalarieFormations = () => import('./Pages/Salarie/Formations.vue')
@@ -101,6 +103,7 @@ const router = createRouter({
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
         { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
         { path: '/admin/abonnements', component: AdminSubscriptions, meta: { requiresAdmin: true } },
+        { path: '/admin/publicite', component: AdminPublicite, meta: { requiresAdmin: true } },
 
         { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
         { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },
@@ -110,7 +113,8 @@ const router = createRouter({
         { path: '/artisan/projets',    component: ArtisanProjets,    meta: { requiresArtisan: true } },
         { path: '/artisan/calendrier', component: ArtisanCalendrier, meta: { requiresArtisan: true } },
         { path: '/artisan/score',      component: ArtisanScore,      meta: { requiresArtisan: true } },
-        { path: '/artisan/abonnement', component: ArtisanAbonnement, meta: { requiresArtisan: true } },
+        { path: '/artisan/abonnement',  component: ArtisanAbonnement,  meta: { requiresArtisan: true } },
+        { path: '/artisan/publicites',  component: ArtisanPublicites,  meta: { requiresArtisan: true } },
 
         { path: '/salarie/dashboard',  component: SalarieDashboard,  meta: { requiresSalarie: true } },
         { path: '/salarie/formations', component: SalarieFormations, meta: { requiresSalarie: true } },
