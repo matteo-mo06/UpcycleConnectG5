@@ -17,60 +17,81 @@
             </button>
         </div>
 
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                </svg>
+                <input
+                    v-model="search"
+                    @input="onSearchInput"
+                    type="text"
+                    placeholder="Rechercher une formation…"
+                    class="pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+            </div>
+            <select v-model="filterStatus" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white">
+                <option value="">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="approved">Approuvée</option>
+                <option value="rejected">Rejetée</option>
+            </select>
+            <select v-model="filterLevel" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white">
+                <option value="">Tous les niveaux</option>
+                <option value="beginner">Débutant</option>
+                <option value="intermediate">Intermédiaire</option>
+                <option value="advanced">Avancé</option>
+            </select>
+            <select v-if="categories.length" v-model="filterCategory" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white">
+                <option value="">Toutes les thématiques</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+            </select>
+            <span class="text-xs text-gray-400">{{ total }} formation(s)</span>
+        </div>
+
         <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <template v-else>
-            <div class="flex items-center gap-3 mb-4">
-                <select v-model="filterStatus" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white">
-                    <option value="">Tous les statuts</option>
-                    <option value="pending">En attente</option>
-                    <option value="approved">Approuvée</option>
-                    <option value="rejected">Rejetée</option>
-                </select>
-                <span class="text-xs text-gray-400">{{ filteredFormations.length }} formation(s)</span>
-            </div>
+        <div v-else-if="formations.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+            {{ filterStatus || filterLevel || filterCategory || search ? 'Aucune formation pour ce filtre.' : 'Vous n\'avez créé aucune formation.' }}
+        </div>
 
-            <div v-if="filteredFormations.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-                {{ filterStatus ? 'Aucune formation pour ce statut.' : 'Vous n\'avez créé aucune formation.' }}
-            </div>
-
-            <div v-else class="grid grid-cols-3 gap-5">
-                <div
-                    v-for="f in filteredFormations"
-                    :key="f.id"
-                    @click="selectedFormation = f"
-                    class="bg-white rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col border border-gray-100"
-                >
-                    <div class="h-32 bg-secondary/10 flex items-center justify-center">
-                        <svg class="w-10 h-10 text-secondary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
+        <div v-else class="grid grid-cols-3 gap-5">
+            <div
+                v-for="f in formations"
+                :key="f.id"
+                @click="selectedFormation = f"
+                class="bg-white rounded-2xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col border border-gray-100"
+            >
+                <div class="h-32 bg-secondary/10 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-secondary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                </div>
+                <div class="p-4 flex flex-col gap-2 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span :class="levelClass(f.level)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{ levelLabel(f.level) }}</span>
+                        <span v-if="f.duration_hours" class="text-xs text-gray-400">{{ f.duration_hours }}h</span>
                     </div>
-                    <div class="p-4 flex flex-col gap-2 flex-1">
-                        <div class="flex items-center gap-2">
-                            <span :class="levelClass(f.level)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{ levelLabel(f.level) }}</span>
-                            <span v-if="f.duration_hours" class="text-xs text-gray-400">{{ f.duration_hours }}h</span>
-                        </div>
-                        <h3 class="font-semibold text-gray-800 text-sm leading-snug">{{ f.title }}</h3>
-                        <p v-if="f.description" class="text-xs text-gray-500 line-clamp-2">{{ f.description }}</p>
-                        <p v-if="f.status === 'rejected' && f.rejection_reason" class="text-xs text-red-500 line-clamp-1">{{ f.rejection_reason }}</p>
-                        <div class="mt-auto pt-2 flex items-center justify-between">
-                            <span :class="statusClass(f.status)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{ statusLabel(f.status) }}</span>
-                            <span v-if="f.price" class="text-xs font-semibold text-primary">{{ f.price.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
-                            <button
-                                @click.stop="toDelete = f"
-                                class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Supprimer"
-                            >
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </div>
+                    <h3 class="font-semibold text-gray-800 text-sm leading-snug">{{ f.title }}</h3>
+                    <p v-if="f.description" class="text-xs text-gray-500 line-clamp-2">{{ f.description }}</p>
+                    <p v-if="f.status === 'rejected' && f.rejection_reason" class="text-xs text-red-500 line-clamp-1">{{ f.rejection_reason }}</p>
+                    <div class="mt-auto pt-2 flex items-center justify-between">
+                        <span :class="statusClass(f.status)" class="px-2 py-0.5 rounded-full text-xs font-medium">{{ statusLabel(f.status) }}</span>
+                        <span v-if="f.price" class="text-xs font-semibold text-primary">{{ f.price.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) }}</span>
+                        <button
+                            @click.stop="toDelete = f"
+                            class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Supprimer"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
-        </template>
+        </div>
+
+        <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
 
         <div v-if="selectedFormation" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="selectedFormation = null"/>
@@ -99,6 +120,23 @@
                         <div v-if="selectedFormation.capacity"><span class="font-medium text-gray-700">Capacité :</span> {{ selectedFormation.capacity }} places</div>
                         <div><span class="font-medium text-gray-700">Inscriptions :</span> {{ selectedFormation.inscription_count ?? 0 }}<span v-if="selectedFormation.capacity"> / {{ selectedFormation.capacity }}</span></div>
                         <div v-if="selectedFormation.category_name"><span class="font-medium text-gray-700">Thématique :</span> {{ selectedFormation.category_name }}</div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Participants</p>
+                        <div class="space-y-1">
+                            <p v-if="participantsLoading" class="text-xs text-gray-400">Chargement…</p>
+                            <template v-else>
+                                <p v-if="participants.length === 0" class="text-xs text-gray-400">Aucun participant</p>
+                                <div v-for="p in participants" :key="p.id" class="flex items-center gap-2 py-1">
+                                    <img v-if="p.avatar_url" :src="p.avatar_url" class="w-6 h-6 rounded-full object-cover" />
+                                    <span v-else class="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center font-medium text-gray-500">
+                                        {{ p.first_name[0] }}{{ p.last_name[0] }}
+                                    </span>
+                                    <span class="text-sm text-gray-700">{{ p.first_name }} {{ p.last_name }}</span>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
                 <div v-if="selectedFormation.status !== 'approved'" class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
@@ -216,34 +254,78 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 
 const route = useRoute()
 
 const formations = ref([])
 const categories = ref([])
+const page = ref(1)
+const total = ref(0)
 const loading = ref(true)
+const search = ref('')
+const filterStatus = ref('')
+const filterLevel = ref('')
+const filterCategory = ref('')
 const toDelete = ref(null)
 const deleting = ref(false)
 const selectedFormation = ref(null)
+const participants = ref([])
+const participantsLoading = ref(false)
+
+watch(selectedFormation, (val) => {
+    if (!val) {
+        participants.value = []
+        participantsLoading.value = false
+    } else {
+        loadParticipants(`/formations/${val.id}/participants`)
+    }
+})
+
+async function loadParticipants(url) {
+    participantsLoading.value = true
+    try {
+        const { data } = await api.get(url)
+        participants.value = data ?? []
+    } catch {
+        participants.value = []
+    } finally {
+        participantsLoading.value = false
+    }
+}
+
 const formModal = ref(false)
 const editTarget = ref(null)
 const submitting = ref(false)
 const formError = ref('')
 const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null })
-const filterStatus = ref('')
-const filteredFormations = computed(() =>
-    filterStatus.value ? formations.value.filter(f => f.status === filterStatus.value) : formations.value
-)
 
 const minDateTime = computed(() => {
     const now = new Date()
     now.setMinutes(now.getMinutes() + 1)
     return now.toISOString().slice(0, 16)
 })
+
+let searchDebounce = null
+function onSearchInput() {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(resetAndFetch, 300)
+}
+
+function resetAndFetch() {
+    page.value = 1
+    fetchFormations()
+}
+
+function changePage(p) {
+    page.value = p
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    fetchFormations()
+}
 
 function levelLabel(level) {
     return { beginner: 'Débutant', intermediate: 'Intermédiaire', advanced: 'Avancé' }[level] ?? level
@@ -253,11 +335,6 @@ function formatDateTime(dateStr) {
     if (!dateStr) return ''
     const d = new Date(dateStr)
     return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-}
-
-function endDateTime(dateStr, hours) {
-    if (!dateStr || !hours) return null
-    return new Date(new Date(dateStr).getTime() + hours * 3600000)
 }
 
 function levelClass(level) {
@@ -308,10 +385,17 @@ function openEditFromDetail(f) {
 async function fetchFormations() {
     loading.value = true
     try {
-        const { data } = await api.get('/user/my-formations')
-        formations.value = data ?? []
+        const params = { page: page.value, limit: 15 }
+        if (search.value) params.search = search.value
+        if (filterStatus.value) params.status = filterStatus.value
+        if (filterLevel.value) params.level = filterLevel.value
+        if (filterCategory.value) params.id_category = filterCategory.value
+        const { data } = await api.get('/user/my-formations', { params })
+        formations.value = data.data ?? []
+        total.value = data.total ?? 0
     } catch {
         formations.value = []
+        total.value = 0
     } finally {
         loading.value = false
     }
@@ -322,8 +406,8 @@ async function deleteFormation() {
     deleting.value = true
     try {
         await api.delete(`/user/formation/${toDelete.value.id}`)
-        formations.value = formations.value.filter(f => f.id !== toDelete.value.id)
         toDelete.value = null
+        await fetchFormations()
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
     } finally {

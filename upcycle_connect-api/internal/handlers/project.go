@@ -520,6 +520,44 @@ func ModerateDeleteProject(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "projet supprimé"})
 }
 
+func GetProjectMembers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	project, err := db.GetProjectById(id)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "projet introuvable"})
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+
+	isCreator := project.IdCreator != nil && *project.IdCreator == userID
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
+	if !isCreator && !isAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	members, err := db.GetProjectMembers(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if members == nil {
+		members = []models.Participant{}
+	}
+	_ = json.NewEncoder(w).Encode(members)
+}
+
 func GetProjectStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

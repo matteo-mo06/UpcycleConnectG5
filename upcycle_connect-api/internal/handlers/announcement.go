@@ -632,3 +632,120 @@ func GetMyInvoice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="facture.pdf"`)
 	_, _ = io.Copy(w, f)
 }
+
+func RequestFeature(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	if !db.IsUserPremium(userID) {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "abonnement premium requis"})
+		return
+	}
+
+	status, slot, err := db.RequestFeature(id, userID)
+	if err != nil {
+		switch err {
+		case db.ErrNotOwner:
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		case db.ErrNotActive:
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "l'annonce doit être active"})
+		case db.ErrMonthlyQuota:
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "quota mensuel atteint"})
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		}
+		return
+	}
+
+	resp := map[string]any{"status": status}
+	if slot != nil {
+		if status == "active" {
+			resp["featured_until"] = slot.Format("2006-01-02T15:04:05Z")
+		} else {
+			resp["estimated_slot"] = slot.Format("2006-01-02T15:04:05Z")
+		}
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func ConfirmFeature(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	status, slot, err := db.ConfirmFeatureRequest(id, userID)
+	if err != nil {
+		switch err {
+		case db.ErrNotOwner:
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		case db.ErrNotQueued:
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucune demande en file d'attente"})
+		case db.ErrNoSlot:
+			resp := map[string]any{"error": "pas encore de slot disponible"}
+			if slot != nil {
+				resp["estimated_slot"] = slot.Format("2006-01-02T15:04:05Z")
+			}
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(resp)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		}
+		return
+	}
+
+	resp := map[string]any{"status": status}
+	if slot != nil {
+		resp["featured_until"] = slot.Format("2006-01-02T15:04:05Z")
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func CancelFeature(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	id := r.PathValue("id")
+
+	ok, err := db.IsAnnouncementOwner(id, userID)
+	if err != nil || !ok {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	if err := db.CancelFeatureRequest(id); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande annulée"})
+}
+
+func AdminToggleFeature(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+
+	var body struct {
+		Active bool `json:"active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "corps invalide"})
+		return
+	}
+
+	if err := db.AdminToggleFeature(id, body.Active); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "mise en avant mise à jour"})
+}

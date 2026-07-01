@@ -10,7 +10,6 @@ import Forum from './Pages/User/Forum.vue'
 import Formations from './Pages/User/Formations.vue'
 import Conseils from './Pages/User/Conseils.vue'
 import Parametres from './Pages/User/Parametres.vue'
-import Score from './Pages/User/Score.vue'
 import Calendrier from './Pages/User/Calendrier.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
 import Users from './Pages/Admin/Users.vue'
@@ -83,7 +82,6 @@ const router = createRouter({
         { path: '/formations',  component: Formations,  meta: { requiresAuth: true } },
         { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
-        { path: '/score',       component: Score,       meta: { requiresAuth: true } },
         { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
         { path: '/paiement/:id',             component: Paiement,           meta: { requiresAuth: true } },
         { path: '/paiement-formation/:id',   component: PaiementFormation,  meta: { requiresAuth: true } },

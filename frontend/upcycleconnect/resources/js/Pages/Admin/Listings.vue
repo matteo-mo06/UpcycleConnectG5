@@ -336,6 +336,10 @@
                                 <p class="text-red-500">{{ detailListing.deletedAt }}</p>
                             </template>
                         </div>
+                        <div v-if="detailListing.featured && detailListing.featuredUntil">
+                            <p class="text-xs text-gray-400 mb-0.5">En avant jusqu'au</p>
+                            <p class="text-amber-600 font-medium">{{ detailListing.featuredUntil.slice(0, 10) }}</p>
+                        </div>
                     </div>
 
                     <div>
@@ -665,7 +669,8 @@ async function fetchListings() {
             type: a.type === 'vente' ? 'Vente' : 'Don',
             category: catMap[a.id_category] ?? '-',
             status: a.state ?? 'Active',
-            featured: false,
+            featured: a.is_featured === 1,
+            featuredUntil: a.featured_until ?? null,
             date: a.availability_date?.slice(0, 10) ?? '-',
             createdAt: a.created_at?.slice(0, 10) ?? '-',
             deletedAt: a.deleted_at ? a.deleted_at.slice(0, 16).replace('T', ' ') : null,
@@ -714,7 +719,8 @@ async function fetchPendingListings() {
             postal: a.postal ?? '',
             price: a.price ?? 0,
             condition: a.condition ?? '',
-            featured: false,
+            featured: a.is_featured === 1,
+            featuredUntil: a.featured_until ?? null,
             tags: [],
         })).sort((a, b) => b.rawCreatedAt.localeCompare(a.rawCreatedAt))
     } catch {}
@@ -744,8 +750,13 @@ function confirmDelete(listing) {
     toDelete.value = listing
 }
 
-function toggleFeatured(listing) {
-    listings.value.find(l => l.id === listing.id).featured ^= true
+async function toggleFeatured(listing) {
+    try {
+        await api.put(`/admin/announcement/${listing.id}/feature`, { active: !listing.featured })
+        await fetchListings()
+    } catch {
+        alert('Erreur lors de la mise à jour de la mise en avant.')
+    }
 }
 
 async function deleteListing() {

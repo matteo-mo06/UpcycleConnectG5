@@ -225,6 +225,23 @@
                         <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
                         <p class="text-sm text-red-700">{{ detailEvent.rejectionReason }}</p>
                     </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Participants</p>
+                        <div class="space-y-1">
+                            <p v-if="participantsLoading" class="text-xs text-gray-400">Chargement…</p>
+                            <template v-else>
+                                <p v-if="participants.length === 0" class="text-xs text-gray-400">Aucun participant</p>
+                                <div v-for="p in participants" :key="p.id" class="flex items-center gap-2 py-1">
+                                    <img v-if="p.avatar_url" :src="p.avatar_url" class="w-6 h-6 rounded-full object-cover" />
+                                    <span v-else class="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center font-medium text-gray-500">
+                                        {{ p.first_name[0] }}{{ p.last_name[0] }}
+                                    </span>
+                                    <span class="text-sm text-gray-700">{{ p.first_name }} {{ p.last_name }}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2">
@@ -411,6 +428,20 @@ const rejectModal = ref({ open: false, event: null, reason: '', loading: false }
 const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
 const saving = ref(false)
 const statCounts = ref({ total: 0, pending: 0, upcoming: 0, rejected: 0 })
+const participants = ref([])
+const participantsLoading = ref(false)
+
+async function loadParticipants(url) {
+    participantsLoading.value = true
+    try {
+        const { data } = await api.get(url)
+        participants.value = data ?? []
+    } catch {
+        participants.value = []
+    } finally {
+        participantsLoading.value = false
+    }
+}
 
 const stats = computed(() => [
     {
@@ -516,7 +547,10 @@ async function fetchStats() {
 onMounted(() => Promise.all([fetchEvents(), fetchStats()]))
 
 function openDetail(event) {
+    participants.value = []
+    participantsLoading.value = false
     detailEvent.value = event
+    loadParticipants(`/events/${event.id}/participants`)
 }
 
 function confirmDelete(event) {

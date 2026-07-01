@@ -1,9 +1,36 @@
 package db
 
 import (
+	"database/sql"
+
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/models"
 )
+
+func GetFormationParticipants(formationID string) ([]models.Participant, error) {
+	rows, err := config.Conn.Query(`
+		SELECT u.id_user, u.first_name, u.last_name, u.avatar_url
+		FROM user u
+		JOIN user_formation_inscription fi ON fi.id_user = u.id_user
+		WHERE fi.id_formation = ?`, formationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.Participant
+	for rows.Next() {
+		var p models.Participant
+		var avatarUrl sql.NullString
+		if err := rows.Scan(&p.Id, &p.FirstName, &p.LastName, &avatarUrl); err != nil {
+			return nil, err
+		}
+		if avatarUrl.Valid {
+			p.AvatarUrl = &avatarUrl.String
+		}
+		list = append(list, p)
+	}
+	return list, nil
+}
 
 func GetFormations(userID, search, level, idCategory string, limit, offset int) ([]models.Formation, int, error) {
 	where := `WHERE f.deleted_at IS NULL AND (f.status = 'approved' OR f.id_creator = ?)`
@@ -353,4 +380,79 @@ func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 		list = append(list, f)
 	}
 	return list, nil
+}
+
+func GetMyCreatedFormationsPaginated(creatorID, search, status, level, idCategory string, limit, offset int) ([]models.Formation, int, error) {
+	where := `WHERE f.id_creator = ? AND f.deleted_at IS NULL`
+	args := []any{creatorID}
+
+	if search != "" {
+		where += " AND f.title_formation LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	if status != "" {
+		where += " AND f.status = ?"
+		args = append(args, status)
+	}
+	if level != "" {
+		where += " AND f.level = ?"
+		args = append(args, level)
+	}
+	if idCategory != "" {
+		where += " AND f.id_category = ?"
+		args = append(args, idCategory)
+	}
+
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	var total int
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM formation f "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := config.Conn.Query(`
+		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
+		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.rejection_reason, f.id_category,
+		       c.name_category,
+		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
+		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       COUNT(ins.id_user) AS inscription_count,
+		       f.created_at, f.price
+		FROM formation f
+		LEFT JOIN category c ON c.id_category = f.id_category
+		LEFT JOIN user u ON u.id_user = f.id_creator
+		LEFT JOIN user fmt ON fmt.id_user = f.id_formateur
+		LEFT JOIN user_formation_inscription ins ON ins.id_formation = f.id_formation
+		`+where+`
+		GROUP BY f.id_formation
+		ORDER BY f.created_at DESC
+		LIMIT ? OFFSET ?`, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var list []models.Formation
+	for rows.Next() {
+		var f models.Formation
+		err := rows.Scan(
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
+			&f.InscriptionCount,
+			&f.CreatedAt, &f.Price,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		list = append(list, f)
+	}
+	return list, total, nil
 }

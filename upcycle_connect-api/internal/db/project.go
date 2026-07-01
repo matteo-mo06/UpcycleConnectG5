@@ -360,6 +360,31 @@ func GetProjectStatusCounts() (models.ProjectStats, error) {
 	return s, err
 }
 
+func GetProjectMembers(projectID string) ([]models.Participant, error) {
+	rows, err := config.Conn.Query(`
+		SELECT u.id_user, u.first_name, u.last_name, u.avatar_url
+		FROM USER u
+		JOIN USER_PROJECT_INSCRIPTION pi ON pi.id_user = u.id_user
+		WHERE pi.id_project = ?`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.Participant
+	for rows.Next() {
+		var p models.Participant
+		var avatarUrl sql.NullString
+		if err := rows.Scan(&p.Id, &p.FirstName, &p.LastName, &avatarUrl); err != nil {
+			return nil, err
+		}
+		if avatarUrl.Valid {
+			p.AvatarUrl = &avatarUrl.String
+		}
+		list = append(list, p)
+	}
+	return list, nil
+}
+
 func GetUserRegisteredProjects(userID string) ([]models.Project, error) {
 	rows, err := config.Conn.Query(`
 		SELECT p.id_project, p.title_project, p.description_project, p.start_date_project,

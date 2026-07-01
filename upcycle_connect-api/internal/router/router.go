@@ -103,6 +103,11 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/announcement/{id}", admin(handlers.DeleteAnnouncement))
 	http.Handle("PATCH /admin/announcement/{id}/approve", perm("manage_announcements", handlers.ApproveAnnouncement))
 	http.Handle("PATCH /admin/announcement/{id}/reject", perm("manage_announcements", handlers.RejectAnnouncement))
+	http.Handle("PUT /admin/announcement/{id}/feature", admin(handlers.AdminToggleFeature))
+
+	http.Handle("POST /announcements/{id}/feature", perm("create_announcement", handlers.RequestFeature))
+	http.Handle("POST /announcements/{id}/feature/confirm", perm("create_announcement", handlers.ConfirmFeature))
+	http.Handle("DELETE /announcements/{id}/feature", perm("create_announcement", handlers.CancelFeature))
 
 	http.Handle("GET /events", auth(handlers.GetPublicEventsForUser))
 	http.Handle("POST /events", perm("create_event", handlers.CreateEvent))
@@ -222,6 +227,10 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/project/{id}", admin(handlers.DeleteProjectAdmin))
 	http.Handle("PATCH /admin/project/{id}/approve", admin(handlers.ApproveProject))
 	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
+
+	http.Handle("GET /projects/{id}/members", auth(handlers.GetProjectMembers))
+	http.Handle("GET /events/{id}/participants", auth(handlers.GetEventParticipants))
+	http.Handle("GET /formations/{id}/participants", auth(handlers.GetFormationParticipants))
 
 	http.Handle("GET /projects/{id}/materials", auth(handlers.GetProjectMaterials))
 	http.Handle("POST /projects/{id}/materials", auth(handlers.CreateProjectMaterial))
