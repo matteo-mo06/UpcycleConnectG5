@@ -322,10 +322,11 @@ async function toggleRegistration(f) {
     }
 }
 
-function proceedToPayment() {
+async function proceedToPayment() {
     const f = confirmPaidFormation.value
     confirmPaidFormation.value = null
-    router.push(`/paiement-formation/${f.id}`)
+    const { data } = await api.post(`/pay/formation/${f.id}`)
+    window.location.href = data.checkout_url
 }
 
 function changePage(p) {

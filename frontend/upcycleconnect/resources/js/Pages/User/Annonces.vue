@@ -498,9 +498,10 @@ async function deleteAnnouncement() {
     }
 }
 
-function handleAcquire(a) {
+async function handleAcquire(a) {
     if (a.type === 'vente' && a.price > 0) {
-        router.push(`/paiement/${a.id}`)
+        const { data } = await api.post(`/pay/announcement/${a.id}`)
+        window.location.href = data.checkout_url
     } else {
         claimAnnouncement(a)
     }

@@ -41,6 +41,16 @@ func StorePayment(id, announcementID, buyerID, currency, providerRef string, amo
 	return err
 }
 
+func StoreSubscriptionPayment(invoiceID, stripeSubID, userID, currency string, amountCents int) error {
+	_, err := config.Conn.Exec(`
+		INSERT INTO payement (id_payement, amount_cents, currency, provider_payement, provider_ref, status_payement, subscription_id, buyer_id, commission_amount_cents, paid_at)
+		VALUES (?, ?, ?, 'stripe', ?, 'paid', ?, ?, 0, NOW())
+		ON DUPLICATE KEY UPDATE status_payement = status_payement`,
+		invoiceID, amountCents, currency, invoiceID, stripeSubID, userID,
+	)
+	return err
+}
+
 func StoreFormationPayment(id, formationID, buyerID, currency, providerRef string, amountCents int) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO payement (id_payement, amount_cents, currency, provider_payement, provider_ref, status_payement, formation_id, buyer_id, commission_amount_cents, paid_at)
@@ -59,16 +69,19 @@ func GetRevenueSummary() (models.RevenueSummary, error) {
 			COALESCE(SUM(commission_amount_cents), 0)
 		FROM payement
 		WHERE status_payement = 'paid'
+		AND (announcement_id IS NOT NULL OR formation_id IS NOT NULL)
 	`).Scan(&s.TotalTransactions, &s.TotalAmountCents, &s.TotalCommissionCents)
 	if err != nil {
 		return s, err
 	}
+	var adCount, subCount int
+	config.Conn.QueryRow(`SELECT COUNT(*) FROM advertisement WHERE state IN ('active', 'expired')`).Scan(&adCount)
+	config.Conn.QueryRow(`SELECT COUNT(*) FROM user_subscription`).Scan(&subCount)
+	s.TotalTransactions += adCount + subCount
 	config.Conn.QueryRow(`
-		SELECT COALESCE(SUM(sp.price_cents), 0)
-		FROM user_subscription us
-		JOIN subscription s ON s.id_subscription = us.id_subscription
-		JOIN sub_sub_plan ssp ON ssp.id_subscription = s.id_subscription
-		JOIN subscription_plans sp ON sp.id_plan = ssp.id_plan
+		SELECT COALESCE(SUM(amount_cents), 0)
+		FROM payement
+		WHERE subscription_id IS NOT NULL AND status_payement = 'paid'
 	`).Scan(&s.TotalSubscriptionsCents)
 	config.Conn.QueryRow(`
 		SELECT COALESCE(SUM(price_cents), 0)
@@ -159,7 +172,7 @@ func GetRevenueTransactions(page, limit int) ([]models.RevenueTransaction, int, 
 	offset := (page - 1) * limit
 
 	var total int
-	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM payement WHERE status_payement = 'paid'").Scan(&total); err != nil {
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM payement WHERE status_payement = 'paid' AND announcement_id IS NOT NULL").Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
@@ -177,7 +190,7 @@ func GetRevenueTransactions(page, limit int) ([]models.RevenueTransaction, int, 
 		FROM payement p
 		LEFT JOIN announcement a ON a.id_announcement = p.announcement_id
 		LEFT JOIN user u ON u.id_user = p.buyer_id
-		WHERE p.status_payement = 'paid'
+		WHERE p.status_payement = 'paid' AND p.announcement_id IS NOT NULL
 		ORDER BY p.created_at DESC
 		LIMIT ? OFFSET ?`,
 		limit, offset,

@@ -6,7 +6,7 @@
                 <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'transactions' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'transactions'"
-                >Transactions</button>
+                >Annonces</button>
                 <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'abonnements' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'abonnements'"
@@ -61,7 +61,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-gray-800 leading-none">{{ summary.total_transactions ?? 0 }}</p>
-                    <p class="text-sm text-gray-500 mt-1">Transactions</p>
+                    <p class="text-sm text-gray-500 mt-1">Toutes transactions</p>
                 </div>
             </div>
 
@@ -80,7 +80,7 @@
 
         <div v-if="activeTab === 'transactions'">
             <div v-if="loadingTx" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
-            <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune transaction pour le moment.</div>
+            <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune vente d'annonce pour le moment.</div>
             <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -115,7 +115,7 @@
                     </table>
                 </div>
                 <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                    <span>{{ total }} transaction(s)</span>
+                    <span>{{ total }} vente(s) d'annonce</span>
                     <div class="flex gap-2">
                         <button
                             :disabled="page <= 1"

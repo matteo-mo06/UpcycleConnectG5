@@ -75,27 +75,38 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 
 	client := stripe.NewClient(config.StripeSecretKey())
 
-	params := &stripe.PaymentIntentCreateParams{
-		Amount:                  stripe.Int64(totalCents),
-		Currency:                stripe.String("eur"),
-		ApplicationFeeAmount:    stripe.Int64(commissionCents),
-		TransferData: &stripe.PaymentIntentCreateTransferDataParams{
-			Destination: stripe.String(sellerStripeAccountID),
+	params := &stripe.CheckoutSessionCreateParams{
+		Mode: stripe.String("payment"),
+		LineItems: []*stripe.CheckoutSessionCreateLineItemParams{
+			{
+				PriceData: &stripe.CheckoutSessionCreateLineItemPriceDataParams{
+					Currency:   stripe.String("eur"),
+					UnitAmount: stripe.Int64(totalCents),
+					ProductData: &stripe.CheckoutSessionCreateLineItemPriceDataProductDataParams{
+						Name: stripe.String(ann.TitleAnnouncement),
+					},
+				},
+				Quantity: stripe.Int64(1),
+			},
 		},
+		PaymentIntentData: &stripe.CheckoutSessionCreatePaymentIntentDataParams{
+			ApplicationFeeAmount: stripe.Int64(commissionCents),
+			TransferData: &stripe.CheckoutSessionCreatePaymentIntentDataTransferDataParams{
+				Destination: stripe.String(sellerStripeAccountID),
+			},
+		},
+		SuccessURL: stripe.String(config.FrontendURL() + "/annonces?payment=success"),
+		CancelURL:  stripe.String(config.FrontendURL() + "/annonces"),
 		Metadata: map[string]string{
 			"announcement_id":  announcementID,
 			"buyer_id":         userID,
-			"price_cents":      strconv.FormatInt(priceCents, 10),
 			"commission_cents": strconv.FormatInt(commissionCents, 10),
-		},
-		AutomaticPaymentMethods: &stripe.PaymentIntentCreateAutomaticPaymentMethodsParams{
-			Enabled: stripe.Bool(true),
 		},
 	}
 
-	pi, err := client.V1PaymentIntents.Create(context.Background(), params)
+	session, err := client.V1CheckoutSessions.Create(context.Background(), params)
 	if err != nil {
-		fmt.Println("Stripe CreatePaymentIntent error:", err)
+		fmt.Println("Stripe CreateAnnouncementCheckout error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création du paiement"})
 		return
@@ -103,12 +114,7 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"client_secret":    pi.ClientSecret,
-		"announcement_id":  announcementID,
-		"price_cents":      priceCents,
-		"commission_cents": commissionCents,
-		"total_cents":      totalCents,
-		"commission_rate":  commissionRate,
+		"checkout_url": session.URL,
 	})
 }
 
@@ -141,21 +147,31 @@ func CreateFormationPaymentIntent(w http.ResponseWriter, r *http.Request) {
 
 	client := stripe.NewClient(config.StripeSecretKey())
 
-	params := &stripe.PaymentIntentCreateParams{
-		Amount:   stripe.Int64(priceCents),
-		Currency: stripe.String("eur"),
+	params := &stripe.CheckoutSessionCreateParams{
+		Mode: stripe.String("payment"),
+		LineItems: []*stripe.CheckoutSessionCreateLineItemParams{
+			{
+				PriceData: &stripe.CheckoutSessionCreateLineItemPriceDataParams{
+					Currency:   stripe.String("eur"),
+					UnitAmount: stripe.Int64(priceCents),
+					ProductData: &stripe.CheckoutSessionCreateLineItemPriceDataProductDataParams{
+						Name: stripe.String(formation.TitleFormation),
+					},
+				},
+				Quantity: stripe.Int64(1),
+			},
+		},
+		SuccessURL: stripe.String(config.FrontendURL() + "/formations?payment=success"),
+		CancelURL:  stripe.String(config.FrontendURL() + "/formations"),
 		Metadata: map[string]string{
 			"formation_id": formationID,
 			"buyer_id":     userID,
 		},
-		AutomaticPaymentMethods: &stripe.PaymentIntentCreateAutomaticPaymentMethodsParams{
-			Enabled: stripe.Bool(true),
-		},
 	}
 
-	pi, err := client.V1PaymentIntents.Create(context.Background(), params)
+	session, err := client.V1CheckoutSessions.Create(context.Background(), params)
 	if err != nil {
-		fmt.Println("Stripe CreateFormationPaymentIntent error:", err)
+		fmt.Println("Stripe CreateFormationCheckout error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création du paiement"})
 		return
@@ -163,8 +179,7 @@ func CreateFormationPaymentIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"client_secret": pi.ClientSecret,
-		"price_cents":   priceCents,
+		"checkout_url": session.URL,
 	})
 }
 
@@ -223,6 +238,10 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		if session.Mode == "payment" {
 			adID := session.Metadata["advertisement_id"]
+			announcementID := session.Metadata["announcement_id"]
+			formationID := session.Metadata["formation_id"]
+			buyerID := session.Metadata["buyer_id"]
+
 			if adID != "" {
 				weeks, _ := strconv.Atoi(session.Metadata["plan_weeks"])
 				if err := db.ActivateAdvertisement(adID, session.ID, weeks); err != nil {
@@ -238,6 +257,68 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+
+			if announcementID != "" {
+				if err := db.MarkAnnouncementSold(announcementID, buyerID); err != nil {
+					fmt.Println("MarkAnnouncementSold error:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				commissionCents, _ := strconv.Atoi(session.Metadata["commission_cents"])
+				piID := ""
+				if session.PaymentIntent != nil {
+					piID = session.PaymentIntent.ID
+				}
+				if err := db.StorePayment(session.ID, announcementID, buyerID, "eur", piID, int(session.AmountTotal), commissionCents); err != nil {
+					fmt.Println("StorePayment error:", err)
+				}
+				go generateAndStoreInvoice(session.ID, announcementID, buyerID, session.AmountTotal, int64(commissionCents), session.Created)
+				if sellerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
+					go utils.SendPushNotification(db.GetOnesignalPlayerID(sellerID), "Annonce vendue", "Votre annonce a été achetée !")
+				}
+			}
+
+			if formationID != "" {
+				if err := db.RegisterUserForFormation(buyerID, formationID); err != nil {
+					fmt.Println("RegisterUserForFormation (webhook) error:", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				piID := ""
+				if session.PaymentIntent != nil {
+					piID = session.PaymentIntent.ID
+				}
+				if err := db.StoreFormationPayment(session.ID, formationID, buyerID, "eur", piID, int(session.AmountTotal)); err != nil {
+					fmt.Println("StoreFormationPayment (webhook) error:", err)
+				}
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		return
+
+	case "invoice.payment_succeeded":
+		var inv struct {
+			ID           string `json:"id"`
+			AmountPaid   int64  `json:"amount_paid"`
+			Currency     string `json:"currency"`
+			Subscription string `json:"subscription"`
+			Customer     string `json:"customer"`
+		}
+		if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if inv.Subscription == "" || inv.AmountPaid == 0 {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		userID := db.GetUserIDByStripeCustomerID(inv.Customer)
+		if userID == "" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if err := db.StoreSubscriptionPayment(inv.ID, inv.Subscription, userID, inv.Currency, int(inv.AmountPaid)); err != nil {
+			fmt.Println("StoreSubscriptionPayment error:", err)
 		}
 		w.WriteHeader(http.StatusOK)
 		return
@@ -280,51 +361,6 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		return
-	}
-
-	if event.Type == stripe.EventTypePaymentIntentSucceeded {
-		var pi stripe.PaymentIntent
-		if err := json.Unmarshal(event.Data.Raw, &pi); err != nil {
-			fmt.Println("Stripe webhook unmarshal error:", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		announcementID := pi.Metadata["announcement_id"]
-		formationID := pi.Metadata["formation_id"]
-		buyerID := pi.Metadata["buyer_id"]
-
-		if formationID != "" {
-			if err := db.RegisterUserForFormation(buyerID, formationID); err != nil {
-				fmt.Println("RegisterUserForFormation (webhook) error:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			if err := db.StoreFormationPayment(pi.ID, formationID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount)); err != nil {
-				fmt.Println("StoreFormationPayment (webhook) error:", err)
-			}
-		}
-
-		if announcementID != "" {
-			if err := db.MarkAnnouncementSold(announcementID, buyerID); err != nil {
-				fmt.Println("MarkAnnouncementSold error:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			commissionCents, _ := strconv.Atoi(pi.Metadata["commission_cents"])
-			if err := db.StorePayment(pi.ID, announcementID, buyerID, string(pi.Currency), pi.ID, int(pi.Amount), commissionCents); err != nil {
-				fmt.Println("StorePayment error:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			go generateAndStoreInvoice(pi.ID, announcementID, buyerID, pi.Amount, int64(commissionCents), pi.Created)
-
-			if sellerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
-				go utils.SendPushNotification(db.GetOnesignalPlayerID(sellerID), "Annonce vendue", "Votre annonce a été achetée !")
-			}
-		}
 	}
 
 	w.WriteHeader(http.StatusOK)

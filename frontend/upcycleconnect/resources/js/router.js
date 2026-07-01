@@ -26,9 +26,6 @@ import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import Revenus from './Pages/Admin/Revenus.vue'
 import AdminPublicite from './Pages/Admin/Publicite.vue'
 import AdminSubscriptions from './Pages/Admin/Subscriptions.vue'
-import Paiement from './Pages/User/Paiement.vue'
-import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
-import PaiementFormation from './Pages/User/PaiementFormation.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 import Error from './Pages/Error.vue'
@@ -83,9 +80,6 @@ const router = createRouter({
         { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
         { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
-        { path: '/paiement/:id',             component: Paiement,           meta: { requiresAuth: true } },
-        { path: '/paiement-formation/:id',   component: PaiementFormation,  meta: { requiresAuth: true } },
-        { path: '/paiement-confirmation',    component: PaiementConfirmation, meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },

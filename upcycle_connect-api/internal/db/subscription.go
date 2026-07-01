@@ -71,6 +71,17 @@ func GetUserActiveSubscription(userID string) (*models.Subscription, error) {
 	return &sub, nil
 }
 
+func GetUserIDByStripeCustomerID(customerID string) string {
+	var userID sql.NullString
+	config.Conn.QueryRow(`
+		SELECT us.id_user
+		FROM user_subscription us
+		JOIN subscription s ON s.id_subscription = us.id_subscription
+		WHERE s.stripe_customer_id = ?
+		ORDER BY s.start_timestamp DESC LIMIT 1`, customerID).Scan(&userID)
+	return userID.String
+}
+
 func GetUserStripeCustomerID(userID string) string {
 	var customerID sql.NullString
 	config.Conn.QueryRow(`
