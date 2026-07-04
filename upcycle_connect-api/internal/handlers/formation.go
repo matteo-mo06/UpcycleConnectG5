@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-pdf/fpdf"
 	"github.com/google/uuid"
 
 	"upcycle_connect-api/internal/config"
@@ -73,7 +75,7 @@ func GetFormationById(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(formation)
 }
 
-func CreateFormation(w http.ResponseWriter, r *http.Request) {
+func createFormation(w http.ResponseWriter, r *http.Request, defaultStatus string) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
@@ -136,6 +138,10 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 		DurationHours:        req.DurationH,
 		IdCategory:           req.IdCategory,
 		Price:                req.Price,
+		Syllabus:             req.Syllabus,
+		Prerequisites:        req.Prerequisites,
+		Objectives:           req.Objectives,
+		Status:               defaultStatus,
 		IdCreator:            &userID,
 		IdFormateur:          &userID,
 	}
@@ -147,8 +153,21 @@ func CreateFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	msg := "formation créée, en attente de validation"
+	if defaultStatus == "approved" {
+		msg = "formation créée"
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(map[string]any{"message": "formation créée, en attente de validation", "formation": f})
+	_ = json.NewEncoder(w).Encode(map[string]any{"message": msg, "formation": f})
+}
+
+func CreateFormation(w http.ResponseWriter, r *http.Request) {
+	createFormation(w, r, "pending")
+}
+
+func CreateFormationAdmin(w http.ResponseWriter, r *http.Request) {
+	createFormation(w, r, "approved")
 }
 
 func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
@@ -227,6 +246,9 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 	formation.DurationHours = req.DurationH
 	formation.IdCategory = req.IdCategory
 	formation.Price = req.Price
+	formation.Syllabus = req.Syllabus
+	formation.Prerequisites = req.Prerequisites
+	formation.Objectives = req.Objectives
 
 	if err := db.UpdateFormation(formation); err != nil {
 		fmt.Println("UpdateMyFormation error:", err)
@@ -634,4 +656,166 @@ func DeleteFormationAdmin(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "formation supprimée"})
+}
+
+func GetFormationSyllabusPDF(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	perms, _ := r.Context().Value(middleware.ContextPermissions).([]string)
+
+	formation, err := db.GetFormationById(id)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "formation not found"})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to get formation"})
+		return
+	}
+
+	canSee := formation.Status == "approved" ||
+		(formation.IdCreator != nil && *formation.IdCreator == userID) ||
+		slices.Contains(perms, "manage_formations")
+
+	if !canSee {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès non autorisé"})
+		return
+	}
+
+	pdfBytes, err := buildSyllabusPDF(formation)
+	if err != nil {
+		fmt.Println("GetFormationSyllabusPDF error:", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur génération PDF"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="syllabus-%s.pdf"`, formation.IdFormation))
+	_, _ = w.Write(pdfBytes)
+}
+
+func buildSyllabusPDF(f models.Formation) ([]byte, error) {
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(20, 15, 20)
+	pdf.SetAutoPageBreak(true, 20)
+	pdf.AddPage()
+
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
+
+	pdf.SetTextColor(45, 106, 79)
+	pdf.SetFont("Helvetica", "B", 20)
+	pdf.Cell(0, 10, "UpcycleConnect")
+	pdf.Ln(9)
+	pdf.SetTextColor(120, 120, 120)
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.Cell(0, 5, tr("Programme de formation"))
+	pdf.Ln(10)
+
+	pdf.SetDrawColor(200, 200, 200)
+	pdf.Line(20, pdf.GetY(), 190, pdf.GetY())
+	pdf.Ln(7)
+
+	pdf.SetTextColor(40, 40, 40)
+	pdf.SetFont("Helvetica", "B", 16)
+	pdf.MultiCell(170, 8, tr(f.TitleFormation), "", "L", false)
+
+	formateur := ""
+	if f.FormateurName != nil && *f.FormateurName != "" {
+		formateur = *f.FormateurName
+	} else if f.CreatorName != nil {
+		formateur = *f.CreatorName
+	}
+	if formateur != "" {
+		pdf.SetFont("Helvetica", "", 10)
+		pdf.SetTextColor(90, 90, 90)
+		pdf.Cell(0, 6, tr("Animée par "+formateur))
+		pdf.Ln(9)
+	} else {
+		pdf.Ln(3)
+	}
+
+	levelLabels := map[string]string{"beginner": "Débutant", "intermediate": "Intermédiaire", "advanced": "Avancé"}
+	levelLabel := levelLabels[f.Level]
+	if levelLabel == "" {
+		levelLabel = f.Level
+	}
+
+	dateStr := "-"
+	if f.DateFormation != nil && *f.DateFormation != "" {
+		if parsed, err := time.Parse("2006-01-02 15:04:05", *f.DateFormation); err == nil {
+			dateStr = parsed.Format("02/01/2006 à 15:04")
+		} else if parsed, err := time.Parse("2006-01-02T15:04:05", *f.DateFormation); err == nil {
+			dateStr = parsed.Format("02/01/2006 à 15:04")
+		} else {
+			dateStr = *f.DateFormation
+		}
+	}
+
+	location := "-"
+	if f.LocationFormation != nil && *f.LocationFormation != "" {
+		location = *f.LocationFormation
+	}
+
+	duration := "-"
+	if f.DurationHours != nil {
+		duration = fmt.Sprintf("%dh", *f.DurationHours)
+	}
+
+	price := "Gratuit"
+	if f.Price != nil && *f.Price > 0 {
+		price = fmt.Sprintf("%.2f EUR", *f.Price)
+	}
+
+	infoRow := func(label, value string) {
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.SetTextColor(40, 40, 40)
+		pdf.CellFormat(30, 7, tr(label), "", 0, "L", false, 0, "")
+		pdf.SetFont("Helvetica", "", 9)
+		pdf.SetTextColor(70, 70, 70)
+		pdf.CellFormat(0, 7, tr(value), "", 1, "L", false, 0, "")
+	}
+	infoRow("Niveau :", levelLabel)
+	infoRow("Date :", dateStr)
+	infoRow("Lieu :", location)
+	infoRow("Durée :", duration)
+	infoRow("Prix :", price)
+
+	pdf.Ln(3)
+
+	section := func(heading string, content *string) {
+		if content == nil || *content == "" {
+			return
+		}
+		pdf.SetFont("Helvetica", "B", 11)
+		pdf.SetTextColor(45, 106, 79)
+		pdf.Cell(0, 8, tr(heading))
+		pdf.Ln(7)
+		pdf.SetFont("Helvetica", "", 9.5)
+		pdf.SetTextColor(60, 60, 60)
+		pdf.MultiCell(170, 5.5, tr(*content), "", "L", false)
+		pdf.Ln(4)
+	}
+
+	section("Description", f.DescriptionFormation)
+	section("Objectifs pédagogiques", f.Objectives)
+	section("Prérequis", f.Prerequisites)
+	section("Programme détaillé", f.Syllabus)
+
+	pdf.SetY(-25)
+	pdf.SetTextColor(120, 120, 120)
+	pdf.SetFont("Helvetica", "", 7.5)
+	pdf.CellFormat(0, 4, tr("UpcycleConnect - contact@upcycleconnect.fr - upcycleconnect.fr"), "", 0, "C", false, 0, "")
+
+	var buf bytes.Buffer
+	if err := pdf.Output(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

@@ -25,7 +25,7 @@
 
             <div class="bg-white rounded-xl shadow-sm overflow-hidden">
 
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
                     <div class="relative flex-1">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
@@ -47,6 +47,14 @@
                         <option value="approved">Approuvées</option>
                         <option value="rejected">Rejetées</option>
                     </select>
+                    <button
+                        @click="openCreate"
+                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Créer
+                    </button>
                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ total }} résultat(s)</span>
                 </div>
 
@@ -183,8 +191,28 @@
                     </div>
                     <div v-if="detailFormation.description">
                         <p class="text-xs text-gray-400 mb-1">Description</p>
-                        <p class="text-sm text-gray-700 leading-relaxed">{{ detailFormation.description }}</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.description }}</p>
                     </div>
+                    <div v-if="detailFormation.objectives">
+                        <p class="text-xs text-gray-400 mb-1">Objectifs pédagogiques</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.objectives }}</p>
+                    </div>
+                    <div v-if="detailFormation.prerequisites">
+                        <p class="text-xs text-gray-400 mb-1">Prérequis</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.prerequisites }}</p>
+                    </div>
+                    <div v-if="detailFormation.syllabus">
+                        <p class="text-xs text-gray-400 mb-1">Syllabus</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.syllabus }}</p>
+                    </div>
+                    <button
+                        @click="downloadSyllabus(detailFormation)"
+                        class="flex items-center gap-2 text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Télécharger le syllabus
+                    </button>
                     <div v-if="detailFormation.status === 'rejected' && detailFormation.rejection_reason">
                         <p class="text-xs text-gray-400 mb-1">Raison du rejet</p>
                         <p class="text-sm text-red-600">{{ detailFormation.rejection_reason }}</p>
@@ -258,6 +286,112 @@
             </div>
         </div>
 
+        <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="formModal = false"/>
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        Créer une formation
+                    </h3>
+                    <button @click="formModal = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <input v-model="form.title" type="text"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            placeholder="Titre de la formation"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <textarea v-model="form.description" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Description de la formation…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Objectifs pédagogiques</label>
+                        <textarea v-model="form.objectives" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Ce que les participants sauront faire à l'issue de la formation…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Prérequis</label>
+                        <textarea v-model="form.prerequisites" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Connaissances ou matériel nécessaires avant de participer…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Syllabus (programme détaillé)</label>
+                        <textarea v-model="form.syllabus" rows="4"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Déroulé détaillé de la formation, étape par étape…"/>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Niveau</label>
+                            <select v-model="form.level"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                                <option value="beginner">Débutant</option>
+                                <option value="intermediate">Intermédiaire</option>
+                                <option value="advanced">Avancé</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Durée (heures)</label>
+                            <input v-model.number="form.duration_hours" type="number" min="1"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Ex: 3"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Date & heure <span class="text-red-400">*</span></label>
+                            <input v-model="form.date" type="datetime-local" :min="minDateTime" required
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Lieu <span class="text-red-400">*</span></label>
+                            <input v-model="form.location" type="text" required
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse ou salle"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <input v-model.number="form.capacity" type="number" min="1"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="0 = illimitée"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Prix (€) <span class="text-gray-300">(laisser vide si gratuit)</span></label>
+                            <input v-model.number="form.price" type="number" min="0" step="0.01"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Ex: 25.00"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Thématique</label>
+                            <select v-model="form.id_category"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                                <option value="">Aucune</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
+                    <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button @click="submitForm" :disabled="submitting"
+                        class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
+                        {{ submitting ? 'Enregistrement…' : 'Créer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -280,6 +414,18 @@ const rejectModal = ref(null)
 const rejectReason = ref('')
 const toDelete = ref(null)
 const deleting = ref(false)
+
+const categories = ref([])
+const formModal = ref(false)
+const submitting = ref(false)
+const formError = ref('')
+const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null, objectives: '', prerequisites: '', syllabus: '' })
+
+const minDateTime = computed(() => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() + 1)
+    return now.toISOString().slice(0, 16)
+})
 
 const statCounts = ref({ total: 0, pending: 0, approved: 0, rejected: 0 })
 const participants = ref([])
@@ -374,6 +520,64 @@ function confirmDelete(f) {
     toDelete.value = f
 }
 
+function openCreate() {
+    form.value = { title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null, objectives: '', prerequisites: '', syllabus: '' }
+    formError.value = ''
+    formModal.value = true
+}
+
+async function submitForm() {
+    if (!form.value.title.trim()) { formError.value = 'Le titre est requis.'; return }
+    if (!form.value.date) { formError.value = 'La date est requise.'; return }
+    if (!form.value.location?.trim()) { formError.value = 'Le lieu est requis.'; return }
+    submitting.value = true
+    formError.value = ''
+    try {
+        const payload = {
+            title: form.value.title,
+            description: form.value.description || null,
+            date: form.value.date || null,
+            location: form.value.location || null,
+            capacity: form.value.capacity || null,
+            level: form.value.level,
+            duration_hours: form.value.duration_hours || null,
+            id_category: form.value.id_category || null,
+            price: form.value.price || null,
+            objectives: form.value.objectives || null,
+            prerequisites: form.value.prerequisites || null,
+            syllabus: form.value.syllabus || null,
+        }
+        await api.post('/admin/formations', payload)
+        formModal.value = false
+        await Promise.all([fetchFormations(), fetchStats()])
+    } catch (e) {
+        formError.value = e.response?.data?.error ?? 'Erreur lors de l\'enregistrement.'
+    } finally {
+        submitting.value = false
+    }
+}
+
+async function fetchCategories() {
+    try {
+        const { data } = await api.get('/categories')
+        categories.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch {}
+}
+
+async function downloadSyllabus(f) {
+    try {
+        const { data } = await api.get(`/formations/${f.id}/syllabus-pdf`, { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `syllabus-${f.id}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+    } catch {
+        alert('Syllabus non disponible.')
+    }
+}
+
 function openRejectModal(f) {
     rejectModal.value = f
     rejectReason.value = ''
@@ -454,5 +658,5 @@ async function fetchStats() {
 watch([page, filterStatus, filterLevel], fetchFormations)
 watch(search, () => { page.value = 1; fetchFormations() })
 
-onMounted(() => { fetchFormations(); fetchStats() })
+onMounted(() => { fetchFormations(); fetchStats(); fetchCategories() })
 </script>

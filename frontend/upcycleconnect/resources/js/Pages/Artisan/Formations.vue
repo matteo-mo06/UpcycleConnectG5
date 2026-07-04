@@ -112,7 +112,7 @@
                     <p v-if="selectedFormation.status === 'rejected' && selectedFormation.rejection_reason" class="text-xs text-red-500">
                         Raison : {{ selectedFormation.rejection_reason }}
                     </p>
-                    <p v-if="selectedFormation.description" class="leading-relaxed text-gray-600">{{ selectedFormation.description }}</p>
+                    <p v-if="selectedFormation.description" class="leading-relaxed text-gray-600 whitespace-pre-line break-words">{{ selectedFormation.description }}</p>
                     <div class="grid grid-cols-2 gap-3 text-xs text-gray-500">
                         <div v-if="selectedFormation.date"><span class="font-medium text-gray-700">Date :</span> {{ formatDateTime(selectedFormation.date) }}</div>
                         <div v-if="selectedFormation.location"><span class="font-medium text-gray-700">Lieu :</span> {{ selectedFormation.location }}</div>
@@ -121,6 +121,26 @@
                         <div><span class="font-medium text-gray-700">Inscriptions :</span> {{ selectedFormation.inscription_count ?? 0 }}<span v-if="selectedFormation.capacity"> / {{ selectedFormation.capacity }}</span></div>
                         <div v-if="selectedFormation.category_name"><span class="font-medium text-gray-700">Thématique :</span> {{ selectedFormation.category_name }}</div>
                     </div>
+                    <div v-if="selectedFormation.objectives">
+                        <p class="text-xs text-gray-400 mb-1">Objectifs pédagogiques</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ selectedFormation.objectives }}</p>
+                    </div>
+                    <div v-if="selectedFormation.prerequisites">
+                        <p class="text-xs text-gray-400 mb-1">Prérequis</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ selectedFormation.prerequisites }}</p>
+                    </div>
+                    <div v-if="selectedFormation.syllabus">
+                        <p class="text-xs text-gray-400 mb-1">Syllabus</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ selectedFormation.syllabus }}</p>
+                    </div>
+                    <button
+                        @click="downloadSyllabus(selectedFormation)"
+                        class="flex items-center gap-2 text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Télécharger le syllabus
+                    </button>
 
                     <div class="border-t border-gray-100 pt-4">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Participants</p>
@@ -164,8 +184,8 @@
 
         <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal = false"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ editTarget ? 'Modifier la formation' : 'Créer une formation' }}
                     </h3>
@@ -175,7 +195,7 @@
                         </svg>
                     </button>
                 </div>
-                <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input v-model="form.title" type="text"
@@ -187,6 +207,24 @@
                         <textarea v-model="form.description" rows="3"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                             placeholder="Description de la formation…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Objectifs pédagogiques</label>
+                        <textarea v-model="form.objectives" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Ce que les participants sauront faire à l'issue de la formation…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Prérequis</label>
+                        <textarea v-model="form.prerequisites" rows="3"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Connaissances ou matériel nécessaires avant de participer…"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">Syllabus (programme détaillé)</label>
+                        <textarea v-model="form.syllabus" rows="4"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+                            placeholder="Déroulé détaillé de la formation, étape par étape…"/>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -238,7 +276,7 @@
                     </div>
                     <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         Annuler
                     </button>
@@ -302,7 +340,7 @@ const formModal = ref(false)
 const editTarget = ref(null)
 const submitting = ref(false)
 const formError = ref('')
-const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null })
+const form = ref({ title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null, objectives: '', prerequisites: '', syllabus: '' })
 
 const minDateTime = computed(() => {
     const now = new Date()
@@ -359,7 +397,7 @@ function statusClass(status) {
 
 function openCreate() {
     editTarget.value = null
-    form.value = { title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null }
+    form.value = { title: '', description: '', date: '', location: '', capacity: null, level: 'beginner', duration_hours: null, id_category: '', price: null, objectives: '', prerequisites: '', syllabus: '' }
     formError.value = ''
     formModal.value = true
 }
@@ -377,6 +415,9 @@ function openEditFromDetail(f) {
         duration_hours: f.duration_hours ?? null,
         id_category: f.id_category ?? '',
         price: f.price ?? null,
+        objectives: f.objectives ?? '',
+        prerequisites: f.prerequisites ?? '',
+        syllabus: f.syllabus ?? '',
     }
     formError.value = ''
     formModal.value = true
@@ -398,6 +439,20 @@ async function fetchFormations() {
         total.value = 0
     } finally {
         loading.value = false
+    }
+}
+
+async function downloadSyllabus(f) {
+    try {
+        const { data } = await api.get(`/formations/${f.id}/syllabus-pdf`, { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `syllabus-${f.id}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+    } catch {
+        alert('Syllabus non disponible.')
     }
 }
 
@@ -432,6 +487,9 @@ async function submitForm() {
             duration_hours: form.value.duration_hours || null,
             id_category: form.value.id_category || null,
             price: form.value.price || null,
+            objectives: form.value.objectives || null,
+            prerequisites: form.value.prerequisites || null,
+            syllabus: form.value.syllabus || null,
         }
         if (editTarget.value) {
             await api.patch(`/formations/${editTarget.value.id}`, payload)

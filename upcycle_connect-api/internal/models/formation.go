@@ -17,6 +17,9 @@ type Formation struct {
 	CreatorName          *string `json:"creator_name"`
 	IdFormateur          *string `json:"id_formateur"`
 	FormateurName        *string `json:"formateur_name"`
+	Syllabus             *string `json:"syllabus"`
+	Prerequisites        *string `json:"prerequisites"`
+	Objectives           *string `json:"objectives"`
 	Price            *float64 `json:"price"`
 	InscriptionCount int      `json:"inscription_count"`
 	IsRegistered     bool     `json:"is_registered"`
@@ -24,27 +27,33 @@ type Formation struct {
 }
 
 type CreateFormationRequest struct {
-	Title       string   `json:"title"`
-	Description *string  `json:"description"`
-	Date        *string  `json:"date"`
-	Location    *string  `json:"location"`
-	Capacity    *int     `json:"capacity"`
-	Level       string   `json:"level"`
-	DurationH   *int     `json:"duration_hours"`
-	IdCategory  *string  `json:"id_category"`
-	Price       *float64 `json:"price"`
+	Title         string   `json:"title"`
+	Description   *string  `json:"description"`
+	Date          *string  `json:"date"`
+	Location      *string  `json:"location"`
+	Capacity      *int     `json:"capacity"`
+	Level         string   `json:"level"`
+	DurationH     *int     `json:"duration_hours"`
+	IdCategory    *string  `json:"id_category"`
+	Price         *float64 `json:"price"`
+	Syllabus      *string  `json:"syllabus"`
+	Prerequisites *string  `json:"prerequisites"`
+	Objectives    *string  `json:"objectives"`
 }
 
 type UpdateFormationRequest struct {
-	Title       string   `json:"title"`
-	Description *string  `json:"description"`
-	Date        *string  `json:"date"`
-	Location    *string  `json:"location"`
-	Capacity    *int     `json:"capacity"`
-	Level       string   `json:"level"`
-	DurationH   *int     `json:"duration_hours"`
-	IdCategory  *string  `json:"id_category"`
-	Price       *float64 `json:"price"`
+	Title         string   `json:"title"`
+	Description   *string  `json:"description"`
+	Date          *string  `json:"date"`
+	Location      *string  `json:"location"`
+	Capacity      *int     `json:"capacity"`
+	Level         string   `json:"level"`
+	DurationH     *int     `json:"duration_hours"`
+	IdCategory    *string  `json:"id_category"`
+	Price         *float64 `json:"price"`
+	Syllabus      *string  `json:"syllabus"`
+	Prerequisites *string  `json:"prerequisites"`
+	Objectives    *string  `json:"objectives"`
 }
 
 type RejectFormationRequest struct {

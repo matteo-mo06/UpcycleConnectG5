@@ -162,8 +162,28 @@
                     </div>
                     <div v-if="detailFormation.description">
                         <p class="text-xs text-gray-400 mb-1">Description</p>
-                        <p class="text-sm text-gray-700 leading-relaxed">{{ detailFormation.description }}</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.description }}</p>
                     </div>
+                    <div v-if="detailFormation.objectives">
+                        <p class="text-xs text-gray-400 mb-1">Objectifs pédagogiques</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.objectives }}</p>
+                    </div>
+                    <div v-if="detailFormation.prerequisites">
+                        <p class="text-xs text-gray-400 mb-1">Prérequis</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.prerequisites }}</p>
+                    </div>
+                    <div v-if="detailFormation.syllabus">
+                        <p class="text-xs text-gray-400 mb-1">Syllabus</p>
+                        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words">{{ detailFormation.syllabus }}</p>
+                    </div>
+                    <button
+                        @click="downloadSyllabus(detailFormation)"
+                        class="flex items-center gap-2 text-xs font-medium text-primary hover:text-primary-dark transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Télécharger le syllabus
+                    </button>
                     <div v-if="detailFormation.is_registered" class="flex items-center gap-2 p-3 rounded-xl bg-secondary/10">
                         <svg class="w-4 h-4 text-secondary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -319,6 +339,20 @@ async function toggleRegistration(f) {
         alert(err.response?.data?.error ?? 'Erreur lors de l\'inscription.')
     } finally {
         f.loading = false
+    }
+}
+
+async function downloadSyllabus(f) {
+    try {
+        const { data } = await api.get(`/formations/${f.id}/syllabus-pdf`, { responseType: 'blob' })
+        const url = URL.createObjectURL(data)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `syllabus-${f.id}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+    } catch {
+        alert('Syllabus non disponible.')
     }
 }
 

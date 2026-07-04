@@ -66,6 +66,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       f.syllabus, f.prerequisites, f.objectives,
 		       COUNT(ins.id_user) AS inscription_count,
 		       EXISTS(SELECT 1 FROM user_formation_inscription r WHERE r.id_user = ? AND r.id_formation = f.id_formation) AS is_registered,
 		       f.created_at, f.price
@@ -92,6 +93,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
+			&f.Syllabus, &f.Prerequisites, &f.Objectives,
 			&f.InscriptionCount, &f.IsRegistered,
 			&f.CreatedAt, &f.Price,
 		)
@@ -139,6 +141,7 @@ func GetAllFormations(search, status, level string, limit, offset int) ([]models
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       f.syllabus, f.prerequisites, f.objectives,
 		       COUNT(ins.id_user) AS inscription_count,
 		       f.created_at, f.price
 		FROM formation f
@@ -164,6 +167,7 @@ func GetAllFormations(search, status, level string, limit, offset int) ([]models
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
+			&f.Syllabus, &f.Prerequisites, &f.Objectives,
 			&f.InscriptionCount,
 			&f.CreatedAt, &f.Price,
 		)
@@ -184,6 +188,7 @@ func GetFormationById(id string) (models.Formation, error) {
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       f.syllabus, f.prerequisites, f.objectives,
 		       f.created_at, f.price
 		FROM formation f
 		LEFT JOIN category c ON c.id_category = f.id_category
@@ -196,21 +201,26 @@ func GetFormationById(id string) (models.Formation, error) {
 		&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 		&f.IdCreator, &f.CreatorName,
 		&f.IdFormateur, &f.FormateurName,
+		&f.Syllabus, &f.Prerequisites, &f.Objectives,
 		&f.CreatedAt, &f.Price,
 	)
 	return f, err
 }
 
 func CreateFormation(f models.Formation) error {
+	status := f.Status
+	if status == "" {
+		status = "pending"
+	}
 	_, err := config.Conn.Exec(`
 		INSERT INTO formation (
 			id_formation, title_formation, description_formation, date_formation,
 			location_formation, capacity, level, duration_hours, status,
-			id_category, id_creator, id_formateur, price, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW())`,
+			id_category, id_creator, id_formateur, price, syllabus, prerequisites, objectives, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
 		f.IdFormation, f.TitleFormation, f.DescriptionFormation, f.DateFormation,
-		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.IdCreator, f.IdFormateur, f.Price,
+		f.LocationFormation, f.Capacity, f.Level, f.DurationHours, status,
+		f.IdCategory, f.IdCreator, f.IdFormateur, f.Price, f.Syllabus, f.Prerequisites, f.Objectives,
 	)
 	return err
 }
@@ -227,12 +237,15 @@ func UpdateFormation(f models.Formation) error {
 			duration_hours = ?,
 			id_category = ?,
 			price = ?,
+			syllabus = ?,
+			prerequisites = ?,
+			objectives = ?,
 			status = 'pending',
 			rejection_reason = NULL
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
 		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.Price, f.IdFormation,
+		f.IdCategory, f.Price, f.Syllabus, f.Prerequisites, f.Objectives, f.IdFormation,
 	)
 	return err
 }
@@ -249,11 +262,14 @@ func UpdateFormationAdmin(f models.Formation) error {
 			duration_hours = ?,
 			id_category = ?,
 			price = ?,
+			syllabus = ?,
+			prerequisites = ?,
+			objectives = ?,
 			status = ?
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
 		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
-		f.IdCategory, f.Price, f.Status, f.IdFormation,
+		f.IdCategory, f.Price, f.Syllabus, f.Prerequisites, f.Objectives, f.Status, f.IdFormation,
 	)
 	return err
 }
@@ -421,6 +437,7 @@ func GetMyCreatedFormationsPaginated(creatorID, search, status, level, idCategor
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
 		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       f.syllabus, f.prerequisites, f.objectives,
 		       COUNT(ins.id_user) AS inscription_count,
 		       f.created_at, f.price
 		FROM formation f
@@ -446,6 +463,7 @@ func GetMyCreatedFormationsPaginated(creatorID, search, status, level, idCategor
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
+			&f.Syllabus, &f.Prerequisites, &f.Objectives,
 			&f.InscriptionCount,
 			&f.CreatedAt, &f.Price,
 		)

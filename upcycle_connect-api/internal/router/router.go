@@ -187,6 +187,7 @@ func InitRoutes() {
 	http.Handle("GET /formations", auth(handlers.GetFormations))
 	http.Handle("GET /formations/pending", perm("manage_formations", handlers.GetPendingFormations))
 	http.Handle("GET /formations/{id}", auth(handlers.GetFormationById))
+	http.Handle("GET /formations/{id}/syllabus-pdf", auth(handlers.GetFormationSyllabusPDF))
 	http.Handle("POST /formations", perm("create_formation", handlers.CreateFormation))
 	http.Handle("PATCH /formations/{id}", auth(handlers.UpdateMyFormation))
 	http.Handle("DELETE /user/formation/{id}", auth(handlers.DeleteMyFormation))
@@ -198,6 +199,7 @@ func InitRoutes() {
 	http.Handle("GET /user/my-formations", perm("create_formation", handlers.GetMyCreatedFormations))
 
 	http.Handle("GET /admin/formations", admin(handlers.GetAllFormationsAdmin))
+	http.Handle("POST /admin/formations", admin(handlers.CreateFormationAdmin))
 	http.Handle("GET /admin/formation/{id}", admin(handlers.GetFormationByIdAdmin))
 	http.Handle("PUT /admin/formation/{id}", admin(handlers.UpdateFormationAdmin))
 	http.Handle("DELETE /admin/formation/{id}", admin(handlers.DeleteFormationAdmin))

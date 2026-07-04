@@ -1,0 +1,4 @@
+ALTER TABLE `formation`
+    ADD COLUMN `syllabus` TEXT NULL DEFAULT NULL,
+    ADD COLUMN `prerequisites` TEXT NULL DEFAULT NULL,
+    ADD COLUMN `objectives` TEXT NULL DEFAULT NULL;
