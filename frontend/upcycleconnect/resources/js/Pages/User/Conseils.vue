@@ -193,7 +193,6 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { usePolling } from '@/composables/usePolling.js'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import api from '@/api.js'
 
@@ -247,5 +246,4 @@ onMounted(() => {
     })
 })
 
-usePolling(fetchConseils, 2000, () => !selected.value)
 </script>

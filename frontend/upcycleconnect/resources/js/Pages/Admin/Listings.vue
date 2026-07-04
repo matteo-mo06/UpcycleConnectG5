@@ -336,11 +336,20 @@
                                 <p class="text-red-500">{{ detailListing.deletedAt }}</p>
                             </template>
                         </div>
+                        <div v-if="detailListing.featured && detailListing.featuredUntil">
+                            <p class="text-xs text-gray-400 mb-0.5">En avant jusqu'au</p>
+                            <p class="text-amber-600 font-medium">{{ detailListing.featuredUntil.slice(0, 10) }}</p>
+                        </div>
                     </div>
 
                     <div>
                         <p class="text-xs text-gray-400 mb-1">Description</p>
                         <p class="text-sm text-gray-700 leading-relaxed">{{ detailListing.description }}</p>
+                    </div>
+
+                    <div v-if="detailListing.status === 'Refusée' && detailListing.rejectionReason" class="p-3 rounded-xl bg-red-50 border border-red-100">
+                        <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
+                        <p class="text-sm text-red-700">{{ detailListing.rejectionReason }}</p>
                     </div>
 
                     <div v-if="detailListing.tags && detailListing.tags.length">
@@ -660,11 +669,13 @@ async function fetchListings() {
             type: a.type === 'vente' ? 'Vente' : 'Don',
             category: catMap[a.id_category] ?? '-',
             status: a.state ?? 'Active',
-            featured: false,
+            featured: a.is_featured === 1,
+            featuredUntil: a.featured_until ?? null,
             date: a.availability_date?.slice(0, 10) ?? '-',
             createdAt: a.created_at?.slice(0, 10) ?? '-',
             deletedAt: a.deleted_at ? a.deleted_at.slice(0, 16).replace('T', ' ') : null,
             description: a.description ?? '-',
+            rejectionReason: a.rejection_reason ?? null,
             tags: [],
             idCategory: a.id_category ?? '',
             address: a.address ?? '',
@@ -701,13 +712,15 @@ async function fetchPendingListings() {
             rawCreatedAt: a.created_at ?? '',
             date: a.availability_date?.slice(0, 10) ?? '-',
             description: a.description ?? '-',
+            rejectionReason: a.rejection_reason ?? null,
             idCategory: a.id_category ?? '',
             address: a.address ?? '',
             city: a.city ?? '',
             postal: a.postal ?? '',
             price: a.price ?? 0,
             condition: a.condition ?? '',
-            featured: false,
+            featured: a.is_featured === 1,
+            featuredUntil: a.featured_until ?? null,
             tags: [],
         })).sort((a, b) => b.rawCreatedAt.localeCompare(a.rawCreatedAt))
     } catch {}
@@ -737,8 +750,13 @@ function confirmDelete(listing) {
     toDelete.value = listing
 }
 
-function toggleFeatured(listing) {
-    listings.value.find(l => l.id === listing.id).featured ^= true
+async function toggleFeatured(listing) {
+    try {
+        await api.put(`/admin/announcement/${listing.id}/feature`, { active: !listing.featured })
+        await fetchListings()
+    } catch {
+        alert('Erreur lors de la mise à jour de la mise en avant.')
+    }
 }
 
 async function deleteListing() {

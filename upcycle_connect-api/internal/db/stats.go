@@ -18,7 +18,7 @@ func GetStats() (models.Stats, error) {
         return stats, err
     }
 
-	err = config.Conn.QueryRow("SELECT COUNT(id_announcement) FROM ANNOUNCEMENT").Scan(&stats.AnnouncementCount)
+	err = config.Conn.QueryRow("SELECT COUNT(id_announcement) FROM ANNOUNCEMENT WHERE state_annoucement = 'Active' AND deleted_at IS NULL").Scan(&stats.AnnouncementCount)
 	if err != nil {
 		return stats, err
 	}

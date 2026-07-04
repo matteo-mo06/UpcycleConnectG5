@@ -10,7 +10,6 @@ import Forum from './Pages/User/Forum.vue'
 import Formations from './Pages/User/Formations.vue'
 import Conseils from './Pages/User/Conseils.vue'
 import Parametres from './Pages/User/Parametres.vue'
-import Score from './Pages/User/Score.vue'
 import Calendrier from './Pages/User/Calendrier.vue'
 import Dashboard from './Pages/Admin/Dashboard.vue'
 import Users from './Pages/Admin/Users.vue'
@@ -25,10 +24,8 @@ import AdminProjets from './Pages/Admin/Projets.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import Revenus from './Pages/Admin/Revenus.vue'
+import AdminPublicite from './Pages/Admin/Publicite.vue'
 import AdminSubscriptions from './Pages/Admin/Subscriptions.vue'
-import Paiement from './Pages/User/Paiement.vue'
-import PaiementConfirmation from './Pages/User/PaiementConfirmation.vue'
-import PaiementFormation from './Pages/User/PaiementFormation.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 import Error from './Pages/Error.vue'
@@ -43,7 +40,8 @@ const ArtisanFormations = () => import('./Pages/Artisan/Formations.vue')
 const ArtisanProjets    = () => import('./Pages/Artisan/Projets.vue')
 const ArtisanCalendrier = () => import('./Pages/Artisan/Calendrier.vue')
 const ArtisanScore      = () => import('./Pages/Artisan/Score.vue')
-const ArtisanAbonnement = () => import('./Pages/Artisan/Abonnement.vue')
+const ArtisanAbonnement  = () => import('./Pages/Artisan/Abonnement.vue')
+const ArtisanPublicites  = () => import('./Pages/Artisan/Publicites.vue')
 
 const SalarieDashboard  = () => import('./Pages/Salarie/Dashboard.vue')
 const SalarieFormations = () => import('./Pages/Salarie/Formations.vue')
@@ -58,6 +56,7 @@ const router = createRouter({
     routes: [
         { path: '/', redirect: '/accueil' },
         { path: '/login', component: Login },
+        { path: '/register', redirect: '/login' },
         {
             path: '/abonnement',
             redirect: to => {
@@ -80,11 +79,7 @@ const router = createRouter({
         { path: '/formations',  component: Formations,  meta: { requiresAuth: true } },
         { path: '/conseils',    component: Conseils,    meta: { requiresAuth: true } },
         { path: '/parametres',  component: Parametres,  meta: { requiresAuth: true } },
-        { path: '/score',       component: Score,       meta: { requiresAuth: true } },
         { path: '/calendrier',       component: Calendrier,            meta: { requiresAuth: true } },
-        { path: '/paiement/:id',             component: Paiement,           meta: { requiresAuth: true } },
-        { path: '/paiement-formation/:id',   component: PaiementFormation,  meta: { requiresAuth: true } },
-        { path: '/paiement-confirmation',    component: PaiementConfirmation, meta: { requiresAuth: true } },
 
         { path: '/admin/dashboard', component: Dashboard, meta: { requiresAdmin: true } },
         { path: '/admin/users', component: Users, meta: { requiresAdmin: true } },
@@ -100,6 +95,7 @@ const router = createRouter({
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
         { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
         { path: '/admin/abonnements', component: AdminSubscriptions, meta: { requiresAdmin: true } },
+        { path: '/admin/publicite', component: AdminPublicite, meta: { requiresAdmin: true } },
 
         { path: '/artisan/dashboard',  component: ArtisanDashboard,  meta: { requiresArtisan: true } },
         { path: '/artisan/annonces',   component: ArtisanAnnonces,   meta: { requiresArtisan: true } },
@@ -109,7 +105,8 @@ const router = createRouter({
         { path: '/artisan/projets',    component: ArtisanProjets,    meta: { requiresArtisan: true } },
         { path: '/artisan/calendrier', component: ArtisanCalendrier, meta: { requiresArtisan: true } },
         { path: '/artisan/score',      component: ArtisanScore,      meta: { requiresArtisan: true } },
-        { path: '/artisan/abonnement', component: ArtisanAbonnement, meta: { requiresArtisan: true } },
+        { path: '/artisan/abonnement',  component: ArtisanAbonnement,  meta: { requiresArtisan: true } },
+        { path: '/artisan/publicites',  component: ArtisanPublicites,  meta: { requiresArtisan: true } },
 
         { path: '/salarie/dashboard',  component: SalarieDashboard,  meta: { requiresSalarie: true } },
         { path: '/salarie/formations', component: SalarieFormations, meta: { requiresSalarie: true } },

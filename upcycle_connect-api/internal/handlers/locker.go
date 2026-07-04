@@ -30,8 +30,17 @@ func GetLockers(w http.ResponseWriter, r *http.Request) {
 
 func CreateLocker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	locker, err := db.CreateLocker()
+	var body struct {
+		Number int `json:"number"`
+	}
+	json.NewDecoder(r.Body).Decode(&body)
+	locker, err := db.CreateLocker(body.Number)
 	if err != nil {
+		if err.Error() == "locker_number_exists" {
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "ce numéro de casier existe déjà"})
+			return
+		}
 		fmt.Println("CreateLocker error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create locker"})

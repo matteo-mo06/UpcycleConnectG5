@@ -8,7 +8,8 @@ import (
 
 func GetSubscriptionPlans() ([]models.SubscriptionPlan, error) {
 	rows, err := config.Conn.Query(`
-		SELECT id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id
+		SELECT id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id,
+		       max_announcements_per_month, max_projects_per_month, max_features_per_month
 		FROM subscription_plans ORDER BY price_cents ASC`)
 	if err != nil {
 		return nil, err
@@ -17,7 +18,8 @@ func GetSubscriptionPlans() ([]models.SubscriptionPlan, error) {
 	var list []models.SubscriptionPlan
 	for rows.Next() {
 		var p models.SubscriptionPlan
-		if err := rows.Scan(&p.IdPlan, &p.Name, &p.PriceCents, &p.IntervalUnit, &p.IntervalCount, &p.IsActive, &p.StripePriceID, &p.StripeProductID); err != nil {
+		if err := rows.Scan(&p.IdPlan, &p.Name, &p.PriceCents, &p.IntervalUnit, &p.IntervalCount, &p.IsActive, &p.StripePriceID, &p.StripeProductID,
+			&p.MaxAnnouncementsPerMonth, &p.MaxProjectsPerMonth, &p.MaxFeaturesPerMonth); err != nil {
 			return nil, err
 		}
 		list = append(list, p)
@@ -28,17 +30,21 @@ func GetSubscriptionPlans() ([]models.SubscriptionPlan, error) {
 func GetSubscriptionPlanByID(id string) (models.SubscriptionPlan, error) {
 	var p models.SubscriptionPlan
 	err := config.Conn.QueryRow(`
-		SELECT id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id
+		SELECT id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id,
+		       max_announcements_per_month, max_projects_per_month, max_features_per_month
 		FROM subscription_plans WHERE id_plan = ?`, id).
-		Scan(&p.IdPlan, &p.Name, &p.PriceCents, &p.IntervalUnit, &p.IntervalCount, &p.IsActive, &p.StripePriceID, &p.StripeProductID)
+		Scan(&p.IdPlan, &p.Name, &p.PriceCents, &p.IntervalUnit, &p.IntervalCount, &p.IsActive, &p.StripePriceID, &p.StripeProductID,
+			&p.MaxAnnouncementsPerMonth, &p.MaxProjectsPerMonth, &p.MaxFeaturesPerMonth)
 	return p, err
 }
 
 func UpdateSubscriptionPlan(p models.SubscriptionPlan) error {
 	_, err := config.Conn.Exec(`
-		UPDATE subscription_plans SET name = ?, price_cents = ?, interval_unit = ?, interval_count = ?, is_active = ?, stripe_price_id = ?, stripe_product_id = ?
+		UPDATE subscription_plans SET name = ?, price_cents = ?, interval_unit = ?, interval_count = ?, is_active = ?, stripe_price_id = ?, stripe_product_id = ?,
+		max_announcements_per_month = ?, max_projects_per_month = ?, max_features_per_month = ?
 		WHERE id_plan = ?`,
-		p.Name, p.PriceCents, p.IntervalUnit, p.IntervalCount, p.IsActive, p.StripePriceID, p.StripeProductID, p.IdPlan)
+		p.Name, p.PriceCents, p.IntervalUnit, p.IntervalCount, p.IsActive, p.StripePriceID, p.StripeProductID,
+		p.MaxAnnouncementsPerMonth, p.MaxProjectsPerMonth, p.MaxFeaturesPerMonth, p.IdPlan)
 	return err
 }
 
@@ -48,7 +54,8 @@ func GetUserActiveSubscription(userID string) (*models.Subscription, error) {
 	err := config.Conn.QueryRow(`
 		SELECT s.id_subscription, s.start_timestamp, s.end_timestamp, s.cancelled, s.cancelled_at,
 		       s.stripe_subscription_id, s.stripe_customer_id,
-		       sp.id_plan, sp.name, sp.price_cents, sp.interval_unit, sp.interval_count, sp.is_active, sp.stripe_price_id, sp.stripe_product_id
+		       sp.id_plan, sp.name, sp.price_cents, sp.interval_unit, sp.interval_count, sp.is_active, sp.stripe_price_id, sp.stripe_product_id,
+		       sp.max_announcements_per_month, sp.max_projects_per_month, sp.max_features_per_month
 		FROM user_subscription us
 		JOIN subscription s ON s.id_subscription = us.id_subscription
 		JOIN sub_sub_plan ssp ON ssp.id_subscription = s.id_subscription
@@ -60,7 +67,8 @@ func GetUserActiveSubscription(userID string) (*models.Subscription, error) {
 		LIMIT 1`, userID).
 		Scan(&sub.IdSubscription, &sub.StartTimestamp, &sub.EndTimestamp, &sub.Cancelled, &sub.CancelledAt,
 			&sub.StripeSubscriptionID, &sub.StripeCustomerID,
-			&plan.IdPlan, &plan.Name, &plan.PriceCents, &plan.IntervalUnit, &plan.IntervalCount, &plan.IsActive, &plan.StripePriceID, &plan.StripeProductID)
+			&plan.IdPlan, &plan.Name, &plan.PriceCents, &plan.IntervalUnit, &plan.IntervalCount, &plan.IsActive, &plan.StripePriceID, &plan.StripeProductID,
+			&plan.MaxAnnouncementsPerMonth, &plan.MaxProjectsPerMonth, &plan.MaxFeaturesPerMonth)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -69,6 +77,17 @@ func GetUserActiveSubscription(userID string) (*models.Subscription, error) {
 	}
 	sub.Plan = &plan
 	return &sub, nil
+}
+
+func GetUserIDByStripeCustomerID(customerID string) string {
+	var userID sql.NullString
+	config.Conn.QueryRow(`
+		SELECT us.id_user
+		FROM user_subscription us
+		JOIN subscription s ON s.id_subscription = us.id_subscription
+		WHERE s.stripe_customer_id = ?
+		ORDER BY s.start_timestamp DESC LIMIT 1`, customerID).Scan(&userID)
+	return userID.String
 }
 
 func GetUserStripeCustomerID(userID string) string {
@@ -117,37 +136,102 @@ func UpdateSubscriptionByStripeID(stripeSubID string, endTimestamp *string, canc
 	return err
 }
 
-func GetAllSubscriptions() ([]models.UserSubscriptionSummary, error) {
+func GetAllSubscriptionsPaginated(page, limit int) ([]models.UserSubscriptionSummary, int, error) {
+	var total int
+	if err := config.Conn.QueryRow(`
+		SELECT COUNT(*)
+		FROM user_subscription us
+		JOIN subscription s ON s.id_subscription = us.id_subscription`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * limit
 	rows, err := config.Conn.Query(`
 		SELECT u.id_user, u.first_name, u.last_name, u.email,
-		       sp.name, s.start_timestamp, s.end_timestamp, s.cancelled
+		       sp.name, sp.price_cents, s.start_timestamp, s.end_timestamp, s.cancelled
 		FROM user_subscription us
 		JOIN user u ON u.id_user = us.id_user
 		JOIN subscription s ON s.id_subscription = us.id_subscription
 		JOIN sub_sub_plan ssp ON ssp.id_subscription = s.id_subscription
 		JOIN subscription_plans sp ON sp.id_plan = ssp.id_plan
-		ORDER BY s.start_timestamp DESC`)
+		ORDER BY s.start_timestamp DESC
+		LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var list []models.UserSubscriptionSummary
 	for rows.Next() {
 		var s models.UserSubscriptionSummary
-		if err := rows.Scan(&s.UserID, &s.FirstName, &s.LastName, &s.Email, &s.PlanName, &s.StartDate, &s.EndDate, &s.Cancelled); err != nil {
-			return nil, err
+		if err := rows.Scan(&s.UserID, &s.FirstName, &s.LastName, &s.Email, &s.PlanName, &s.PriceCents, &s.StartDate, &s.EndDate, &s.Cancelled); err != nil {
+			return nil, 0, err
 		}
 		list = append(list, s)
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func CreateSubscriptionPlan(p models.SubscriptionPlan) error {
 	_, err := config.Conn.Exec(`
-		INSERT INTO subscription_plans (id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.IdPlan, p.Name, p.PriceCents, p.IntervalUnit, p.IntervalCount, p.IsActive, p.StripePriceID, p.StripeProductID)
+		INSERT INTO subscription_plans (id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id,
+		max_announcements_per_month, max_projects_per_month, max_features_per_month)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.IdPlan, p.Name, p.PriceCents, p.IntervalUnit, p.IntervalCount, p.IsActive, p.StripePriceID, p.StripeProductID,
+		p.MaxAnnouncementsPerMonth, p.MaxProjectsPerMonth, p.MaxFeaturesPerMonth)
 	return err
+}
+
+func GetSubscriptionPlanByStripePriceID(priceID string) (models.SubscriptionPlan, error) {
+	var p models.SubscriptionPlan
+	err := config.Conn.QueryRow(`
+		SELECT id_plan, name, price_cents, interval_unit, interval_count, is_active, stripe_price_id, stripe_product_id,
+		       max_announcements_per_month, max_projects_per_month, max_features_per_month
+		FROM subscription_plans WHERE stripe_price_id = ?`, priceID).
+		Scan(&p.IdPlan, &p.Name, &p.PriceCents, &p.IntervalUnit, &p.IntervalCount, &p.IsActive, &p.StripePriceID, &p.StripeProductID,
+			&p.MaxAnnouncementsPerMonth, &p.MaxProjectsPerMonth, &p.MaxFeaturesPerMonth)
+	return p, err
+}
+
+func GetSubscriptionIDByStripeID(stripeSubID string) (string, error) {
+	var id string
+	err := config.Conn.QueryRow(`SELECT id_subscription FROM subscription WHERE stripe_subscription_id = ?`, stripeSubID).Scan(&id)
+	return id, err
+}
+
+func SwapSubscriptionPlan(subID, newPlanID string) error {
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`DELETE FROM sub_sub_plan WHERE id_subscription = ?`, subID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`INSERT INTO sub_sub_plan (id_subscription, id_plan) VALUES (?, ?)`, subID, newPlanID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func GetUserAnnouncementCountThisMonth(userID string) (int, error) {
+	var count int
+	err := config.Conn.QueryRow(`
+		SELECT COUNT(*)
+		FROM ANNOUNCEMENT a
+		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		WHERE ua.id_user = ?
+		AND YEAR(a.created_at) = YEAR(NOW()) AND MONTH(a.created_at) = MONTH(NOW())`, userID).Scan(&count)
+	return count, err
+}
+
+func CountUserProjectsThisMonth(userID string) (int, error) {
+	var count int
+	err := config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM PROJECT
+		WHERE id_creator = ? AND status != 'Supprimé'
+		AND YEAR(created_at) = YEAR(NOW()) AND MONTH(created_at) = MONTH(NOW())`, userID).Scan(&count)
+	return count, err
 }
 
 func SubscriptionExistsByStripeID(stripeSubID string) bool {

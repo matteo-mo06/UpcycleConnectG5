@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -369,8 +371,15 @@ func GetMyCreatedEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	page, limit, offset := parsePage(r, 15)
 
-	events, err := db.GetMyCreatedEvents(userID)
+	events, total, err := db.GetMyCreatedEventsPaginated(
+		userID,
+		r.URL.Query().Get("search"),
+		r.URL.Query().Get("status"),
+		limit,
+		offset,
+	)
 	if err != nil {
 		fmt.Println("GetMyCreatedEvents error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -382,7 +391,7 @@ func GetMyCreatedEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(events)
+	_ = json.NewEncoder(w).Encode(pageResponse(events, total, page, limit))
 }
 
 func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
@@ -430,6 +439,44 @@ func RegisterForEvent(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "registered successfully"})
+}
+
+func GetEventParticipants(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	event, err := db.GetEventById(id)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "événement introuvable"})
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+
+	isCreator := event.IdCreator != nil && *event.IdCreator == userID
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
+	if !isCreator && !isAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	participants, err := db.GetEventParticipants(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if participants == nil {
+		participants = []models.Participant{}
+	}
+	_ = json.NewEncoder(w).Encode(participants)
 }
 
 func UnregisterFromEvent(w http.ResponseWriter, r *http.Request) {

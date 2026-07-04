@@ -48,6 +48,11 @@
                             <span v-else-if="a.state === 'Active'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
                             <span v-else-if="a.state === 'Refusée'" class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">Refusée</span>
                             <span v-else-if="a.state === 'Vendu'" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">{{ a.type === 'vente' ? 'Vendu' : 'Donné' }}</span>
+                            <span v-if="a.is_featured === 1" class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-600 rounded-full text-xs font-medium">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                En avant
+                            </span>
+                            <span v-else-if="a.featured_requested_at && a.is_featured !== 1" class="px-2 py-0.5 bg-amber-50 text-amber-500 rounded-full text-xs font-medium">File d'attente</span>
                             <button
                                 v-if="a.state === 'Vendu' && a.request === 0 && !a.locker_number"
                                 @click.stop="requestDeposit(a)"
@@ -123,6 +128,51 @@
                         <p class="text-xs font-medium text-red-600 mb-0.5">Motif de refus</p>
                         <p class="text-sm text-red-700">{{ selected.rejection_reason }}</p>
                     </div>
+                </div>
+
+                <div v-if="selected.state === 'Active' && isPremium" class="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                    <div v-if="selected.is_featured === 1" class="flex items-center justify-between">
+                        <span class="text-xs text-amber-600">
+                            En avant jusqu'au {{ selected.featured_until ? selected.featured_until.slice(0, 10) : '—' }}
+                        </span>
+                        <button
+                            @click="cancelFeature"
+                            :disabled="featureLoading"
+                            class="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+                        >Retirer</button>
+                    </div>
+                    <div v-else-if="selected.featured_requested_at" class="flex items-center justify-between gap-3">
+                        <span class="text-xs text-amber-600">
+                            En file d'attente{{ featureResult?.estimated_slot ? ' — slot estimé le ' + featureResult.estimated_slot.slice(0, 10) : '' }}
+                        </span>
+                        <div class="flex gap-2">
+                            <button
+                                @click="confirmFeature"
+                                :disabled="featureLoading"
+                                class="px-3 py-1.5 text-xs font-medium bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors disabled:opacity-60"
+                            >{{ featureLoading ? '…' : 'Confirmer' }}</button>
+                            <button
+                                @click="cancelFeature"
+                                :disabled="featureLoading"
+                                class="px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+                            >Annuler</button>
+                        </div>
+                    </div>
+                    <div v-else class="flex items-center justify-between gap-3">
+                        <span class="text-xs text-gray-400">Mise en avant · 7 jours · 1/mois</span>
+                        <button
+                            @click="requestFeature"
+                            :disabled="featureLoading"
+                            class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-amber-300 text-amber-600 rounded-lg hover:bg-amber-50 transition-colors disabled:opacity-60"
+                        >
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            {{ featureLoading ? '…' : 'Mettre en avant' }}
+                        </button>
+                    </div>
+                    <p v-if="featureResult?.error" class="text-xs text-red-600 mt-2">{{ featureResult.error }}</p>
+                    <p v-if="featureResult?.status === 'active'" class="text-xs text-green-700 mt-2">Annonce mise en avant jusqu'au {{ featureResult.featured_until?.slice(0, 10) }}.</p>
                 </div>
 
                 <div v-if="canEdit(selected) || selected.state === 'Active'" class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
@@ -259,6 +309,7 @@ import { formatDate, conditionLabel } from '@/utils.js'
 const announcements = ref([])
 const categories = ref([])
 const loading = ref(true)
+const isPremium = ref(false)
 const route = useRoute()
 const router = useRouter()
 const showCreate = ref(false)
@@ -267,6 +318,8 @@ const selectedPhotos = ref([])
 const photoIndex = ref(0)
 const toDelete = ref(null)
 const deleting = ref(false)
+const featureLoading = ref(false)
+const featureResult = ref(null)
 const editModal = ref(false)
 const editSubmitting = ref(false)
 const editError = ref('')
@@ -297,6 +350,7 @@ let pollInterval = null
 async function openDetail(a) {
     selected.value = a
     photoIndex.value = 0
+    featureResult.value = null
     try {
         const { data } = await api.get(`/announcements/${a.id}/documents`)
         selectedPhotos.value = data.map(d => d.link).filter(Boolean)
@@ -390,8 +444,65 @@ async function fetchCategories() {
     } catch {}
 }
 
+async function requestFeature() {
+    if (!selected.value) return
+    featureLoading.value = true
+    featureResult.value = null
+    try {
+        const { data } = await api.post(`/announcements/${selected.value.id}/feature`)
+        featureResult.value = data
+        await fetchAnnouncements()
+        const refreshed = announcements.value.find(a => a.id === selected.value.id)
+        if (refreshed) selected.value = refreshed
+    } catch (e) {
+        featureResult.value = { error: e.response?.data?.error ?? 'Erreur serveur' }
+    } finally {
+        featureLoading.value = false
+    }
+}
+
+async function confirmFeature() {
+    if (!selected.value) return
+    featureLoading.value = true
+    featureResult.value = null
+    try {
+        const { data } = await api.post(`/announcements/${selected.value.id}/feature/confirm`)
+        featureResult.value = data
+        await fetchAnnouncements()
+        const refreshed = announcements.value.find(a => a.id === selected.value.id)
+        if (refreshed) selected.value = refreshed
+    } catch (e) {
+        featureResult.value = e.response?.data ?? { error: 'Erreur serveur' }
+    } finally {
+        featureLoading.value = false
+    }
+}
+
+async function cancelFeature() {
+    if (!selected.value) return
+    featureLoading.value = true
+    featureResult.value = null
+    try {
+        await api.delete(`/announcements/${selected.value.id}/feature`)
+        await fetchAnnouncements()
+        const refreshed = announcements.value.find(a => a.id === selected.value.id)
+        if (refreshed) selected.value = refreshed
+    } catch {
+        featureResult.value = { error: 'Erreur lors de l\'annulation.' }
+    } finally {
+        featureLoading.value = false
+    }
+}
+
+async function fetchLimits() {
+    try {
+        const { data } = await api.get('/user/limits')
+        isPremium.value = data.is_premium === true
+    } catch {}
+}
+
 onMounted(() => {
-    Promise.all([fetchAnnouncements(), fetchCategories()])
+    Promise.all([fetchAnnouncements(), fetchCategories(), fetchLimits()])
     if (route.query.publish === '1') {
         showCreate.value = true
         router.replace({ query: { ...route.query, publish: undefined } })

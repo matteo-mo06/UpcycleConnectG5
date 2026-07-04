@@ -75,16 +75,6 @@ func CreateDepositRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := db.GetAvailableLocker(); errors.Is(err, sql.ErrNoRows) {
-		w.WriteHeader(http.StatusConflict)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "Aucun casier disponible pour le moment. Veuillez réessayer ultérieurement."})
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
-		return
-	}
-
 	if err := db.SetDepositRequest(announcementID, 1); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création de la demande"})

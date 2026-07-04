@@ -7,6 +7,31 @@ import (
 	"upcycle_connect-api/internal/models"
 )
 
+func GetEventParticipants(eventID string) ([]models.Participant, error) {
+	rows, err := config.Conn.Query(`
+		SELECT u.id_user, u.first_name, u.last_name, u.avatar_url
+		FROM USER u
+		JOIN USER_EVENT_INSCRIPTION ei ON ei.id_user = u.id_user
+		WHERE ei.id_event = ?`, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.Participant
+	for rows.Next() {
+		var p models.Participant
+		var avatarUrl sql.NullString
+		if err := rows.Scan(&p.Id, &p.FirstName, &p.LastName, &avatarUrl); err != nil {
+			return nil, err
+		}
+		if avatarUrl.Valid {
+			p.AvatarUrl = &avatarUrl.String
+		}
+		list = append(list, p)
+	}
+	return list, nil
+}
+
 func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int, error) {
 	where := `WHERE event.deleted_at IS NULL`
 	var args []any
@@ -247,6 +272,69 @@ func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 		list = append(list, e)
 	}
 	return list, nil
+}
+
+func GetMyCreatedEventsPaginated(userID, search, status string, limit, offset int) ([]models.Event, int, error) {
+	where := `WHERE event.id_creator = ? AND event.deleted_at IS NULL`
+	args := []any{userID}
+
+	if search != "" {
+		where += " AND event.title_event LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	if status != "" {
+		where += " AND event.status = ?"
+		args = append(args, status)
+	}
+
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	var total int
+	if err := config.Conn.QueryRow("SELECT COUNT(DISTINCT event.id_event) FROM EVENT event "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := config.Conn.Query(`
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		       event.capacity, event.price_cents, event.id_creator,
+		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
+		       COUNT(inscription.id_user) AS inscription_count,
+		       event.status, event.rejection_reason
+		FROM EVENT event
+		LEFT JOIN USER user ON user.id_user = event.id_creator
+		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
+		`+where+`
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
+		ORDER BY event.date_event DESC
+		LIMIT ? OFFSET ?`, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var list []models.Event
+	for rows.Next() {
+		var e models.Event
+		var rejReason sql.NullString
+		err := rows.Scan(
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
+			&e.Status, &rejReason,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		if rejReason.Valid && rejReason.String != "" {
+			e.RejectionReason = &rejReason.String
+		}
+		list = append(list, e)
+	}
+	return list, total, nil
 }
 
 func GetUserRegisteredEvents(userID string) ([]models.Event, error) {

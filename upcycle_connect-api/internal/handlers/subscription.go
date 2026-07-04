@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v85"
 
 	"upcycle_connect-api/internal/config"
@@ -145,6 +147,144 @@ func GetSubscriptionPortal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"url": session.URL})
 }
 
+func ChangeSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	var body struct {
+		PlanID string `json:"plan_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.PlanID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "plan_id requis"})
+		return
+	}
+
+	sub, err := db.GetUserActiveSubscription(userID)
+	if err != nil || sub == nil || sub.StripeSubscriptionID == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucun abonnement actif"})
+		return
+	}
+
+	if sub.Plan != nil && sub.Plan.IdPlan == body.PlanID {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous êtes déjà abonné à ce plan"})
+		return
+	}
+
+	newPlan, err := db.GetSubscriptionPlanByID(body.PlanID)
+	if err != nil || !newPlan.IsActive || newPlan.StripePriceID == nil || *newPlan.StripePriceID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "plan introuvable ou indisponible"})
+		return
+	}
+
+	if sub.StripeCustomerID == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "aucun compte de facturation"})
+		return
+	}
+
+	client := stripe.NewClient(config.StripeSecretKey())
+
+	stripeSub, err := client.V1Subscriptions.Retrieve(context.Background(), *sub.StripeSubscriptionID, nil)
+	if err != nil || stripeSub.Items == nil || len(stripeSub.Items.Data) == 0 {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la récupération de l'abonnement Stripe"})
+		return
+	}
+	itemID := stripeSub.Items.Data[0].ID
+
+	configID, err := syncPortalSubscriptionUpdateFeature(client)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la préparation du portail Stripe"})
+		return
+	}
+
+	session, err := client.V1BillingPortalSessions.Create(context.Background(), &stripe.BillingPortalSessionCreateParams{
+		Customer:      stripe.String(*sub.StripeCustomerID),
+		Configuration: stripe.String(configID),
+		ReturnURL:     stripe.String(config.FrontendURL() + "/abonnement?success=1"),
+		FlowData: &stripe.BillingPortalSessionCreateFlowDataParams{
+			Type: stripe.String("subscription_update_confirm"),
+			SubscriptionUpdateConfirm: &stripe.BillingPortalSessionCreateFlowDataSubscriptionUpdateConfirmParams{
+				Subscription: stripe.String(*sub.StripeSubscriptionID),
+				Items: []*stripe.BillingPortalSessionCreateFlowDataSubscriptionUpdateConfirmItemParams{
+					{ID: stripe.String(itemID), Price: stripe.String(*newPlan.StripePriceID)},
+				},
+			},
+		},
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur Stripe lors de la préparation du changement de plan"})
+		return
+	}
+
+	// La bascule effective du plan en base est appliquée par le webhook customer.subscription.updated
+	// une fois le changement confirmé par l'utilisateur sur la page Stripe.
+	_ = json.NewEncoder(w).Encode(map[string]string{"url": session.URL})
+}
+
+// syncPortalSubscriptionUpdateFeature s'assure que la configuration par défaut du Customer Portal
+// Stripe connaît tous nos plans actifs, condition requise pour utiliser un lien profond
+// subscription_update_confirm vers l'un de leurs prix.
+func syncPortalSubscriptionUpdateFeature(client *stripe.Client) (string, error) {
+	configs := client.V1BillingPortalConfigurations.List(context.Background(), &stripe.BillingPortalConfigurationListParams{
+		IsDefault: stripe.Bool(true),
+	})
+	var configID string
+	for cfg, err := range configs.All(context.Background()) {
+		if err != nil {
+			return "", err
+		}
+		configID = cfg.ID
+		break
+	}
+	if configID == "" {
+		return "", errors.New("aucune configuration de portail Stripe par défaut trouvée")
+	}
+
+	plans, err := db.GetSubscriptionPlans()
+	if err != nil {
+		return "", err
+	}
+	var products []*stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateProductParams
+	for _, p := range plans {
+		if p.IsActive && p.StripeProductID != nil && p.StripePriceID != nil {
+			products = append(products, &stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateProductParams{
+				Product: stripe.String(*p.StripeProductID),
+				Prices:  []*string{stripe.String(*p.StripePriceID)},
+			})
+		}
+	}
+
+	_, err = client.V1BillingPortalConfigurations.Update(context.Background(), configID, &stripe.BillingPortalConfigurationUpdateParams{
+		Features: &stripe.BillingPortalConfigurationUpdateFeaturesParams{
+			SubscriptionUpdate: &stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateParams{
+				Enabled:               stripe.Bool(true),
+				Products:              products,
+				DefaultAllowedUpdates: []*string{stripe.String("price")},
+				// Upgrade (prix qui augmente) : facturé et débité immédiatement, au prorata.
+				ProrationBehavior: stripe.String("always_invoice"),
+				// Downgrade (prix qui diminue) : pas de facturation immédiate ni de prorata — le
+				// changement est planifié pour la fin de la période en cours, comme sur la plupart
+				// des plateformes SaaS (Netflix, Spotify...). Le client garde son plan actuel jusque-là.
+				ScheduleAtPeriodEnd: &stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateScheduleAtPeriodEndParams{
+					Conditions: []*stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateScheduleAtPeriodEndConditionParams{
+						{Type: stripe.String("decreasing_item_amount")},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return configID, nil
+}
 
 func GetAdminSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -155,6 +295,76 @@ func GetAdminSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = json.NewEncoder(w).Encode(plans)
+}
+
+func createStripeProductAndPrice(client *stripe.Client, name string, priceCents int, intervalUnit string, intervalCount int) (productID, priceID *string, err error) {
+	product, err := client.V1Products.Create(context.Background(), &stripe.ProductCreateParams{
+		Name: stripe.String(name),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	price, err := client.V1Prices.Create(context.Background(), &stripe.PriceCreateParams{
+		Product:    stripe.String(product.ID),
+		Currency:   stripe.String("eur"),
+		UnitAmount: stripe.Int64(int64(priceCents)),
+		Recurring: &stripe.PriceCreateRecurringParams{
+			Interval:      stripe.String(intervalUnit),
+			IntervalCount: stripe.Int64(int64(intervalCount)),
+		},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return stripe.String(product.ID), stripe.String(price.ID), nil
+}
+
+func CreateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req models.CreateSubscriptionPlanRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" || req.PriceCents <= 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "données invalides"})
+		return
+	}
+	if req.IntervalUnit == "" {
+		req.IntervalUnit = "month"
+	}
+	if req.IntervalCount <= 0 {
+		req.IntervalCount = 1
+	}
+
+	client := stripe.NewClient(config.StripeSecretKey())
+	productID, priceID, err := createStripeProductAndPrice(client, req.Name, req.PriceCents, req.IntervalUnit, req.IntervalCount)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur Stripe lors de la création du produit/prix"})
+		return
+	}
+
+	plan := models.SubscriptionPlan{
+		IdPlan:                   uuid.New().String(),
+		Name:                     req.Name,
+		PriceCents:               req.PriceCents,
+		IntervalUnit:             req.IntervalUnit,
+		IntervalCount:            req.IntervalCount,
+		IsActive:                 req.IsActive,
+		StripePriceID:            priceID,
+		StripeProductID:          productID,
+		MaxAnnouncementsPerMonth: req.MaxAnnouncementsPerMonth,
+		MaxProjectsPerMonth:      req.MaxProjectsPerMonth,
+		MaxFeaturesPerMonth:      req.MaxFeaturesPerMonth,
+	}
+
+	if err := db.CreateSubscriptionPlan(plan); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la création"})
+		return
+	}
+
+	created, _ := db.GetSubscriptionPlanByID(plan.IdPlan)
+	_ = json.NewEncoder(w).Encode(created)
 }
 
 func UpdateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
@@ -181,30 +391,14 @@ func UpdateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
 	newProductID := current.StripeProductID
 
 	if current.StripeProductID == nil {
-		product, err := client.V1Products.Create(context.Background(), &stripe.ProductCreateParams{
-			Name: stripe.String(req.Name),
-		})
+		productID, priceID, err := createStripeProductAndPrice(client, req.Name, req.PriceCents, req.IntervalUnit, req.IntervalCount)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur Stripe lors de la création du produit"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur Stripe lors de la création du produit/prix"})
 			return
 		}
-		newProductID = stripe.String(product.ID)
-		price, err := client.V1Prices.Create(context.Background(), &stripe.PriceCreateParams{
-			Product:    stripe.String(product.ID),
-			Currency:   stripe.String("eur"),
-			UnitAmount: stripe.Int64(int64(req.PriceCents)),
-			Recurring: &stripe.PriceCreateRecurringParams{
-				Interval:      stripe.String(req.IntervalUnit),
-				IntervalCount: stripe.Int64(int64(req.IntervalCount)),
-			},
-		})
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur Stripe lors de la création du prix"})
-			return
-		}
-		newPriceID = stripe.String(price.ID)
+		newProductID = productID
+		newPriceID = priceID
 	} else {
 		if req.Name != current.Name {
 			_, err = client.V1Products.Update(context.Background(), *current.StripeProductID, &stripe.ProductUpdateParams{
@@ -254,14 +448,17 @@ func UpdateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	plan := models.SubscriptionPlan{
-		IdPlan:          id,
-		Name:            req.Name,
-		PriceCents:      req.PriceCents,
-		IntervalUnit:    req.IntervalUnit,
-		IntervalCount:   req.IntervalCount,
-		IsActive:        req.IsActive,
-		StripePriceID:   newPriceID,
-		StripeProductID: newProductID,
+		IdPlan:                   id,
+		Name:                     req.Name,
+		PriceCents:               req.PriceCents,
+		IntervalUnit:             req.IntervalUnit,
+		IntervalCount:            req.IntervalCount,
+		IsActive:                 req.IsActive,
+		StripePriceID:            newPriceID,
+		StripeProductID:          newProductID,
+		MaxAnnouncementsPerMonth: req.MaxAnnouncementsPerMonth,
+		MaxProjectsPerMonth:      req.MaxProjectsPerMonth,
+		MaxFeaturesPerMonth:      req.MaxFeaturesPerMonth,
 	}
 
 	if err := db.UpdateSubscriptionPlan(plan); err != nil {
@@ -277,7 +474,17 @@ func UpdateAdminSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
 
 func GetAdminSubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	list, err := db.GetAllSubscriptions()
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	list, total, err := db.GetAllSubscriptionsPaginated(page, limit)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
@@ -286,7 +493,12 @@ func GetAdminSubscriptions(w http.ResponseWriter, r *http.Request) {
 	if list == nil {
 		list = []models.UserSubscriptionSummary{}
 	}
-	_ = json.NewEncoder(w).Encode(list)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"subscriptions": list,
+		"total":         total,
+		"page":          page,
+		"limit":         limit,
+	})
 }
 
 func GetMySubscriptionInvoicePDF(w http.ResponseWriter, r *http.Request) {

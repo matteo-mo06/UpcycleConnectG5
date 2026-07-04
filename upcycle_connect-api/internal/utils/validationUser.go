@@ -9,7 +9,7 @@ import (
 )
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-var nameRegex = regexp.MustCompile(`^[a-zA-ZÀ-ÿ' -]{2,150}$`)
+var nameRegex = regexp.MustCompile(`^[a-zA-ZÀ-ÖØ-öø-ÿ' -]{2,150}$`)
 
 func ValidateUserCreation(user models.User) error {
 	user.Email = strings.TrimSpace(user.Email)
@@ -42,7 +42,7 @@ func ValidateUserCreation(user models.User) error {
 	}
 
 	if !nameRegex.MatchString(user.FirstName) {
-		return errors.New("invalid first_name format")
+		return errors.New("Le prénom n'accepte que des lettres, espaces, tirets et apostrophes (2 caractères minimum)")
 	}
 
 	if user.LastName == "" {
@@ -50,7 +50,7 @@ func ValidateUserCreation(user models.User) error {
 	}
 
 	if !nameRegex.MatchString(user.LastName) {
-		return errors.New("invalid last_name format")
+		return errors.New("Le nom n'accepte que des lettres, espaces, tirets et apostrophes (2 caractères minimum)")
 	}
 
 	if user.UpcyclingScore < 0 {

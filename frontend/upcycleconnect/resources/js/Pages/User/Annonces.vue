@@ -74,6 +74,10 @@
                     <span :class="['absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold text-white', a.type === 'vente' ? 'bg-primary' : 'bg-secondary']">
                         {{ a.type === 'vente' ? 'VENTE' : 'DON' }}
                     </span>
+                    <span v-if="a.is_featured === 1" class="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-600 rounded-full text-xs font-medium">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        En avant
+                    </span>
                 </div>
 
                 <div class="p-4">
@@ -494,9 +498,10 @@ async function deleteAnnouncement() {
     }
 }
 
-function handleAcquire(a) {
+async function handleAcquire(a) {
     if (a.type === 'vente' && a.price > 0) {
-        router.push(`/paiement/${a.id}`)
+        const { data } = await api.post(`/pay/announcement/${a.id}`)
+        window.location.href = data.checkout_url
     } else {
         claimAnnouncement(a)
     }
@@ -627,12 +632,24 @@ async function fetchCategories() {
     } catch {}
 }
 
-onMounted(() => {
+onMounted(async () => {
     fetchCategories()
     if (route.query.publish === '1') {
         showDepot.value = true
         router.replace({ query: { ...route.query, publish: undefined } })
     }
+    if (route.query.highlight) {
+        const id = route.query.highlight
+        router.replace({ query: { tab: route.query.tab } })
+        try {
+            const { data } = await api.get(`/announcements/${id}`)
+            const ann = data.announcement ?? data
+            selected.value = ann
+            photoIndex.value = 0
+            selectedPhotos.value = (data.photos ?? []).map(d => d.link).filter(Boolean)
+            if (!selectedPhotos.value.length && ann.first_photo) selectedPhotos.value = [ann.first_photo]
+        } catch {}
+    }
 })
-usePolling(fetchAnnouncements, 2000, () => activeTab.value !== 'mine')
+usePolling(fetchAnnouncements, 2000, () => activeTab.value === 'mine' || activeTab.value === 'acquisitions')
 </script>

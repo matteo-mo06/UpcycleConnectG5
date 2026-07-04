@@ -160,6 +160,23 @@
                         </svg>
                         <p class="text-sm text-secondary font-medium">Vous êtes inscrit à cet événement</p>
                     </div>
+
+                    <div v-if="auth.user?.id === detailEvent?.id_creator || auth.isAdmin" class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Participants</p>
+                        <div class="space-y-1">
+                            <p v-if="participantsLoading" class="text-xs text-gray-400">Chargement…</p>
+                            <template v-else>
+                                <p v-if="participants.length === 0" class="text-xs text-gray-400">Aucun participant</p>
+                                <div v-for="p in participants" :key="p.id" class="flex items-center gap-2 py-1">
+                                    <img v-if="p.avatar_url" :src="p.avatar_url" class="w-6 h-6 rounded-full object-cover" />
+                                    <span v-else class="w-6 h-6 rounded-full bg-gray-200 text-xs flex items-center justify-center font-medium text-gray-500">
+                                        {{ p.first_name[0] }}{{ p.last_name[0] }}
+                                    </span>
+                                    <span class="text-sm text-gray-700">{{ p.first_name }} {{ p.last_name }}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
@@ -202,6 +219,8 @@ const total = ref(0)
 const search = ref('')
 const filterStatus = ref('')
 const detailEvent = ref(null)
+const participants = ref([])
+const participantsLoading = ref(false)
 
 const MONTHS_SHORT = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc']
 
@@ -225,6 +244,7 @@ function mapEvent(e) {
         isPast: e.date ? e.date.slice(0, 10) < today.toISOString().slice(0, 10) : false,
         description: e.description ?? '-',
         loading: false,
+        id_creator: e.id_creator ?? null,
     }
 }
 
@@ -290,7 +310,7 @@ async function toggleRegistration(event) {
             }
         }
     } catch (err) {
-        console.error('toggleRegistration error:', err)
+        alert(err?.response?.data?.error ?? 'Erreur lors de l\'inscription / désinscription.')
     } finally {
         event.loading = false
     }
@@ -305,7 +325,7 @@ async function fetchEvents() {
         events.value = (data.data ?? []).map(mapEvent)
         total.value = data.total ?? 0
     } catch (e) {
-        console.error('Events fetch error:', e)
+        console.error('fetchEvents error:', e)
     }
 }
 
@@ -315,6 +335,27 @@ function changePage(p) {
 }
 
 watch(page, fetchEvents)
+
+watch(detailEvent, (val) => {
+    if (!val) {
+        participants.value = []
+        participantsLoading.value = false
+    } else {
+        loadParticipants(`/events/${val.id}/participants`)
+    }
+})
+
+async function loadParticipants(url) {
+    participantsLoading.value = true
+    try {
+        const { data } = await api.get(url)
+        participants.value = data ?? []
+    } catch {
+        participants.value = []
+    } finally {
+        participantsLoading.value = false
+    }
+}
 
 async function fetchAll() {
     await Promise.all([

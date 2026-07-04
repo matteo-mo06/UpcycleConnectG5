@@ -108,27 +108,30 @@
 
             <form v-if="tab === 'register'" @submit.prevent="submitRegister" class="space-y-4">
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
-                        <input
-                            v-model="registerForm.first_name"
-                            type="text"
-                            required
-                            placeholder="Jean"
-                            class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
+                <div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
+                            <input
+                                v-model="registerForm.first_name"
+                                type="text"
+                                required
+                                placeholder="Jean"
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
+                            <input
+                                v-model="registerForm.last_name"
+                                type="text"
+                                required
+                                placeholder="Dupont"
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
-                        <input
-                            v-model="registerForm.last_name"
-                            type="text"
-                            required
-                            placeholder="Dupont"
-                            class="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Lettres, espaces, tirets et apostrophes uniquement</p>
                 </div>
 
                 <div>
@@ -205,6 +208,7 @@
                             </svg>
                         </button>
                     </div>
+                    <p class="text-xs text-gray-400 mt-1">12 caractères minimum</p>
                 </div>
 
                 <div>

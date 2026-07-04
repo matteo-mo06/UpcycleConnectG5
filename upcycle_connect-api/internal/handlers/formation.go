@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -409,6 +410,44 @@ func RegisterForFormation(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "inscription réussie"})
 }
 
+func GetFormationParticipants(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	formation, err := db.GetFormationById(id)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "formation introuvable"})
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+
+	isCreator := formation.IdCreator != nil && *formation.IdCreator == userID
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
+	if !isCreator && !isAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	participants, err := db.GetFormationParticipants(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if participants == nil {
+		participants = []models.Participant{}
+	}
+	_ = json.NewEncoder(w).Encode(participants)
+}
+
 func UnregisterFromFormation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -458,8 +497,17 @@ func GetMyCreatedFormations(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	page, limit, offset := parsePage(r, 15)
 
-	formations, err := db.GetMyCreatedFormations(userID)
+	formations, total, err := db.GetMyCreatedFormationsPaginated(
+		userID,
+		r.URL.Query().Get("search"),
+		r.URL.Query().Get("status"),
+		r.URL.Query().Get("level"),
+		r.URL.Query().Get("id_category"),
+		limit,
+		offset,
+	)
 	if err != nil {
 		fmt.Println("GetMyCreatedFormations error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -472,7 +520,7 @@ func GetMyCreatedFormations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(formations)
+	_ = json.NewEncoder(w).Encode(pageResponse(formations, total, page, limit))
 }
 
 

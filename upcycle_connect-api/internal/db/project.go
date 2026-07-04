@@ -197,6 +197,18 @@ func CreateProject(p models.Project) error {
 	return err
 }
 
+func CreateProjectAdmin(p models.Project) error {
+	_, err := config.Conn.Exec(`
+		INSERT INTO PROJECT (
+			id_project, title_project, description_project, start_date_project,
+			end_date, location_project, capacity, status, id_creator, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, NOW())`,
+		p.IdProject, p.TitleProject, p.DescriptionProject, p.StartDateProject,
+		p.EndDate, p.LocationProject, p.Capacity, p.IdCreator,
+	)
+	return err
+}
+
 func UpdateProject(p models.Project) error {
 	_, err := config.Conn.Exec(`
 		UPDATE PROJECT SET
@@ -346,6 +358,31 @@ func GetProjectStatusCounts() (models.ProjectStats, error) {
 		FROM PROJECT
 	`).Scan(&s.Total, &s.Pending, &s.Open, &s.InProgress, &s.Completed, &s.Rejected)
 	return s, err
+}
+
+func GetProjectMembers(projectID string) ([]models.Participant, error) {
+	rows, err := config.Conn.Query(`
+		SELECT u.id_user, u.first_name, u.last_name, u.avatar_url
+		FROM USER u
+		JOIN USER_PROJECT_INSCRIPTION pi ON pi.id_user = u.id_user
+		WHERE pi.id_project = ?`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.Participant
+	for rows.Next() {
+		var p models.Participant
+		var avatarUrl sql.NullString
+		if err := rows.Scan(&p.Id, &p.FirstName, &p.LastName, &avatarUrl); err != nil {
+			return nil, err
+		}
+		if avatarUrl.Valid {
+			p.AvatarUrl = &avatarUrl.String
+		}
+		list = append(list, p)
+	}
+	return list, nil
 }
 
 func GetUserRegisteredProjects(userID string) ([]models.Project, error) {

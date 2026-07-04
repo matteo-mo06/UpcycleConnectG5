@@ -213,12 +213,78 @@ func UpdateUserProfile(id, firstName, lastName, email string) error {
 	return err
 }
 
-func UpdateUserStatus(id string, status string) error {
-	_, err := config.Conn.Exec(`
-		UPDATE USER SET status = ? WHERE id_user = ?`,
-		status, id,
-	)
-	return err
+func UpdateUserStatus(id, status string) error {
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	if status == "suspended" || status == "blacklisted" {
+		if _, err = tx.Exec(`
+			UPDATE ANNOUNCEMENT a
+			JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+			SET a.deleted_at = NOW()
+			WHERE ua.id_user = ? AND a.state_annoucement IN ('En attente', 'Active') AND a.deleted_at IS NULL`, id); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err = tx.Exec(`
+			UPDATE PROJECT SET status = 'supprimé'
+			WHERE id_creator = ? AND status IN ('pending', 'open', 'in_progress')`, id); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err = tx.Exec(`
+			UPDATE FORMATION SET deleted_at = NOW()
+			WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NULL`, id); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err = tx.Exec(`
+			UPDATE EVENT SET deleted_at = NOW()
+			WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NULL`, id); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else if status == "active" {
+		var current string
+		if err = tx.QueryRow(`SELECT status FROM USER WHERE id_user = ?`, id).Scan(&current); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if current == "suspended" {
+			if _, err = tx.Exec(`
+				UPDATE ANNOUNCEMENT a
+				JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+				SET a.deleted_at = NULL
+				WHERE ua.id_user = ? AND a.state_annoucement IN ('En attente', 'Active') AND a.deleted_at IS NOT NULL`, id); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if _, err = tx.Exec(`
+				UPDATE PROJECT SET status = 'pending'
+				WHERE id_creator = ? AND status = 'supprimé'`, id); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if _, err = tx.Exec(`
+				UPDATE FORMATION SET deleted_at = NULL
+				WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NOT NULL`, id); err != nil {
+				tx.Rollback()
+				return err
+			}
+			if _, err = tx.Exec(`
+				UPDATE EVENT SET deleted_at = NULL
+				WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NOT NULL`, id); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+	if _, err = tx.Exec(`UPDATE USER SET status = ? WHERE id_user = ?`, status, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 func MarkTutorialDone(id string) error {
@@ -234,15 +300,60 @@ func ResetTutorial(id string) error {
 }
 
 func DeleteUser(id string) error {
-	_, err := config.Conn.Exec(`
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	if _, err = tx.Exec(`
 		UPDATE USER SET
 			email          = CONCAT('deleted_', id_user, '@deleted.invalid'),
 			password_user  = '',
 			first_name     = 'Utilisateur',
 			last_name      = 'supprimé',
 			deleted_at     = NOW()
-		WHERE id_user = ?`, id)
-	return err
+		WHERE id_user = ?`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`
+		UPDATE ANNOUNCEMENT a
+		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		SET a.state_annoucement = 'Supprimée', a.deleted_at = NOW()
+		WHERE ua.id_user = ? AND a.state_annoucement IN ('En attente', 'Active') AND a.deleted_at IS NULL`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`
+		UPDATE PROJECT SET status = 'supprimé'
+		WHERE id_creator = ? AND status IN ('pending', 'open', 'in_progress')`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`
+		UPDATE FORMATION SET deleted_at = NOW()
+		WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NULL`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`
+		UPDATE EVENT SET deleted_at = NOW()
+		WHERE id_creator = ? AND status IN ('pending', 'approved') AND deleted_at IS NULL`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`DELETE FROM USER_PROJECT_INSCRIPTION WHERE id_user = ?`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`UPDATE REPORT SET status = 'resolved' WHERE id_user = ? AND status = 'pending'`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if _, err = tx.Exec(`UPDATE PROFESSIONAL_REQUEST SET status = 'rejected' WHERE id_user = ? AND status = 'pending'`, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 func GetUserStats(userID string) (models.UserStats, error) {

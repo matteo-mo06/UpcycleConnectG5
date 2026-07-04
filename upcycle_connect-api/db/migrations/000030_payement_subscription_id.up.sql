@@ -1,0 +1,1 @@
+ALTER TABLE payement ADD COLUMN subscription_id VARCHAR(255) NULL DEFAULT NULL;

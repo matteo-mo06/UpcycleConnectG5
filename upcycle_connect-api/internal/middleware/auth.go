@@ -78,6 +78,12 @@ func RequireAdmin(next http.Handler) http.Handler {
 func RequirePermission(permission string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			roles, _ := r.Context().Value(ContextRoles).([]string)
+			if slices.Contains(roles, config.RoleAdmin) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			perms, _ := r.Context().Value(ContextPermissions).([]string)
 
 			if slices.Contains(perms, permission) {

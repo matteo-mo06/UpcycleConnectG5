@@ -188,8 +188,8 @@
                         </div>
                     </div>
                 </div>
-                <p v-if="limits && !limits.is_premium && !stripeWaiting" class="text-xs text-gray-400 text-center">
-                    {{ limits.announcements.used }}/{{ limits.announcements.max }} annonces publiées
+                <p v-if="limits?.announcements && !stripeWaiting" class="text-xs text-gray-400 text-center">
+                    {{ limits.announcements.used }}/{{ limits.announcements.max }} annonces {{ limits.is_premium ? 'publiées ce mois-ci' : 'publiées' }}
                 </p>
                 <button
                     @click="submit"

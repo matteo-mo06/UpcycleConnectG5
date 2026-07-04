@@ -103,6 +103,11 @@ func InitRoutes() {
 	http.Handle("DELETE /admin/announcement/{id}", admin(handlers.DeleteAnnouncement))
 	http.Handle("PATCH /admin/announcement/{id}/approve", perm("manage_announcements", handlers.ApproveAnnouncement))
 	http.Handle("PATCH /admin/announcement/{id}/reject", perm("manage_announcements", handlers.RejectAnnouncement))
+	http.Handle("PUT /admin/announcement/{id}/feature", admin(handlers.AdminToggleFeature))
+
+	http.Handle("POST /announcements/{id}/feature", perm("create_announcement", handlers.RequestFeature))
+	http.Handle("POST /announcements/{id}/feature/confirm", perm("create_announcement", handlers.ConfirmFeature))
+	http.Handle("DELETE /announcements/{id}/feature", perm("create_announcement", handlers.CancelFeature))
 
 	http.Handle("GET /events", auth(handlers.GetPublicEventsForUser))
 	http.Handle("POST /events", perm("create_event", handlers.CreateEvent))
@@ -143,8 +148,26 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/revenue/summary", admin(handlers.GetRevenueSummary))
 	http.Handle("GET /admin/revenue/transactions", admin(handlers.GetRevenueTransactions))
+	http.Handle("GET /admin/revenue/advertisements", admin(handlers.GetAdPayments))
+	http.Handle("GET /admin/revenue/formations", admin(handlers.GetFormationPayments))
 	http.Handle("GET /admin/revenue/commission-rate", admin(handlers.GetCommissionRate))
 	http.Handle("PUT /admin/revenue/commission-rate", admin(handlers.UpdateCommissionRate))
+
+	http.HandleFunc("GET /advertisements/active", handlers.GetActiveAdvertisements)
+	http.Handle("POST /advertisement", auth(handlers.CreateAdvertisement))
+	http.Handle("GET /user/advertisements", auth(handlers.GetMyAdvertisements))
+	http.Handle("POST /advertisement/{id}/checkout", auth(handlers.CreateAdvertisementCheckout))
+
+	http.Handle("GET /advertisement/plans", auth(handlers.GetAdPlans))
+	http.Handle("GET /admin/advertisement/plans", admin(handlers.GetAdPlans))
+	http.Handle("PUT /admin/advertisement/plan/{id}", admin(handlers.UpdateAdminAdPlan))
+
+	http.Handle("GET /admin/advertisements/stats", admin(handlers.GetAdminAdvertisementStats))
+	http.Handle("GET /admin/advertisements", admin(handlers.GetAdminAdvertisements))
+	http.Handle("PATCH /admin/advertisement/{id}/approve", admin(handlers.ApproveAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/reject", admin(handlers.RejectAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/deactivate", admin(handlers.DeactivateAdvertisement))
+	http.Handle("PATCH /admin/advertisement/{id}/reactivate", admin(handlers.ReactivateAdvertisement))
 
 	http.Handle("GET /admin/lockers", perm("manage_lockers", handlers.GetLockers))
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))
@@ -197,12 +220,17 @@ func InitRoutes() {
 	http.Handle("DELETE /projects/{id}", auth(handlers.ModerateDeleteProject))
 
 	http.Handle("GET /admin/projects/stats", admin(handlers.GetProjectStats))
+	http.Handle("POST /admin/projects", admin(handlers.CreateProjectAdmin))
 	http.Handle("GET /admin/projects", admin(handlers.GetAllProjectsAdmin))
 	http.Handle("GET /admin/project/{id}", admin(handlers.GetProjectByIdAdmin))
 	http.Handle("PUT /admin/project/{id}", admin(handlers.UpdateProjectAdmin))
 	http.Handle("DELETE /admin/project/{id}", admin(handlers.DeleteProjectAdmin))
 	http.Handle("PATCH /admin/project/{id}/approve", admin(handlers.ApproveProject))
 	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
+
+	http.Handle("GET /projects/{id}/members", auth(handlers.GetProjectMembers))
+	http.Handle("GET /events/{id}/participants", auth(handlers.GetEventParticipants))
+	http.Handle("GET /formations/{id}/participants", auth(handlers.GetFormationParticipants))
 
 	http.Handle("GET /projects/{id}/materials", auth(handlers.GetProjectMaterials))
 	http.Handle("POST /projects/{id}/materials", auth(handlers.CreateProjectMaterial))
@@ -221,8 +249,10 @@ func InitRoutes() {
 	http.Handle("GET /user/invoices/{id}/pdf", auth(handlers.GetMySubscriptionInvoicePDF))
 	http.Handle("POST /user/subscription/checkout", auth(handlers.CreateSubscriptionCheckout))
 	http.Handle("POST /user/subscription/portal", auth(handlers.GetSubscriptionPortal))
+	http.Handle("POST /user/subscription/change", auth(handlers.ChangeSubscriptionPlan))
 
 	http.Handle("GET /admin/subscription/plans", admin(handlers.GetAdminSubscriptionPlans))
+	http.Handle("POST /admin/subscription/plans", admin(handlers.CreateAdminSubscriptionPlan))
 	http.Handle("PUT /admin/subscription/plan/{id}", admin(handlers.UpdateAdminSubscriptionPlan))
 	http.Handle("GET /admin/subscriptions", admin(handlers.GetAdminSubscriptions))
 

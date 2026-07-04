@@ -75,12 +75,22 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
 	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
-	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
-		count, _ := db.CountUserProjects(userID)
-		if count >= 2 {
-			w.WriteHeader(http.StatusForbidden)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 2 projets atteinte, passez à l'abonnement premium pour en créer davantage"})
-			return
+	if slices.Contains(roles, config.RoleArtisan) {
+		sub, _ := db.GetUserActiveSubscription(userID)
+		if sub == nil {
+			count, _ := db.CountUserProjects(userID)
+			if count >= 2 {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 2 projets atteinte, passez à l'abonnement premium pour en créer davantage"})
+				return
+			}
+		} else if sub.Plan.MaxProjectsPerMonth != nil {
+			count, _ := db.CountUserProjectsThisMonth(userID)
+			if count >= *sub.Plan.MaxProjectsPerMonth {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("limite de %d projets par mois atteinte pour votre abonnement %s", *sub.Plan.MaxProjectsPerMonth, sub.Plan.Name)})
+				return
+			}
 		}
 	}
 
@@ -520,6 +530,44 @@ func ModerateDeleteProject(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "projet supprimé"})
 }
 
+func GetProjectMembers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := r.PathValue("id")
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
+
+	project, err := db.GetProjectById(id)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "projet introuvable"})
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+
+	isCreator := project.IdCreator != nil && *project.IdCreator == userID
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
+	if !isCreator && !isAdmin {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès refusé"})
+		return
+	}
+
+	members, err := db.GetProjectMembers(id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur serveur"})
+		return
+	}
+	if members == nil {
+		members = []models.Participant{}
+	}
+	_ = json.NewEncoder(w).Encode(members)
+}
+
 func GetProjectStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -533,6 +581,43 @@ func GetProjectStats(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(stats)
+}
+
+func CreateProjectAdmin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req models.CreateProjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.Title == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le titre est requis"})
+		return
+	}
+
+	p := models.Project{
+		IdProject:          uuid.New().String(),
+		TitleProject:       req.Title,
+		DescriptionProject: req.Description,
+		StartDateProject:   req.StartDate,
+		EndDate:            req.EndDate,
+		LocationProject:    req.Location,
+		Capacity:           req.Capacity,
+	}
+
+	if err := db.CreateProjectAdmin(p); err != nil {
+		fmt.Println("CreateProjectAdmin error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create project"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]any{"message": "projet créé", "project": p})
 }
 
 func GetAllProjectsAdmin(w http.ResponseWriter, r *http.Request) {

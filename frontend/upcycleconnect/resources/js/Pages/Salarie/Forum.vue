@@ -162,8 +162,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { usePolling } from '@/composables/usePolling.js'
+import { ref, watch, onMounted } from 'vue'
 import SalarieLayout from '@/Layouts/SalarieLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -214,7 +213,8 @@ async function fetchTopics() {
         const { data } = await api.get('/forum/topics', { params })
         topics.value = data.data ?? []
         total.value = data.total ?? 0
-    } catch {
+    } catch (err) {
+        console.error('fetchTopics error:', err)
         topics.value = []
         total.value = 0
     } finally {
@@ -270,5 +270,5 @@ async function deletePost(post) {
 }
 
 watch(page, fetchTopics)
-usePolling(fetchTopics, 2000, () => !selected.value)
+onMounted(fetchTopics)
 </script>

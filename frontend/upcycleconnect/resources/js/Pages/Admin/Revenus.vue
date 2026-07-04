@@ -6,11 +6,19 @@
                 <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'transactions' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'transactions'"
-                >Transactions</button>
+                >Annonces</button>
                 <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'abonnements' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'abonnements'"
                 >Abonnements</button>
+                <button
+                    :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'publicites' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
+                    @click="activeTab = 'publicites'"
+                >Publicités</button>
+                <button
+                    :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'formations' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
+                    @click="activeTab = 'formations'"
+                >Formations</button>
                 <button
                     :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === 'parametres' ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50']"
                     @click="activeTab = 'parametres'"
@@ -20,26 +28,28 @@
 
         <div class="grid grid-cols-4 gap-5 mb-8">
             <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+                <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ formatEuros(totalVolume) }}</p>
+                    <p class="text-sm text-gray-500 mt-1">Volume total</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Toutes transactions confondues</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
                 <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ formatEuros(summary.total_amount_cents) }}</p>
-                    <p class="text-sm text-gray-500 mt-1">Volume total</p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
-                <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
-                    </svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ formatEuros(summary.total_commission_cents) }}</p>
-                    <p class="text-sm text-gray-500 mt-1">Commissions perçues</p>
+                    <p class="text-2xl font-bold text-gray-800 leading-none">{{ formatEuros(totalRevenue) }}</p>
+                    <p class="text-sm text-gray-500 mt-1">Revenus plateforme</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Commissions + abonnements + pubs</p>
                 </div>
             </div>
 
@@ -51,7 +61,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-gray-800 leading-none">{{ summary.total_transactions ?? 0 }}</p>
-                    <p class="text-sm text-gray-500 mt-1">Transactions</p>
+                    <p class="text-sm text-gray-500 mt-1">Toutes transactions</p>
                 </div>
             </div>
 
@@ -70,7 +80,7 @@
 
         <div v-if="activeTab === 'transactions'">
             <div v-if="loadingTx" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
-            <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune transaction pour le moment.</div>
+            <div v-else-if="transactions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucune vente d'annonce pour le moment.</div>
             <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
@@ -105,7 +115,7 @@
                     </table>
                 </div>
                 <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                    <span>{{ total }} transaction(s)</span>
+                    <span>{{ total }} vente(s) d'annonce</span>
                     <div class="flex gap-2">
                         <button
                             :disabled="page <= 1"
@@ -124,15 +134,149 @@
         </div>
 
         <div v-if="activeTab === 'abonnements'">
-            <div class="bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center gap-4">
-                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-                    </svg>
+            <div v-if="loadingSub" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
+            <div v-else-if="errorSub" class="py-12 text-center text-sm text-red-500">{{ errorSub }}</div>
+            <div v-else-if="subscriptions.length === 0" class="py-12 text-center text-sm text-gray-400">Aucun abonnement pour le moment.</div>
+            <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Utilisateur</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Email</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Plan</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Prix</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Début</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Fin</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(sub, i) in subscriptions"
+                                :key="sub.user_id + sub.start_date"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3 text-gray-700 font-medium">{{ sub.first_name }} {{ sub.last_name }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ sub.email }}</td>
+                                <td class="px-5 py-3 text-gray-700">{{ sub.plan_name }}</td>
+                                <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(sub.price_cents) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(sub.start_date) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ sub.end_date ? formatDate(sub.end_date) : '-' }}</td>
+                                <td class="px-5 py-3">
+                                    <span v-if="sub.cancelled" class="bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-xs font-semibold">Annulé</span>
+                                    <span v-else-if="sub.end_date && new Date(sub.end_date) < new Date()" class="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full text-xs font-semibold">Expiré</span>
+                                    <span v-else class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold">Actif</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div>
-                    <p class="font-semibold text-gray-700">Abonnements - à venir</p>
-                    <p class="text-sm text-gray-400 mt-1">La gestion des abonnements premium sera disponible prochainement.</p>
+                <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>{{ totalSub }} abonnement(s)</span>
+                    <div class="flex gap-2">
+                        <button
+                            :disabled="pageSub <= 1"
+                            @click="changeSubPage(pageSub - 1)"
+                            class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                        >Précédent</button>
+                        <span class="px-3 py-1">{{ pageSub }} / {{ totalSubPages }}</span>
+                        <button
+                            :disabled="pageSub >= totalSubPages"
+                            @click="changeSubPage(pageSub + 1)"
+                            class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                        >Suivant</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="activeTab === 'publicites'">
+            <div v-if="loadingAds" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
+            <div v-else-if="adPayments.length === 0" class="py-12 text-center text-sm text-gray-400">Aucun achat de publicité pour le moment.</div>
+            <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Artisan</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Publicité</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Montant</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Statut</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Date de paiement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(p, i) in adPayments"
+                                :key="p.id"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3">
+                                    <p class="font-medium text-gray-800">{{ p.first_name }} {{ p.last_name }}</p>
+                                    <p class="text-xs text-gray-400">{{ p.email }}</p>
+                                </td>
+                                <td class="px-5 py-3 text-gray-700 max-w-xs truncate">{{ p.title }}</td>
+                                <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(p.price_cents) }}</td>
+                                <td class="px-5 py-3">
+                                    <span :class="p.state === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-2 py-0.5 rounded-full text-xs font-semibold">
+                                        {{ p.state === 'active' ? 'Active' : 'Expirée' }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(p.paid_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>{{ totalAds }} achat(s)</span>
+                    <div class="flex gap-2">
+                        <button :disabled="pageAds <= 1" @click="changeAdsPage(pageAds - 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Précédent</button>
+                        <span class="px-3 py-1">{{ pageAds }} / {{ totalAdsPages }}</span>
+                        <button :disabled="pageAds >= totalAdsPages" @click="changeAdsPage(pageAds + 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Suivant</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="activeTab === 'formations'">
+            <div v-if="loadingFormations" class="py-12 text-center text-sm text-gray-400">Chargement…</div>
+            <div v-else-if="formationPayments.length === 0" class="py-12 text-center text-sm text-gray-400">Aucun achat de formation pour le moment.</div>
+            <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-primary">
+                                <th class="text-left text-white font-medium px-5 py-3">Acheteur</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Formation</th>
+                                <th class="text-right text-white font-medium px-5 py-3">Montant</th>
+                                <th class="text-left text-white font-medium px-5 py-3">Date de paiement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(p, i) in formationPayments"
+                                :key="p.id"
+                                :class="['border-b border-gray-50', i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40']"
+                            >
+                                <td class="px-5 py-3">
+                                    <p class="font-medium text-gray-800">{{ p.first_name }} {{ p.last_name }}</p>
+                                    <p class="text-xs text-gray-400">{{ p.email }}</p>
+                                </td>
+                                <td class="px-5 py-3 text-gray-700 max-w-xs truncate">{{ p.formation_title }}</td>
+                                <td class="px-5 py-3 text-right font-medium text-gray-800">{{ formatEuros(p.amount_cents) }}</td>
+                                <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(p.paid_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+                    <span>{{ totalFormations }} achat(s)</span>
+                    <div class="flex gap-2">
+                        <button :disabled="pageFormations <= 1" @click="changeFormationsPage(pageFormations - 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Précédent</button>
+                        <span class="px-3 py-1">{{ pageFormations }} / {{ totalFormationsPages }}</span>
+                        <button :disabled="pageFormations >= totalFormationsPages" @click="changeFormationsPage(pageFormations + 1)" class="px-3 py-1 rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">Suivant</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -166,6 +310,7 @@
                 <p v-if="rateSuccess" class="text-xs text-green-600 mt-2">Taux mis à jour avec succès.</p>
                 <p v-if="rateError" class="text-xs text-red-500 mt-2">{{ rateError }}</p>
             </div>
+
         </div>
 
     </AdminLayout>
@@ -187,6 +332,46 @@ const loadingTx = ref(true)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit)))
 
+const subscriptions = ref([])
+const totalSub = ref(0)
+const pageSub = ref(1)
+const limitSub = 20
+const loadingSub = ref(true)
+const errorSub = ref('')
+
+const totalSubPages = computed(() => Math.max(1, Math.ceil(totalSub.value / limitSub)))
+
+const adPayments = ref([])
+const totalAds = ref(0)
+const pageAds = ref(1)
+const limitAds = 20
+const loadingAds = ref(false)
+
+const totalAdsPages = computed(() => Math.max(1, Math.ceil(totalAds.value / limitAds)))
+
+const formationPayments = ref([])
+const totalFormations = ref(0)
+const pageFormations = ref(1)
+const limitFormations = 20
+const loadingFormations = ref(false)
+
+const totalFormationsPages = computed(() => Math.max(1, Math.ceil(totalFormations.value / limitFormations)))
+
+const totalVolume = computed(() =>
+    (summary.value.total_amount_cents ?? 0) +
+    (summary.value.total_subscriptions_cents ?? 0) +
+    (summary.value.total_ads_cents ?? 0) +
+    (summary.value.total_formations_cents ?? 0)
+)
+
+const totalRevenue = computed(() =>
+    (summary.value.total_commission_cents ?? 0) +
+    (summary.value.total_subscriptions_cents ?? 0) +
+    (summary.value.total_ads_cents ?? 0) +
+    (summary.value.total_formations_cents ?? 0)
+)
+
+
 const editRate = ref(0)
 const savingRate = ref(false)
 const rateSuccess = ref(false)
@@ -207,7 +392,9 @@ async function fetchSummary() {
         const { data } = await api.get('/admin/revenue/summary')
         summary.value = data
         editRate.value = data.commission_rate
-    } catch { /* silencieux */ }
+    } catch (err) {
+        console.error('fetchSummary error:', err)
+    }
 }
 
 async function fetchTransactions() {
@@ -216,7 +403,9 @@ async function fetchTransactions() {
         const { data } = await api.get('/admin/revenue/transactions', { params: { page: page.value, limit } })
         transactions.value = data.transactions ?? []
         total.value = data.total ?? 0
-    } catch { /* silencieux */ } finally {
+    } catch (err) {
+        console.error('fetchTransactions error:', err)
+    } finally {
         loadingTx.value = false
     }
 }
@@ -224,6 +413,62 @@ async function fetchTransactions() {
 async function changePage(p) {
     page.value = p
     await fetchTransactions()
+}
+
+async function fetchSubscriptions() {
+    loadingSub.value = true
+    errorSub.value = ''
+    try {
+        const { data } = await api.get('/admin/subscriptions', { params: { page: pageSub.value, limit: limitSub } })
+        subscriptions.value = data.subscriptions ?? []
+        totalSub.value = data.total ?? 0
+    } catch (err) {
+        console.error('fetchSubscriptions error:', err)
+        errorSub.value = err?.response?.data?.error ?? 'Impossible de charger les abonnements.'
+    } finally {
+        loadingSub.value = false
+    }
+}
+
+async function changeSubPage(p) {
+    pageSub.value = p
+    await fetchSubscriptions()
+}
+
+async function fetchAdPayments() {
+    loadingAds.value = true
+    try {
+        const { data } = await api.get('/admin/revenue/advertisements', { params: { page: pageAds.value, limit: limitAds } })
+        adPayments.value = data.payments ?? []
+        totalAds.value = data.total ?? 0
+    } catch (err) {
+        console.error('fetchAdPayments error:', err)
+    } finally {
+        loadingAds.value = false
+    }
+}
+
+async function changeAdsPage(p) {
+    pageAds.value = p
+    await fetchAdPayments()
+}
+
+async function fetchFormationPayments() {
+    loadingFormations.value = true
+    try {
+        const { data } = await api.get('/admin/revenue/formations', { params: { page: pageFormations.value, limit: limitFormations } })
+        formationPayments.value = data.payments ?? []
+        totalFormations.value = data.total ?? 0
+    } catch (err) {
+        console.error('fetchFormationPayments error:', err)
+    } finally {
+        loadingFormations.value = false
+    }
+}
+
+async function changeFormationsPage(p) {
+    pageFormations.value = p
+    await fetchFormationPayments()
 }
 
 async function saveRate() {
@@ -238,14 +483,14 @@ async function saveRate() {
         await api.put('/admin/revenue/commission-rate', { commission_rate: editRate.value })
         summary.value.commission_rate = editRate.value
         rateSuccess.value = true
-    } catch {
-        rateError.value = 'Erreur lors de la mise à jour.'
+    } catch (err) {
+        rateError.value = err?.response?.data?.error ?? 'Erreur lors de la mise à jour.'
     } finally {
         savingRate.value = false
     }
 }
 
 onMounted(async () => {
-    await Promise.all([fetchSummary(), fetchTransactions()])
+    await Promise.all([fetchSummary(), fetchTransactions(), fetchSubscriptions(), fetchAdPayments(), fetchFormationPayments()])
 })
 </script>

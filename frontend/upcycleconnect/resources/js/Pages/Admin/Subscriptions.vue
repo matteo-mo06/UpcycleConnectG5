@@ -1,7 +1,9 @@
 <template>
     <AdminLayout>
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Abonnements</h1>
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Abonnements</h1>
+            </div>
         </div>
 
         <div class="grid grid-cols-3 gap-5 mb-8">
@@ -43,8 +45,12 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-            <div class="px-5 py-4 border-b border-gray-100">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <h2 class="font-semibold text-gray-800">Plans d'abonnement</h2>
+                <button @click="openCreate"
+                    class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                    + Nouveau plan
+                </button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -53,6 +59,7 @@
                             <th class="text-left text-white font-medium px-5 py-3">Nom</th>
                             <th class="text-left text-white font-medium px-5 py-3">Prix</th>
                             <th class="text-left text-white font-medium px-5 py-3">Intervalle</th>
+                            <th class="text-left text-white font-medium px-5 py-3">Limites</th>
                             <th class="text-left text-white font-medium px-5 py-3">Stripe</th>
                             <th class="text-left text-white font-medium px-5 py-3">Statut</th>
                             <th class="text-left text-white font-medium px-5 py-3">Actions</th>
@@ -64,6 +71,7 @@
                             <td class="px-5 py-3 font-medium text-gray-800">{{ plan.name }}</td>
                             <td class="px-5 py-3 text-gray-700">{{ formatPrice(plan.price_cents) }}</td>
                             <td class="px-5 py-3 text-gray-500">{{ plan.interval_count }} {{ plan.interval_unit === 'month' ? 'mois' : 'an' }}</td>
+                            <td class="px-5 py-3 text-gray-500 text-xs">{{ formatLimits(plan) }}</td>
                             <td class="px-5 py-3">
                                 <span v-if="plan.stripe_price_id" class="text-xs text-green-600 font-medium">Synchronisé</span>
                                 <span v-else class="text-xs text-amber-500">Non synchronisé</span>
@@ -82,7 +90,7 @@
                             </td>
                         </tr>
                         <tr v-if="plans.length === 0">
-                            <td colspan="6" class="px-5 py-10 text-center text-gray-400 text-sm">Aucun plan</td>
+                            <td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">Aucun plan</td>
                         </tr>
                     </tbody>
                 </table>
@@ -128,7 +136,7 @@
 
         <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="modal = false"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
                 <h3 class="font-semibold text-gray-800">{{ editTarget ? 'Modifier le plan' : 'Nouveau plan' }}</h3>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -138,10 +146,12 @@
                             class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-500 mb-1 block">Prix (centimes)</label>
-                        <input v-model.number="form.price_cents" type="number" min="0"
+                        <label class="text-xs text-gray-500 mb-1 block">Prix (€)</label>
+                        <input
+                            type="number" min="0.01" step="0.01"
+                            :value="(form.price_cents / 100).toFixed(2)"
+                            @input="form.price_cents = Math.round($event.target.value * 100)"
                             class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary"/>
-                        <p class="text-xs text-gray-400 mt-0.5">= {{ formatPrice(form.price_cents) }}</p>
                     </div>
                     <div>
                         <label class="text-xs text-gray-500 mb-1 block">Intervalle</label>
@@ -154,6 +164,22 @@
                     <div class="col-span-2 flex items-center gap-2">
                         <input v-model="form.is_active" type="checkbox" id="is_active" class="rounded"/>
                         <label for="is_active" class="text-sm text-gray-700">Plan actif</label>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-4 flex flex-col gap-3">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Quotas mensuels</p>
+
+                    <div v-for="field in limitFields" :key="field.key" class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 mb-1 block">{{ field.label }}</label>
+                            <input v-model.number="form[field.key]" type="number" min="0" :disabled="unlimited[field.key]"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary disabled:bg-gray-50 disabled:text-gray-400"/>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs text-gray-600 mt-4 whitespace-nowrap">
+                            <input v-model="unlimited[field.key]" type="checkbox" class="rounded"/>
+                            Illimité
+                        </label>
                     </div>
                 </div>
 
@@ -186,7 +212,19 @@ const editTarget = ref(null)
 const submitting = ref(false)
 const error = ref('')
 
-const form = ref({ name: '', price_cents: 1500, interval_unit: 'month', interval_count: 1, is_active: true })
+const limitFields = [
+    { key: 'max_announcements_per_month', label: 'Annonces / mois' },
+    { key: 'max_projects_per_month', label: 'Projets / mois' },
+    { key: 'max_features_per_month', label: 'Mises en avant / mois' },
+]
+
+function defaultForm() {
+    return { name: '', price_cents: 1500, interval_unit: 'month', interval_count: 1, is_active: true,
+        max_announcements_per_month: 10, max_projects_per_month: 5, max_features_per_month: 1 }
+}
+
+const form = ref(defaultForm())
+const unlimited = ref({ max_announcements_per_month: false, max_projects_per_month: false, max_features_per_month: false })
 
 const activeSubscribersCount = computed(() => subscriptions.value.filter(s => !s.cancelled).length)
 const activePlansCount = computed(() => plans.value.filter(p => p.is_active).length)
@@ -194,6 +232,23 @@ const activePlansCount = computed(() => plans.value.filter(p => p.is_active).len
 function formatPrice(cents) {
     if (!cents) return '0,00 €'
     return (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+}
+
+function formatLimits(plan) {
+    const parts = [
+        plan.max_announcements_per_month != null ? `${plan.max_announcements_per_month} annonces` : 'Annonces illimitées',
+        plan.max_projects_per_month != null ? `${plan.max_projects_per_month} projets` : 'Projets illimités',
+        plan.max_features_per_month != null ? `${plan.max_features_per_month} mise(s) en avant` : 'Mises en avant illimitées',
+    ]
+    return parts.join(' · ')
+}
+
+function openCreate() {
+    editTarget.value = null
+    form.value = defaultForm()
+    unlimited.value = { max_announcements_per_month: false, max_projects_per_month: false, max_features_per_month: false }
+    error.value = ''
+    modal.value = true
 }
 
 function openEdit(plan) {
@@ -204,6 +259,14 @@ function openEdit(plan) {
         interval_unit: plan.interval_unit,
         interval_count: plan.interval_count,
         is_active: plan.is_active,
+        max_announcements_per_month: plan.max_announcements_per_month ?? 0,
+        max_projects_per_month: plan.max_projects_per_month ?? 0,
+        max_features_per_month: plan.max_features_per_month ?? 0,
+    }
+    unlimited.value = {
+        max_announcements_per_month: plan.max_announcements_per_month == null,
+        max_projects_per_month: plan.max_projects_per_month == null,
+        max_features_per_month: plan.max_features_per_month == null,
     }
     error.value = ''
     modal.value = true
@@ -216,7 +279,13 @@ async function submitPlan() {
     }
     submitting.value = true
     error.value = ''
-    const payload = { ...form.value, interval_count: 1 }
+    const payload = {
+        ...form.value,
+        interval_count: 1,
+        max_announcements_per_month: unlimited.value.max_announcements_per_month ? null : form.value.max_announcements_per_month,
+        max_projects_per_month: unlimited.value.max_projects_per_month ? null : form.value.max_projects_per_month,
+        max_features_per_month: unlimited.value.max_features_per_month ? null : form.value.max_features_per_month,
+    }
     try {
         if (editTarget.value) {
             await api.put(`/admin/subscription/plan/${editTarget.value.id}`, payload)
@@ -233,13 +302,21 @@ async function submitPlan() {
 }
 
 async function fetchPlans() {
-    const { data } = await api.get('/admin/subscription/plans')
-    plans.value = data ?? []
+    try {
+        const { data } = await api.get('/admin/subscription/plans')
+        plans.value = data ?? []
+    } catch (err) {
+        console.error('fetchPlans error:', err)
+    }
 }
 
 async function fetchSubscriptions() {
-    const { data } = await api.get('/admin/subscriptions')
-    subscriptions.value = data ?? []
+    try {
+        const { data } = await api.get('/admin/subscriptions')
+        subscriptions.value = data.subscriptions ?? []
+    } catch (err) {
+        console.error('fetchSubscriptions error:', err)
+    }
 }
 
 onMounted(() => {

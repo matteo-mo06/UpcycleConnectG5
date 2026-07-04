@@ -635,8 +635,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import { usePolling } from "@/composables/usePolling.js";
+import { ref, computed, watch, onMounted } from "vue";
 import UserLayout from "@/Layouts/UserLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 import ReportModal from "@/Components/ReportModal.vue";
@@ -728,7 +727,8 @@ async function fetchTopics() {
         const { data } = await api.get("/forum/topics", { params });
         topics.value = data.data ?? [];
         total.value = data.total ?? 0;
-    } catch {
+    } catch (err) {
+        console.error('fetchTopics error:', err)
         topics.value = [];
         total.value = 0;
     } finally {
@@ -814,7 +814,8 @@ async function saveTopicTitle() {
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.title = data.title;
         editTopic.value = false;
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la modification du titre.')
     }
 }
 
@@ -826,7 +827,8 @@ async function deleteTopic() {
         topics.value = topics.value.filter((t) => t.id !== id);
         total.value = Math.max(total.value - 1, 0);
         closeTopic();
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la suppression du sujet.')
     }
 }
 
@@ -840,7 +842,8 @@ async function savePostBody(post) {
         openedTopic.value = data;
         editPost.value = null;
         editBody.value = "";
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la modification du message.')
     }
 }
 
@@ -853,7 +856,8 @@ async function deletePost(post) {
         openedTopic.value = data;
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.replies_count = Math.max((data.posts?.length ?? 1) - 1, 0);
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de la suppression du message.')
     }
 }
 
@@ -872,7 +876,8 @@ async function submitReply() {
         replyingTo.value = null;
         const t = topics.value.find((t) => t.id === data.id);
         if (t) t.replies_count = Math.max((data.posts?.length ?? 1) - 1, 0);
-    } catch {
+    } catch (err) {
+        alert(err?.response?.data?.error ?? 'Erreur lors de l\'envoi de la réponse.')
     } finally {
         replyLoading.value = false;
     }
@@ -880,5 +885,5 @@ async function submitReply() {
 
 watch(page, fetchTopics);
 
-usePolling(fetchTopics, 2000, () => !openedTopic.value);
+onMounted(fetchTopics);
 </script>

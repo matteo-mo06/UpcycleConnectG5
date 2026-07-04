@@ -272,20 +272,35 @@ func GetMyLimits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isPremium := db.IsUserPremium(userID)
-	if isPremium {
-		_ = json.NewEncoder(w).Encode(map[string]any{"is_premium": true})
+	sub, _ := db.GetUserActiveSubscription(userID)
+	if sub == nil {
+		annCount, _ := db.GetUserAnnouncementCount(userID)
+		projectCount, _ := db.CountUserProjects(userID)
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"is_premium":    false,
+			"announcements": map[string]int{"used": annCount, "max": 3},
+			"projects":      map[string]int{"used": projectCount, "max": 2},
+		})
 		return
 	}
 
-	annCount, _ := db.GetUserAnnouncementCount(userID)
-	projectCount, _ := db.CountUserProjects(userID)
+	resp := map[string]any{"is_premium": true, "plan": sub.Plan}
 
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"is_premium":    false,
-		"announcements": map[string]int{"used": annCount, "max": 3},
-		"projects":      map[string]int{"used": projectCount, "max": 2},
-	})
+	if sub.Plan.MaxAnnouncementsPerMonth != nil {
+		used, _ := db.GetUserAnnouncementCountThisMonth(userID)
+		resp["announcements"] = map[string]int{"used": used, "max": *sub.Plan.MaxAnnouncementsPerMonth}
+	}
+	if sub.Plan.MaxProjectsPerMonth != nil {
+		used, _ := db.CountUserProjectsThisMonth(userID)
+		resp["projects"] = map[string]int{"used": used, "max": *sub.Plan.MaxProjectsPerMonth}
+	}
+	if sub.Plan.MaxFeaturesPerMonth != nil {
+		used, _ := db.GetUserFeatureRequestCountThisMonth(userID)
+		resp["features"] = map[string]int{"used": used, "max": *sub.Plan.MaxFeaturesPerMonth}
+	}
+
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func GetMyStats(w http.ResponseWriter, r *http.Request) {
