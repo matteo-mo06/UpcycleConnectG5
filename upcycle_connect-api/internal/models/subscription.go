@@ -1,14 +1,17 @@
 package models
 
 type SubscriptionPlan struct {
-	IdPlan          string  `json:"id"`
-	Name            string  `json:"name"`
-	PriceCents      int     `json:"price_cents"`
-	IntervalUnit    string  `json:"interval_unit"`
-	IntervalCount   int     `json:"interval_count"`
-	IsActive        bool    `json:"is_active"`
-	StripePriceID   *string `json:"stripe_price_id"`
-	StripeProductID *string `json:"stripe_product_id"`
+	IdPlan                   string  `json:"id"`
+	Name                     string  `json:"name"`
+	PriceCents               int     `json:"price_cents"`
+	IntervalUnit             string  `json:"interval_unit"`
+	IntervalCount            int     `json:"interval_count"`
+	IsActive                 bool    `json:"is_active"`
+	StripePriceID            *string `json:"stripe_price_id"`
+	StripeProductID          *string `json:"stripe_product_id"`
+	MaxAnnouncementsPerMonth *int    `json:"max_announcements_per_month"`
+	MaxProjectsPerMonth      *int    `json:"max_projects_per_month"`
+	MaxFeaturesPerMonth      *int    `json:"max_features_per_month"`
 }
 
 type Subscription struct {
@@ -35,9 +38,23 @@ type UserSubscriptionSummary struct {
 }
 
 type UpdateSubscriptionPlanRequest struct {
-	Name          string `json:"name"`
-	PriceCents    int    `json:"price_cents"`
-	IntervalUnit  string `json:"interval_unit"`
-	IntervalCount int    `json:"interval_count"`
-	IsActive      bool   `json:"is_active"`
+	Name                     string `json:"name"`
+	PriceCents               int    `json:"price_cents"`
+	IntervalUnit             string `json:"interval_unit"`
+	IntervalCount            int    `json:"interval_count"`
+	IsActive                 bool   `json:"is_active"`
+	MaxAnnouncementsPerMonth *int   `json:"max_announcements_per_month"`
+	MaxProjectsPerMonth      *int   `json:"max_projects_per_month"`
+	MaxFeaturesPerMonth      *int   `json:"max_features_per_month"`
+}
+
+type CreateSubscriptionPlanRequest struct {
+	Name                     string `json:"name"`
+	PriceCents               int    `json:"price_cents"`
+	IntervalUnit             string `json:"interval_unit"`
+	IntervalCount            int    `json:"interval_count"`
+	IsActive                 bool   `json:"is_active"`
+	MaxAnnouncementsPerMonth *int   `json:"max_announcements_per_month"`
+	MaxProjectsPerMonth      *int   `json:"max_projects_per_month"`
+	MaxFeaturesPerMonth      *int   `json:"max_features_per_month"`
 }

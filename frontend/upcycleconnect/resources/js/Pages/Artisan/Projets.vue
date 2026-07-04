@@ -320,8 +320,8 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 space-y-2">
-                    <p v-if="limits && !limits.is_premium && !editTarget" class="text-xs text-gray-400 text-center">
-                        {{ limits.projects.used }}/{{ limits.projects.max }} projets créés
+                    <p v-if="limits?.projects && !editTarget" class="text-xs text-gray-400 text-center">
+                        {{ limits.projects.used }}/{{ limits.projects.max }} projets {{ limits.is_premium ? 'créés ce mois-ci' : 'créés' }}
                     </p>
                     <div class="flex justify-end gap-2">
                         <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">

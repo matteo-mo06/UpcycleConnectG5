@@ -75,12 +75,22 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
 	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
-	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
-		count, _ := db.CountUserProjects(userID)
-		if count >= 2 {
-			w.WriteHeader(http.StatusForbidden)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 2 projets atteinte, passez à l'abonnement premium pour en créer davantage"})
-			return
+	if slices.Contains(roles, config.RoleArtisan) {
+		sub, _ := db.GetUserActiveSubscription(userID)
+		if sub == nil {
+			count, _ := db.CountUserProjects(userID)
+			if count >= 2 {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 2 projets atteinte, passez à l'abonnement premium pour en créer davantage"})
+				return
+			}
+		} else if sub.Plan.MaxProjectsPerMonth != nil {
+			count, _ := db.CountUserProjectsThisMonth(userID)
+			if count >= *sub.Plan.MaxProjectsPerMonth {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("limite de %d projets par mois atteinte pour votre abonnement %s", *sub.Plan.MaxProjectsPerMonth, sub.Plan.Name)})
+				return
+			}
 		}
 	}
 
