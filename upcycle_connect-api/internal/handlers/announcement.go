@@ -102,12 +102,22 @@ func CreateUserAnnouncement(w http.ResponseWriter, r *http.Request) {
 
 	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
 
-	if slices.Contains(roles, config.RoleArtisan) && !db.IsUserPremium(userID) {
-		count, _ := db.GetUserAnnouncementCount(userID)
-		if count >= 3 {
-			w.WriteHeader(http.StatusForbidden)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 3 annonces atteinte, passez à l'abonnement premium pour en publier davantage"})
-			return
+	if slices.Contains(roles, config.RoleArtisan) {
+		sub, _ := db.GetUserActiveSubscription(userID)
+		if sub == nil {
+			count, _ := db.GetUserAnnouncementCount(userID)
+			if count >= 3 {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "limite de 3 annonces atteinte, passez à l'abonnement premium pour en publier davantage"})
+				return
+			}
+		} else if sub.Plan.MaxAnnouncementsPerMonth != nil {
+			count, _ := db.GetUserAnnouncementCountThisMonth(userID)
+			if count >= *sub.Plan.MaxAnnouncementsPerMonth {
+				w.WriteHeader(http.StatusForbidden)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("limite de %d annonces par mois atteinte pour votre abonnement %s", *sub.Plan.MaxAnnouncementsPerMonth, sub.Plan.Name)})
+				return
+			}
 		}
 	}
 

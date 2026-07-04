@@ -251,8 +251,10 @@ func InitRoutes() {
 	http.Handle("GET /user/invoices/{id}/pdf", auth(handlers.GetMySubscriptionInvoicePDF))
 	http.Handle("POST /user/subscription/checkout", auth(handlers.CreateSubscriptionCheckout))
 	http.Handle("POST /user/subscription/portal", auth(handlers.GetSubscriptionPortal))
+	http.Handle("POST /user/subscription/change", auth(handlers.ChangeSubscriptionPlan))
 
 	http.Handle("GET /admin/subscription/plans", admin(handlers.GetAdminSubscriptionPlans))
+	http.Handle("POST /admin/subscription/plans", admin(handlers.CreateAdminSubscriptionPlan))
 	http.Handle("PUT /admin/subscription/plan/{id}", admin(handlers.UpdateAdminSubscriptionPlan))
 	http.Handle("GET /admin/subscriptions", admin(handlers.GetAdminSubscriptions))
 

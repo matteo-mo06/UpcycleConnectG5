@@ -340,6 +340,15 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		if sub.Items != nil && len(sub.Items.Data) > 0 && sub.Items.Data[0].Price != nil {
+			if plan, err := db.GetSubscriptionPlanByStripePriceID(sub.Items.Data[0].Price.ID); err == nil {
+				if subID, err := db.GetSubscriptionIDByStripeID(sub.ID); err == nil {
+					if err := db.SwapSubscriptionPlan(subID, plan.IdPlan); err != nil {
+						fmt.Println("SwapSubscriptionPlan (updated) error:", err)
+					}
+				}
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		return
 

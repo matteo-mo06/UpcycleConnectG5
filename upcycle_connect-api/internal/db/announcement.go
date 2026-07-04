@@ -471,6 +471,19 @@ func GetNextFeaturedSlot() (time.Time, error) {
 	return t, err
 }
 
+func GetUserFeatureRequestCountThisMonth(userID string) (int, error) {
+	var used int
+	err := config.Conn.QueryRow(`
+		SELECT COUNT(*) FROM ANNOUNCEMENT a
+		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+		WHERE ua.id_user = ?
+		AND a.featured_requested_at IS NOT NULL
+		AND YEAR(a.featured_requested_at) = YEAR(NOW())
+		AND MONTH(a.featured_requested_at) = MONTH(NOW())
+	`, userID).Scan(&used)
+	return used, err
+}
+
 func RequestFeature(announcementID, userID string) (string, *time.Time, error) {
 	ok, err := IsAnnouncementOwner(announcementID, userID)
 	if err != nil || !ok {
@@ -485,23 +498,19 @@ func RequestFeature(announcementID, userID string) (string, *time.Time, error) {
 		return "", nil, ErrNotActive
 	}
 
-	if !IsUserPremium(userID) {
-		return "", nil, errors.New("premium required")
-	}
-
-	var used int
-	err = config.Conn.QueryRow(`
-		SELECT COUNT(*) FROM ANNOUNCEMENT a
-		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
-		WHERE ua.id_user = ?
-		AND a.featured_requested_at IS NOT NULL
-		AND YEAR(a.featured_requested_at) = YEAR(NOW())
-		AND MONTH(a.featured_requested_at) = MONTH(NOW())
-	`, userID).Scan(&used)
+	sub, err := GetUserActiveSubscription(userID)
 	if err != nil {
 		return "", nil, err
 	}
-	if used > 0 {
+	if sub == nil {
+		return "", nil, errors.New("premium required")
+	}
+
+	used, err := GetUserFeatureRequestCountThisMonth(userID)
+	if err != nil {
+		return "", nil, err
+	}
+	if sub.Plan.MaxFeaturesPerMonth != nil && used >= *sub.Plan.MaxFeaturesPerMonth {
 		return "", nil, ErrMonthlyQuota
 	}
 
