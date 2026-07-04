@@ -1,6 +1,8 @@
 .env
 upcycle_connect-api/.env
 upcycle_connect-api/tmp/
+upcycle_connect-api/invoices
+upcycle_connect-api/uploads
 node_modules/
 npm-debug.log*
 yarn-debug.log*
