@@ -14,7 +14,7 @@ app.use(router);
 app.use(i18n);
 app.use(OneSignalVuePlugin, {
     appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
-    allowLocalhostAsSecureOrigin: true,
+    allowLocalhostAsSecureOrigin: import.meta.env.DEV,
 });
 
 useAuthStore().init();

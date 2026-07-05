@@ -10,7 +10,7 @@ import (
 func GetUserById(id string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done, announcement_count
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done, announcement_count, email_verified
 		FROM USER
 		WHERE id_user = ? AND deleted_at IS NULL`, id,
 	).Scan(
@@ -26,8 +26,14 @@ func GetUserById(id string) (models.User, error) {
 		&user.AvatarUrl,
 		&user.TutorialDone,
 		&user.AnnouncementCount,
+		&user.EmailVerified,
 	)
 	return user, err
+}
+
+func SetEmailVerified(userID string) error {
+	_, err := config.Conn.Exec(`UPDATE USER SET email_verified = 1 WHERE id_user = ?`, userID)
+	return err
 }
 
 func IncrementUserAnnouncementCount(userID string) error {
@@ -388,7 +394,7 @@ func GetUserStats(userID string) (models.UserStats, error) {
 func GetUserByEmail(email string) (models.User, error) {
 	var user models.User
 	err := config.Conn.QueryRow(`
-		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done
+		SELECT id_user, email, password_user, first_name, last_name, upcycling_score, premium, status, created_at, avatar_url, tutorial_done, email_verified
 		FROM USER
 		WHERE email = ? AND deleted_at IS NULL`, email,
 	).Scan(
@@ -403,6 +409,7 @@ func GetUserByEmail(email string) (models.User, error) {
 		&user.CreatedAt,
 		&user.AvatarUrl,
 		&user.TutorialDone,
+		&user.EmailVerified,
 	)
 	return user, err
 }

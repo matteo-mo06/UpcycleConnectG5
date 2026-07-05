@@ -26,6 +26,8 @@ func InitRoutes() {
 
 	http.HandleFunc("POST /auth/login", handlers.Login)
 	http.HandleFunc("POST /auth/register", handlers.CreateUser)
+	http.HandleFunc("GET /auth/verify-email", handlers.VerifyEmail)
+	http.HandleFunc("POST /auth/resend-verification", handlers.ResendVerificationEmail)
 
 	http.Handle("PATCH /user/profile", auth(handlers.UpdateMyProfile))
 	http.Handle("PATCH /user/password", auth(handlers.UpdateMyPassword))
