@@ -8,26 +8,6 @@ import (
 	"upcycle_connect-api/internal/config"
 )
 
-func unencryptedPlainAuth(username, password string) smtp.Auth {
-	return &plainAuthNoTLS{username: username, password: password}
-}
-
-type plainAuthNoTLS struct {
-	username, password string
-}
-
-func (a *plainAuthNoTLS) Start(_ *smtp.ServerInfo) (string, []byte, error) {
-	resp := []byte("\x00" + a.username + "\x00" + a.password)
-	return "PLAIN", resp, nil
-}
-
-func (a *plainAuthNoTLS) Next(_ []byte, more bool) ([]byte, error) {
-	if more {
-		return nil, fmt.Errorf("smtp: unexpected server challenge")
-	}
-	return nil, nil
-}
-
 func SendVerificationEmail(to, link string) error {
 	host := config.SMTPHost()
 	port := config.SMTPPort()
@@ -55,7 +35,7 @@ func SendVerificationEmail(to, link string) error {
 	)
 
 	addr := host + ":" + port
-	auth := unencryptedPlainAuth(username, password)
+	auth := smtp.PlainAuth("", username, password, host)
 
 	if err := smtp.SendMail(addr, auth, from, []string{to}, []byte(msg)); err != nil {
 		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
