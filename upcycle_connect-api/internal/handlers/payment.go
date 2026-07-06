@@ -307,26 +307,35 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 
 	case "invoice.payment_succeeded":
 		var inv struct {
-			ID           string `json:"id"`
-			AmountPaid   int64  `json:"amount_paid"`
-			Currency     string `json:"currency"`
-			Subscription string `json:"subscription"`
-			Customer     string `json:"customer"`
+			ID         string `json:"id"`
+			AmountPaid int64  `json:"amount_paid"`
+			Currency   string `json:"currency"`
+			Customer   struct {
+				ID string `json:"id"`
+			} `json:"customer"`
+			Parent struct {
+				SubscriptionDetails struct {
+					Subscription struct {
+						ID string `json:"id"`
+					} `json:"subscription"`
+				} `json:"subscription_details"`
+			} `json:"parent"`
 		}
 		if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if inv.Subscription == "" || inv.AmountPaid == 0 {
+		subscriptionID := inv.Parent.SubscriptionDetails.Subscription.ID
+		if subscriptionID == "" || inv.AmountPaid == 0 {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		userID := db.GetUserIDByStripeCustomerID(inv.Customer)
+		userID := db.GetUserIDByStripeCustomerID(inv.Customer.ID)
 		if userID == "" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if err := db.StoreSubscriptionPayment(inv.ID, inv.Subscription, userID, inv.Currency, int(inv.AmountPaid)); err != nil {
+		if err := db.StoreSubscriptionPayment(inv.ID, subscriptionID, userID, inv.Currency, int(inv.AmountPaid)); err != nil {
 			fmt.Println("StoreSubscriptionPayment error:", err)
 		}
 		w.WriteHeader(http.StatusOK)
