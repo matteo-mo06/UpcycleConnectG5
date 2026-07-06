@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/smtp"
 	"os"
@@ -8,32 +10,13 @@ import (
 	"upcycle_connect-api/internal/config"
 )
 
-func unencryptedPlainAuth(username, password string) smtp.Auth {
-	return &plainAuthNoTLS{username: username, password: password}
-}
-
-type plainAuthNoTLS struct {
-	username, password string
-}
-
-func (a *plainAuthNoTLS) Start(_ *smtp.ServerInfo) (string, []byte, error) {
-	resp := []byte("\x00" + a.username + "\x00" + a.password)
-	return "PLAIN", resp, nil
-}
-
-func (a *plainAuthNoTLS) Next(_ []byte, more bool) ([]byte, error) {
-	if more {
-		return nil, fmt.Errorf("smtp: unexpected server challenge")
-	}
-	return nil, nil
-}
-
 func SendVerificationEmail(to, link string) error {
 	host := config.SMTPHost()
 	port := config.SMTPPort()
 	username := config.SMTPUsername()
 	password := config.SMTPPassword()
 	from := config.MailFrom()
+	certPEM := config.SMTPTLSCert()
 
 	if host == "" || port == "" || username == "" || password == "" || from == "" {
 		err := fmt.Errorf("configuration SMTP incomplète (SMTP_HOST/SMTP_PORT/SMTP_USERNAME/SMTP_PASSWORD/MAIL_FROM)")
@@ -55,11 +38,56 @@ func SendVerificationEmail(to, link string) error {
 	)
 
 	addr := host + ":" + port
-	auth := unencryptedPlainAuth(username, password)
 
-	if err := smtp.SendMail(addr, auth, from, []string{to}, []byte(msg)); err != nil {
+	c, err := smtp.Dial(addr)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
 		return err
 	}
-	return nil
+	defer c.Close()
+
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		tlsConfig := &tls.Config{ServerName: host}
+		if certPEM != "" {
+			pool := x509.NewCertPool()
+			if pool.AppendCertsFromPEM([]byte(certPEM)) {
+				tlsConfig.RootCAs = pool
+			}
+		}
+		if err := c.StartTLS(tlsConfig); err != nil {
+			fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+			return err
+		}
+	}
+
+	auth := smtp.PlainAuth("", username, password, host)
+	if err := c.Auth(auth); err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+
+	if err := c.Mail(from); err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+	if err := c.Rcpt(to); err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+
+	w, err := c.Data()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+	if _, err := w.Write([]byte(msg)); err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+	if err := w.Close(); err != nil {
+		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
+		return err
+	}
+
+	return c.Quit()
 }

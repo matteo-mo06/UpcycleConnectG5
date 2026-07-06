@@ -33,6 +33,7 @@ func SMTPPort() string     { return os.Getenv("SMTP_PORT") }
 func SMTPUsername() string { return os.Getenv("SMTP_USERNAME") }
 func SMTPPassword() string { return os.Getenv("SMTP_PASSWORD") }
 func MailFrom() string     { return os.Getenv("MAIL_FROM") }
+func SMTPTLSCert() string  { return os.Getenv("SMTP_TLS_CERT") }
 
 func InvoicesDir() string {
 	if d := os.Getenv("INVOICES_DIR"); d != "" {
