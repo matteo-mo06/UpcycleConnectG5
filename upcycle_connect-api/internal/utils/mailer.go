@@ -206,8 +206,8 @@ func SendProfessionalApprovedEmail(to string) error {
 func SendAnnouncementSoldEmail(to, announcementTitle string) error {
 	subject := "Votre annonce a été achetée - UpcycleConnect"
 	body := "Bonjour,\r\n\r\n" +
-		"Votre annonce \"" + announcementTitle + "\" vient d'être achetée.\r\n" +
-		"Connectez-vous à votre espace UpcycleConnect pour voir les détails.\r\n"
+		"Votre annonce \"" + announcementTitle + "\" vient d'être achetée.\r\n\r\n" +
+		config.FrontendURL() + "/annonces?tab=mine\r\n"
 
 	return sendPlainTextEmail(to, subject, body, "SendAnnouncementSoldEmail")
 }
