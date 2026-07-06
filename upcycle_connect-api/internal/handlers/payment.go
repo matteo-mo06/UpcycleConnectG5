@@ -306,36 +306,32 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "invoice.payment_succeeded":
-		var inv struct {
-			ID         string `json:"id"`
-			AmountPaid int64  `json:"amount_paid"`
-			Currency   string `json:"currency"`
-			Customer   struct {
-				ID string `json:"id"`
-			} `json:"customer"`
-			Parent struct {
-				SubscriptionDetails struct {
-					Subscription struct {
-						ID string `json:"id"`
-					} `json:"subscription"`
-				} `json:"subscription_details"`
-			} `json:"parent"`
-		}
+		var inv stripe.Invoice
 		if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+			fmt.Println("invoice.payment_succeeded unmarshal error:", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		subscriptionID := inv.Parent.SubscriptionDetails.Subscription.ID
+		subscriptionID := ""
+		if inv.Parent != nil && inv.Parent.SubscriptionDetails != nil && inv.Parent.SubscriptionDetails.Subscription != nil {
+			subscriptionID = inv.Parent.SubscriptionDetails.Subscription.ID
+		}
 		if subscriptionID == "" || inv.AmountPaid == 0 {
+			fmt.Println("invoice.payment_succeeded skipped: subscriptionID or amount empty")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		userID := db.GetUserIDByStripeCustomerID(inv.Customer.ID)
+		customerID := ""
+		if inv.Customer != nil {
+			customerID = inv.Customer.ID
+		}
+		userID := db.GetUserIDByStripeCustomerID(customerID)
 		if userID == "" {
+			fmt.Println("invoice.payment_succeeded: no local user found for Stripe customer", customerID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if err := db.StoreSubscriptionPayment(inv.ID, subscriptionID, userID, inv.Currency, int(inv.AmountPaid)); err != nil {
+		if err := db.StoreSubscriptionPayment(inv.ID, subscriptionID, userID, string(inv.Currency), int(inv.AmountPaid)); err != nil {
 			fmt.Println("StoreSubscriptionPayment error:", err)
 		}
 		w.WriteHeader(http.StatusOK)
