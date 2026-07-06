@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v85"
 
 	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
@@ -23,6 +25,13 @@ func DeleteMyAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
+	if sub, err := db.GetUserActiveSubscription(userID); err == nil && sub != nil && sub.StripeSubscriptionID != nil {
+		client := stripe.NewClient(config.StripeSecretKey())
+		if _, err := client.V1Subscriptions.Cancel(context.Background(), *sub.StripeSubscriptionID, nil); err != nil {
+			fmt.Println("DeleteMyAccount cancel subscription error:", err)
+		}
+	}
 
 	if err := db.DeleteUser(userID); err != nil {
 		fmt.Println("DeleteMyAccount error:", err)
@@ -429,6 +438,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to find user"})
 		return
+	}
+
+	if sub, err := db.GetUserActiveSubscription(id); err == nil && sub != nil && sub.StripeSubscriptionID != nil {
+		client := stripe.NewClient(config.StripeSecretKey())
+		if _, err := client.V1Subscriptions.Cancel(context.Background(), *sub.StripeSubscriptionID, nil); err != nil {
+			fmt.Println("DeleteUser cancel subscription error:", err)
+		}
 	}
 
 	err = db.DeleteUser(id)
