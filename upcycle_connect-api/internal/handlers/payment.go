@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -69,8 +70,8 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commissionRate, _ := db.GetCommissionRate()
-	priceCents := int64(ann.Price * 100)
-	commissionCents := int64(float64(priceCents) * commissionRate / 100.0)
+	priceCents := int64(math.Round(ann.Price * 100))
+	commissionCents := int64(math.Round(float64(priceCents) * commissionRate / 100.0))
 	totalCents := priceCents + commissionCents
 
 	client := stripe.NewClient(config.StripeSecretKey())
@@ -143,7 +144,7 @@ func CreateFormationPaymentIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	priceCents := int64(*formation.Price * 100)
+	priceCents := int64(math.Round(*formation.Price * 100))
 
 	client := stripe.NewClient(config.StripeSecretKey())
 
@@ -264,7 +265,10 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				commissionCents, _ := strconv.Atoi(session.Metadata["commission_cents"])
+				commissionCents, err := strconv.Atoi(session.Metadata["commission_cents"])
+				if err != nil {
+					fmt.Println("commission_cents metadata parse error:", err)
+				}
 				piID := ""
 				if session.PaymentIntent != nil {
 					piID = session.PaymentIntent.ID
