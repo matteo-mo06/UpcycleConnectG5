@@ -231,6 +231,37 @@ func UnassignLocker(announcementID string) error {
 	return err
 }
 
+func GetAnnouncementIDByLocker(lockerID string) (string, error) {
+	var announcementID string
+	err := config.Conn.QueryRow(
+		"SELECT id_announcement FROM ANNOUNCEMENT_LOCKER WHERE id_locker = ?", lockerID,
+	).Scan(&announcementID)
+	return announcementID, err
+}
+
+func ReleaseLocker(announcementID string) error {
+	tx, err := config.Conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err = tx.Exec(
+		"DELETE FROM ANNOUNCEMENT_LOCKER WHERE id_announcement = ?",
+		announcementID,
+	); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(
+		"UPDATE ANNOUNCEMENT SET state_annoucement = 'Récupéré' WHERE id_announcement = ?",
+		announcementID,
+	); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func UpdateLockerAccessCode(id, code string) error {
 	var count int
 	if err := config.Conn.QueryRow(

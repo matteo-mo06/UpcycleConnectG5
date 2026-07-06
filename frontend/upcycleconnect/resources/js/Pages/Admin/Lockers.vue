@@ -145,6 +145,16 @@
                                         </svg>
                                     </button>
                                     <button
+                                        v-if="locker.occupied"
+                                        @click="confirmRelease(locker)"
+                                        title="Libérer le casier"
+                                        class="p-1.5 rounded-lg text-gray-400 hover:text-secondary hover:bg-secondary/10 transition-colors"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-8 4h9a1 1 0 011 1v7a1 1 0 01-1 1H7a1 1 0 01-1-1v-7a1 1 0 011-1z"/>
+                                        </svg>
+                                    </button>
+                                    <button
                                         v-if="!locker.occupied"
                                         @click="confirmDelete(locker)"
                                         title="Supprimer le casier"
@@ -287,6 +297,29 @@
             </div>
         </div>
 
+        <div v-if="toRelease" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/40" @click="toRelease = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">Libérer le casier #{{ toRelease.number }} ?</h3>
+                <p class="text-sm text-gray-500 mb-5">L'objet a été récupéré : l'annonce associée passera au statut « Récupéré » et le casier redeviendra libre.</p>
+                <div class="flex gap-3">
+                    <button
+                        @click="toRelease = null"
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="releaseLocker"
+                        :disabled="releasing"
+                        class="flex-1 py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary-dark transition-colors disabled:opacity-60"
+                    >
+                        {{ releasing ? 'Libération…' : 'Libérer' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
@@ -311,6 +344,8 @@ const addError = ref('')
 const pendingRequests = ref([])
 const toRejectRequest = ref(null)
 const rejectingRequest = ref(false)
+const toRelease = ref(null)
+const releasing = ref(false)
 
 const stats = computed(() => [
     {
@@ -462,6 +497,28 @@ async function deleteLocker() {
         }
     } finally {
         deleting.value = false
+    }
+}
+
+function confirmRelease(locker) {
+    toRelease.value = locker
+}
+
+async function releaseLocker() {
+    if (!toRelease.value) return
+    releasing.value = true
+    try {
+        await api.post(`/admin/locker/${toRelease.value.id}/release`)
+        toRelease.value = null
+        await fetchLockers()
+    } catch (e) {
+        if (e?.response?.status === 409) {
+            alert('Ce casier est déjà libre.')
+        } else {
+            alert('Erreur lors de la libération du casier.')
+        }
+    } finally {
+        releasing.value = false
     }
 }
 </script>

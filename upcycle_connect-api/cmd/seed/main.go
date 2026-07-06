@@ -46,8 +46,8 @@ func main() {
 		// L'utilisateur n'existe pas → on le crée
 		userID = uuid.New().String()
 		_, err = db.Exec(
-			`INSERT INTO user (id_user, email, password_user, first_name, last_name, upcycling_score, premium, created_at, status)
-			 VALUES (?, ?, ?, 'Admin', 'Upcycle', 0, 0, ?, 'active')`,
+			`INSERT INTO user (id_user, email, password_user, first_name, last_name, upcycling_score, premium, created_at, status, email_verified)
+			 VALUES (?, ?, ?, 'Admin', 'Upcycle', 0, 0, ?, 'active', 1)`,
 			userID, email, string(hash), time.Now(),
 		)
 		if err != nil {
@@ -63,7 +63,7 @@ func main() {
 
 	} else if err == nil {
 		// L'utilisateur existe déjà (ex: admin hardcodé en migration) → on met à jour le mot de passe
-		_, err = db.Exec("UPDATE user SET password_user = ? WHERE id_user = ?", string(hash), userID)
+		_, err = db.Exec("UPDATE user SET password_user = ?, email_verified = 1 WHERE id_user = ?", string(hash), userID)
 		if err != nil {
 			fmt.Println("Erreur lors de la mise à jour du mot de passe :", err)
 			os.Exit(1)

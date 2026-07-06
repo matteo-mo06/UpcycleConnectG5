@@ -178,6 +178,7 @@ func InitRoutes() {
 	http.Handle("POST /admin/lockers", perm("manage_lockers", handlers.CreateLocker))
 	http.Handle("DELETE /admin/locker/{id}", perm("manage_lockers", handlers.DeleteLocker))
 	http.Handle("PATCH /admin/locker/{id}/access-code", perm("manage_lockers", handlers.UpdateLockerAccessCode))
+	http.Handle("POST /admin/locker/{id}/release", perm("manage_lockers", handlers.ReleaseLocker))
 
 	http.Handle("GET /user/my-events", perm("create_event", handlers.GetMyCreatedEvents))
 

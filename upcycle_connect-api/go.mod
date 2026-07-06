@@ -3,6 +3,7 @@ module upcycle_connect-api
 go 1.25.1
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.15.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
