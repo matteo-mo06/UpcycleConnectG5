@@ -8,33 +8,34 @@
             <p class="text-sm text-gray-400 mt-1">Consultez et supprimez les sujets et réponses</p>
         </div>
 
-        <div class="flex gap-3 mb-6">
-            <div class="flex-1 relative">
-                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
-                </svg>
-                <input
-                    v-model="search"
-                    @input="debouncedFetch"
-                    type="text"
-                    placeholder="Rechercher"
-                    class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="debouncedFetch"
+                        type="text"
+                        placeholder="Rechercher"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                </div>
             </div>
-        </div>
 
-        <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="topics.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center">
-            <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-            <p class="text-gray-400 text-sm">Aucun sujet pour le moment.</p>
-        </div>
+            <div v-else-if="topics.length === 0" class="py-12 text-center">
+                <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <p class="text-gray-400 text-sm">Aucun sujet pour le moment.</p>
+            </div>
 
-        <div v-else class="space-y-3">
-            <div
-                v-for="topic in topics"
+            <div v-else class="space-y-3 p-6">
+                <div
+                    v-for="topic in topics"
                 :key="topic.id"
                 class="bg-white rounded-2xl shadow-sm px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow"
             >
@@ -68,15 +69,16 @@
                     </button>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <Pagination
-            v-if="total > LIMIT"
-            :page="page"
-            :total="total"
-            :limit="LIMIT"
-            @update:page="changePage"
-        />
+            <Pagination
+                v-if="total > LIMIT"
+                :page="page"
+                :total="total"
+                :limit="LIMIT"
+                @update:page="changePage"
+            />
+        </div>
 
         <div
             v-if="selected || selectedLoading || selectedError"

@@ -12,49 +12,50 @@
             </p>
         </div>
 
-        <div class="flex gap-3 mb-6">
-            <div class="flex-1 relative">
-                <svg
-                    class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"
+                        />
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="debouncedFetch"
+                        type="text"
+                        placeholder="Rechercher un conseil…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                </svg>
-                <input
-                    v-model="search"
-                    @input="debouncedFetch"
-                    type="text"
-                    placeholder="Rechercher un conseil…"
-                    class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                </div>
+                <select
+                    v-model="filterCategory"
+                    @change="debouncedFetch"
+                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                    <option value="">Tous les thèmes</option>
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                        {{ cat.name }}
+                    </option>
+                </select>
             </div>
-            <select
-                v-model="filterCategory"
-                @change="debouncedFetch"
-                class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">
+                Chargement…
+            </div>
+
+            <div
+                v-else-if="conseils.length === 0"
+                class="py-12 text-center"
             >
-                <option value="">Tous les thèmes</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                </option>
-            </select>
-        </div>
-
-        <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-            Chargement…
-        </div>
-
-        <div
-            v-else-if="conseils.length === 0"
-            class="bg-white rounded-2xl shadow-sm p-12 text-center"
-        >
             <svg
                 class="w-12 h-12 text-gray-200 mx-auto mb-3"
                 fill="none"
@@ -73,7 +74,7 @@
             </p>
         </div>
 
-        <div v-else class="grid grid-cols-3 gap-5">
+        <div v-else class="grid grid-cols-3 gap-5 p-6">
             <div
                 v-for="conseil in conseils"
                 :key="conseil.id"
@@ -103,7 +104,19 @@
                 <p class="text-xs text-gray-500 line-clamp-3">
                     {{ conseil.description }}
                 </p>
-                <div class="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50">
+                <div class="flex items-center gap-2 mt-auto pt-2 border-t border-gray-50 flex-wrap">
+                    <span
+                        class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="priorityBadge(conseil.priority).class"
+                    >
+                        {{ priorityBadge(conseil.priority).label }}
+                    </span>
+                    <span
+                        v-if="conseil.is_expired"
+                        class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium"
+                    >
+                        Expiré
+                    </span>
                     <span
                         v-if="conseil.category_name"
                         class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
@@ -112,6 +125,7 @@
                     </span>
                     <span class="text-xs text-gray-400 ml-auto">{{ conseil.creator_name }}</span>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -173,8 +187,10 @@
                         </a>
                     </div>
 
-                    <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
-                        <span>{{ selected.creator_name }}</span>
+                    <div class="flex items-center gap-3 text-xs text-gray-400 pt-2 border-t border-gray-50">
+                        <span v-if="selected.is_expired" class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Expiré</span>
+                        <span v-else-if="selected.date_advice">Valable jusqu'au {{ selected.date_advice.slice(0, 10) }}</span>
+                        <span class="ml-auto">{{ selected.creator_name }}</span>
                         <span>{{ selected.created_at?.slice(0, 10) }}</span>
                     </div>
                 </div>
@@ -204,6 +220,16 @@ const filterCategory = ref('')
 const selected = ref(null)
 const selectedDocs = ref([])
 const docsLoading = ref(false)
+
+const priorityBadges = {
+    1: { label: 'Haute', class: 'bg-primary/10 text-primary' },
+    2: { label: 'Moyenne', class: 'bg-amber-100 text-amber-700' },
+    3: { label: 'Basse', class: 'bg-gray-100 text-gray-500' },
+}
+
+function priorityBadge(p) {
+    return priorityBadges[p] ?? priorityBadges[2]
+}
 
 let debounceTimer = null
 function debouncedFetch() {

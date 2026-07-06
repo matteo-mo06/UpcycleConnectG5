@@ -162,7 +162,7 @@ func GetMyAnnouncements(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
-	list, err := db.GetUserAnnouncements(userID)
+	list, err := db.GetUserAnnouncements(userID, r.URL.Query().Get("search"))
 	if err != nil {
 		fmt.Println("GetMyAnnouncements error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -284,6 +284,25 @@ func RejectAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}()
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "annonce rejetée"})
+}
+
+func GetDeletedAnnouncements(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	announcements, err := db.GetDeletedAnnouncements()
+	if err != nil {
+		fmt.Println("GetDeletedAnnouncements error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch announcements"})
+		return
+	}
+
+	if announcements == nil {
+		announcements = []models.Announcement{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(announcements)
 }
 
 func GetAnnouncementStats(w http.ResponseWriter, r *http.Request) {

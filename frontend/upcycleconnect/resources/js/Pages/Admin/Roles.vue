@@ -85,7 +85,7 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="modal.open = false">
             <div class="absolute inset-0 bg-black/40" @click="modal.open = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <div>
@@ -103,28 +103,67 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 overflow-y-auto space-y-5">
+                <div class="px-6 py-5 overflow-y-auto space-y-5 flex-1">
                     <div
                         v-for="cat in permissionCategories"
                         :key="cat.domain">
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{{cat.domain}}</p>
+                        <p v-if="cat.domain === 'espaces'" class="text-xs text-gray-400 mb-2">
+                            Un seul espace accessible à la fois (ou aucun).
+                        </p>
                         <div class="space-y-1.5">
-                            <label
-                                v-for="perm in cat.perms"
-                                :key="perm.id"
-                                class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors duration-150"
-                                :class="(isAdminRole || modal.permIds.includes(perm.id))
-                                    ? 'border-primary/30 bg-primary/5'
-                                    : 'border-gray-100 hover:border-gray-200'">
-                                <input
-                                    type="checkbox"
-                                    :checked="isAdminRole || modal.permIds.includes(perm.id)"
-                                    :disabled="isAdminRole"
-                                    @change="togglePerm(perm.id)"
-                                    class="accent-primary w-3.5 h-3.5"
-                                />
-                                <p class="text-sm text-gray-800">{{perm.name}}</p>
-                            </label>
+                            <template v-if="cat.domain === 'espaces'">
+                                <label
+                                    class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors duration-150"
+                                    :class="(!isAdminRole && !cat.perms.some(p => modal.permIds.includes(p.id)))
+                                        ? 'border-primary/30 bg-primary/5'
+                                        : 'border-gray-100 hover:border-gray-200'">
+                                    <input
+                                        type="radio"
+                                        name="espace-access"
+                                        :checked="!isAdminRole && !cat.perms.some(p => modal.permIds.includes(p.id))"
+                                        :disabled="isAdminRole"
+                                        @change="selectSpacePermission(null, cat.perms)"
+                                        class="accent-primary w-3.5 h-3.5"
+                                    />
+                                    <p class="text-sm text-gray-800">Aucun accès spécifique</p>
+                                </label>
+                                <label
+                                    v-for="perm in cat.perms"
+                                    :key="perm.id"
+                                    class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors duration-150"
+                                    :class="(isAdminRole || modal.permIds.includes(perm.id))
+                                        ? 'border-primary/30 bg-primary/5'
+                                        : 'border-gray-100 hover:border-gray-200'">
+                                    <input
+                                        type="radio"
+                                        name="espace-access"
+                                        :checked="isAdminRole || modal.permIds.includes(perm.id)"
+                                        :disabled="isAdminRole"
+                                        @change="selectSpacePermission(perm.id, cat.perms)"
+                                        class="accent-primary w-3.5 h-3.5"
+                                    />
+                                    <p class="text-sm text-gray-800">{{perm.name}}</p>
+                                </label>
+                            </template>
+                            <template v-else>
+                                <label
+                                    v-for="perm in cat.perms"
+                                    :key="perm.id"
+                                    class="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors duration-150"
+                                    :class="(isAdminRole || modal.permIds.includes(perm.id))
+                                        ? 'border-primary/30 bg-primary/5'
+                                        : 'border-gray-100 hover:border-gray-200'">
+                                    <input
+                                        type="checkbox"
+                                        :checked="isAdminRole || modal.permIds.includes(perm.id)"
+                                        :disabled="isAdminRole"
+                                        @change="togglePerm(perm.id)"
+                                        class="accent-primary w-3.5 h-3.5"
+                                    />
+                                    <p class="text-sm text-gray-800">{{perm.name}}</p>
+                                </label>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -307,6 +346,13 @@ function togglePerm(permId) {
     const idx = modal.value.permIds.indexOf(permId)
     if (idx === -1) modal.value.permIds.push(permId)
     else modal.value.permIds.splice(idx, 1)
+}
+
+function selectSpacePermission(permId, groupPerms) {
+    if (isAdminRole.value) return
+    const groupIds = groupPerms.map(p => p.id)
+    modal.value.permIds = modal.value.permIds.filter(id => !groupIds.includes(id))
+    if (permId) modal.value.permIds.push(permId)
 }
 
 function openEdit(role) {

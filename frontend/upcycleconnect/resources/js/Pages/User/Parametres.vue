@@ -190,7 +190,7 @@
                     </form>
                 </div>
 
-                <div v-if="!isArtisan" class="bg-white rounded-2xl shadow-sm p-5">
+                <div v-if="canRequestPro" class="bg-white rounded-2xl shadow-sm p-5">
                     <h2
                         class="font-semibold text-gray-800 mb-1"
                         style="font-family: var(--font-family-title)"
@@ -567,6 +567,7 @@ const showConfirm = ref(false);
 const proRequest = ref(null);
 const proSubmitting = ref(false);
 const isArtisan = computed(() => auth.user?.roles?.includes("artisan") ?? false);
+const canRequestPro = computed(() => !auth.isArtisan && !auth.isSalarie && !auth.isAdmin);
 
 const stripeStatus = ref({ connected: false, charges_enabled: false })
 const stripeLoading = ref(false)

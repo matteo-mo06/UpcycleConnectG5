@@ -14,45 +14,47 @@
             </div>
         </div>
 
-        <div class="flex gap-3 mb-6">
-            <div class="flex-1 relative">
-                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
-                </svg>
-                <input
-                    v-model="search"
-                    @input="debouncedSearch"
-                    type="text"
-                    placeholder="Rechercher un projet…"
-                    class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="debouncedSearch"
+                        type="text"
+                        placeholder="Rechercher un projet…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                </div>
+                <select
+                    v-model="filterStatus"
+                    @change="resetAndFetch"
+                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                    <option value="">Tous les statuts</option>
+                    <option value="open">Ouvert</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="completed">Terminé</option>
+                </select>
             </div>
-            <select
-                v-model="filterStatus"
-                class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+
+            <div v-if="loading" class="py-12 text-center text-sm text-gray-400">
+                Chargement…
+            </div>
+
+            <div
+                v-else-if="publicProjects.length === 0"
+                class="py-12 text-center"
             >
-                <option value="">Tous les statuts</option>
-                <option value="open">Ouvert</option>
-                <option value="in_progress">En cours</option>
-                <option value="completed">Terminé</option>
-            </select>
-        </div>
+                <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <p class="text-gray-400 text-sm">Aucun projet disponible pour le moment.</p>
+            </div>
 
-        <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-sm text-gray-400">
-            Chargement…
-        </div>
-
-        <div
-            v-else-if="publicProjects.length === 0"
-            class="bg-white rounded-2xl shadow-sm p-12 text-center"
-        >
-            <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            <p class="text-gray-400 text-sm">Aucun projet disponible pour le moment.</p>
-        </div>
-
-        <div v-else class="grid grid-cols-3 gap-5">
+            <div v-else class="grid grid-cols-3 gap-5 p-6">
             <div
                 v-for="project in projects"
                 :key="project.id"
@@ -97,16 +99,17 @@
                     <span v-else-if="isFull(project)" class="text-xs text-gray-400">Complet</span>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+            <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+        </div>
 
         <div
             v-if="selected"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
             @click.self="selected = null"
         >
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
                     <h2 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ selected.title }}
@@ -167,6 +170,20 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <p class="text-sm text-secondary font-medium">Vous êtes membre de ce projet</p>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pièces jointes</p>
+                        <p v-if="docsLoading" class="text-xs text-gray-400">Chargement…</p>
+                        <p v-else-if="documents.length === 0" class="text-xs text-gray-400">Aucune pièce jointe.</p>
+                        <div v-else class="flex gap-2 flex-wrap">
+                            <template v-for="doc in documents" :key="doc.id">
+                                <video v-if="isVideo(doc.link)" :src="doc.link" controls class="w-24 h-24 rounded-lg border border-gray-100 object-cover" />
+                                <a v-else :href="doc.link" target="_blank" class="block w-24 h-24 rounded-lg overflow-hidden border border-gray-100">
+                                    <img :src="doc.link" class="w-full h-full object-cover" />
+                                </a>
+                            </template>
+                        </div>
                     </div>
 
                     <div class="border-t border-gray-100 pt-4">
@@ -287,6 +304,24 @@ const materials = ref([])
 const steps = ref([])
 const participants = ref([])
 const participantsLoading = ref(false)
+const documents = ref([])
+const docsLoading = ref(false)
+
+function isVideo(link) {
+    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(link)
+}
+
+async function loadDocuments(id) {
+    docsLoading.value = true
+    try {
+        const { data } = await api.get(`/projects/${id}/documents`)
+        documents.value = data ?? []
+    } catch {
+        documents.value = []
+    } finally {
+        docsLoading.value = false
+    }
+}
 
 const canRegister = computed(() => auth.hasPermission('register_project'))
 
@@ -303,6 +338,11 @@ function debouncedSearch() {
     clearTimeout(debounceTimer)
     page.value = 1
     debounceTimer = setTimeout(fetchProjects, 300)
+}
+
+function resetAndFetch() {
+    page.value = 1
+    fetchProjects()
 }
 
 function statusLabel(status) {
@@ -372,6 +412,7 @@ async function fetchProjects(silent = false) {
     try {
         const params = { page: page.value, limit: 15 }
         if (search.value) params.search = search.value
+        if (filterStatus.value) params.status = filterStatus.value
         const { data } = await api.get('/projects', { params })
         projects.value = data.data ?? []
         total.value = data.total ?? 0
@@ -403,10 +444,13 @@ watch(page, fetchProjects)
 watch(selected, async (p) => {
     materials.value = []
     steps.value = []
+    documents.value = []
+    docsLoading.value = false
     participants.value = []
     participantsLoading.value = false
     if (!p) return
     loadParticipants(`/projects/${p.id}/members`)
+    loadDocuments(p.id)
     try {
         const [mRes, sRes] = await Promise.all([
             api.get(`/projects/${p.id}/materials`),

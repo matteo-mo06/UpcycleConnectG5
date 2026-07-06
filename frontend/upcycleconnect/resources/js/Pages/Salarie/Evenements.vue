@@ -14,39 +14,39 @@
             </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-                </svg>
-                <input
-                    v-model="search"
-                    @input="onSearchInput"
-                    type="text"
-                    placeholder="Rechercher un événement…"
-                    class="pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="onSearchInput"
+                        type="text"
+                        placeholder="Rechercher un événement…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                </div>
+                <select
+                    v-model="filterStatus"
+                    @change="resetAndFetch"
+                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                    <option value="">Tous les statuts</option>
+                    <option value="pending">En attente</option>
+                    <option value="approved">À venir</option>
+                    <option value="rejected">Refusé</option>
+                </select>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ total }} événement(s)</span>
             </div>
-            <select
-                v-model="filterStatus"
-                @change="resetAndFetch"
-                class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white"
-            >
-                <option value="">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">À venir</option>
-                <option value="rejected">Refusé</option>
-            </select>
-            <span class="text-xs text-gray-400">{{ total }} événement(s)</span>
-        </div>
 
-        <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">Chargement…</div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="events.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-            {{ filterStatus || search ? 'Aucun événement pour ce filtre.' : 'Vous n\'avez créé aucun événement.' }}
-        </div>
+            <div v-else-if="events.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                {{ filterStatus || search ? 'Aucun événement pour ce filtre.' : 'Vous n\'avez créé aucun événement.' }}
+            </div>
 
-        <div v-else class="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div class="divide-y divide-gray-50">
+            <div v-else class="divide-y divide-gray-50">
                 <div
                     v-for="event in events"
                     :key="event.id"
@@ -68,7 +68,7 @@
                         </div>
                         <div v-if="event.status === 'rejected' && event.rejection_reason" class="text-xs text-red-500 mt-0.5">{{ event.rejection_reason }}</div>
                         <div class="flex items-center gap-3 text-xs text-gray-500">
-                            <span v-if="event.location">{{ event.location }}</span>
+                            <span v-if="event.city || event.address">{{ event.city || event.address }}</span>
                             <span v-if="event.time">{{ event.time }}</span>
                             <span v-if="event.capacity">{{ event.registered }}/{{ event.capacity }} places</span>
                         </div>
@@ -84,13 +84,13 @@
                     </button>
                 </div>
             </div>
-        </div>
 
-        <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+            <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+        </div>
 
         <div v-if="selectedEvent" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="selectedEvent = null"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selectedEvent.title }}</h3>
                     <button @click="selectedEvent = null" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
@@ -112,7 +112,8 @@
                             {{ selectedEvent.dayNum }} {{ selectedEvent.monthShort }}
                             <span v-if="selectedEvent.time"> · {{ selectedEvent.time }}</span>
                         </div>
-                        <div v-if="selectedEvent.location"><span class="font-medium text-gray-700">Lieu :</span> {{ selectedEvent.location }}</div>
+                        <div v-if="selectedEvent.address"><span class="font-medium text-gray-700">Adresse :</span> {{ selectedEvent.address }}</div>
+                        <div v-if="selectedEvent.city"><span class="font-medium text-gray-700">Ville :</span> {{ selectedEvent.postal ? selectedEvent.postal + ' ' : '' }}{{ selectedEvent.city }}</div>
                         <div v-if="selectedEvent.capacity"><span class="font-medium text-gray-700">Places :</span> {{ selectedEvent.registered }}/{{ selectedEvent.capacity }}</div>
                         <div>
                             <span class="font-medium text-gray-700">Tarif :</span>
@@ -164,8 +165,8 @@
 
         <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ editTarget ? 'Modifier l\'événement' : 'Créer un événement' }}
                     </h3>
@@ -175,39 +176,51 @@
                         </svg>
                     </button>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input v-model="form.title" type="text"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                             placeholder="Titre de l'événement" />
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea v-model="form.description" rows="3"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                             placeholder="Description de l'événement…" />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse <span class="text-red-400">*</span></label>
+                            <input v-model="form.address" type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse de l'événement" />
+                        </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date & heure <span class="text-red-400">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                            <input v-model="form.city" type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Paris" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
+                            <input v-model="form.postal" type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="75001" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date & heure <span class="text-red-400">*</span></label>
                             <input v-model="form.date" type="datetime-local" :min="minDateTime"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
-                            <input v-model="form.location" type="text"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                                placeholder="Adresse ou ville" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacité</label>
                             <input v-model.number="form.capacity" type="number" min="1"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="0 = illimitée" />
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
                             <input v-model.number="form.priceEuros" type="number" min="0" step="0.01"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="0 = gratuit" />
@@ -215,13 +228,13 @@
                     </div>
                     <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <button @click="formModal = false" class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         Annuler
                     </button>
                     <button @click="submitForm" :disabled="submitting"
                         class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Créer') }}
+                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Enregistrer' : 'Créer') }}
                     </button>
                 </div>
             </div>
@@ -276,7 +289,7 @@ const formModal = ref(false)
 const editTarget = ref(null)
 const submitting = ref(false)
 const formError = ref('')
-const form = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
+const form = ref({ title: '', description: '', date: '', address: '', city: '', postal: '', capacity: null, priceEuros: 0 })
 
 const MONTHS_SHORT = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc']
 
@@ -290,7 +303,9 @@ function mapEvent(e) {
     return {
         id: e.id,
         title: e.title,
-        location: e.location ?? null,
+        address: e.address ?? null,
+        city: e.city ?? null,
+        postal: e.postal ?? null,
         date: e.date?.slice(0, 10) ?? '-',
         time: e.date?.slice(11, 16) ?? null,
         dayNum: e.date?.slice(8, 10) ?? '-',
@@ -353,7 +368,7 @@ async function deleteEvent() {
 
 function openCreate() {
     editTarget.value = null
-    form.value = { title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 }
+    form.value = { title: '', description: '', date: '', address: '', city: '', postal: '', capacity: null, priceEuros: 0 }
     formError.value = ''
     formModal.value = true
 }
@@ -365,7 +380,9 @@ function openEditFromDetail(event) {
         title: event.title,
         description: event._raw?.description ?? '',
         date: event._raw?.date ? event._raw.date.slice(0, 16) : '',
-        location: event.location ?? '',
+        address: event.address ?? '',
+        city: event.city ?? '',
+        postal: event.postal ?? '',
         capacity: event.capacity || null,
         priceEuros: event._raw?.price_cents ? event._raw.price_cents / 100 : 0,
     }
@@ -384,7 +401,9 @@ async function submitForm() {
             title: form.value.title,
             description: form.value.description || null,
             date: form.value.date || null,
-            location: form.value.location || null,
+            address: form.value.address || null,
+            city: form.value.city || null,
+            postal: form.value.postal || null,
             capacity: form.value.capacity || null,
             price_cents: Math.round((form.value.priceEuros || 0) * 100),
         }

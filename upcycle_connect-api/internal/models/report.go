@@ -46,7 +46,8 @@ type UserHistorySummary struct {
 }
 
 type UserHistory struct {
-	Status          string     `json:"status"`
-	Sanctions       []Sanction `json:"sanctions"`
-	ReportsReceived []Report   `json:"reports_received"`
+	Status               string                `json:"status"`
+	Sanctions            []Sanction            `json:"sanctions"`
+	ReportsReceived      []Report              `json:"reports_received"`
+	ProfessionalRequests []ProfessionalRequest `json:"professional_requests"`
 }

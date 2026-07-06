@@ -120,6 +120,12 @@ func GetUserHistory(userId string) (models.UserHistory, error) {
 	}
 	h.Sanctions = sanctions
 
+	proRequests, err := GetRequestsByUser(userId)
+	if err != nil {
+		return h, err
+	}
+	h.ProfessionalRequests = proRequests
+
 	rows, err := config.Conn.Query(`
 		SELECT r.id_report, COALESCE(r.id_announcement, ''), COALESCE(r.id_topic, ''), COALESCE(r.id_post, ''),
 		       r.reason, r.status, r.created_at,

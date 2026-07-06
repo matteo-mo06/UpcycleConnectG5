@@ -14,13 +14,29 @@
             </button>
         </div>
 
-        <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="onSearchInput"
+                        type="text"
+                        placeholder="Rechercher une annonce…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                </div>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ announcements.length }} annonce(s)</span>
+            </div>
 
-        <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400 text-sm">
-            Vous n'avez aucune annonce publiée.
-        </div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else class="grid grid-cols-3 gap-5">
+            <div v-else-if="announcements.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                {{ search ? 'Aucune annonce pour cette recherche.' : 'Vous n\'avez aucune annonce publiée.' }}
+            </div>
+
+            <div v-else class="grid grid-cols-3 gap-5 p-6">
             <div
                 v-for="a in announcements"
                 :key="a.id"
@@ -79,11 +95,12 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
 
         <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
             <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selected.title }}</h3>
                     <button @click="closeDetail" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
@@ -308,6 +325,7 @@ import { formatDate, conditionLabel } from '@/utils.js'
 
 const announcements = ref([])
 const categories = ref([])
+const search = ref('')
 const loading = ref(true)
 const isPremium = ref(false)
 const route = useRoute()
@@ -326,10 +344,18 @@ const editError = ref('')
 const editTarget = ref(null)
 const editForm = ref({ type: 'don', title: '', id_category: '', condition: 'bon_etat', description: '', address: '', city: '', postal: '', price: 0, availability_date: '' })
 
+let searchDebounce = null
+function onSearchInput() {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(fetchAnnouncements, 300)
+}
+
 async function fetchAnnouncements() {
     loading.value = true
     try {
-        const { data } = await api.get('/user/announcements')
+        const params = {}
+        if (search.value) params.search = search.value
+        const { data } = await api.get('/user/announcements', { params })
         announcements.value = Array.isArray(data) ? data : (data.data ?? [])
     } catch {
         announcements.value = []
@@ -340,7 +366,9 @@ async function fetchAnnouncements() {
 
 async function silentFetch() {
     try {
-        const { data } = await api.get('/user/announcements')
+        const params = {}
+        if (search.value) params.search = search.value
+        const { data } = await api.get('/user/announcements', { params })
         announcements.value = Array.isArray(data) ? data : (data.data ?? [])
     } catch {}
 }

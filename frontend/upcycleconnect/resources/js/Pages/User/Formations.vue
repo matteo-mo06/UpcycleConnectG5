@@ -115,8 +115,8 @@
 
         <div v-if="detailFormation" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="detailFormation = null">
             <div class="absolute inset-0 bg-black/40" @click="detailFormation = null"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ detailFormation.title }}</h3>
                         <p class="text-xs text-gray-500 mt-0.5">Animée par {{ detailFormation.formateur_name ?? detailFormation.creator_name }}</p>
@@ -127,7 +127,7 @@
                         </svg>
                     </button>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Niveau</p>
@@ -143,9 +143,13 @@
                             <p class="text-xs text-gray-400 mb-0.5">Date</p>
                             <p class="font-medium text-gray-800">{{ formatDateTime(detailFormation.date) }}</p>
                         </div>
-                        <div v-if="detailFormation.location">
-                            <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
-                            <p class="font-medium text-gray-800">{{ detailFormation.location }}</p>
+                        <div v-if="detailFormation.address">
+                            <p class="text-xs text-gray-400 mb-0.5">Adresse</p>
+                            <p class="font-medium text-gray-800">{{ detailFormation.address }}</p>
+                        </div>
+                        <div v-if="detailFormation.city">
+                            <p class="text-xs text-gray-400 mb-0.5">Ville</p>
+                            <p class="font-medium text-gray-800">{{ detailFormation.postal ? detailFormation.postal + ' ' : '' }}{{ detailFormation.city }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Inscriptions</p>
@@ -191,6 +195,41 @@
                         <p class="text-sm text-secondary font-medium">Vous êtes inscrit à cette formation</p>
                     </div>
 
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pièces jointes</p>
+                        <p v-if="docsLoading" class="text-xs text-gray-400">Chargement…</p>
+                        <p v-else-if="documents.length === 0" class="text-xs text-gray-400">Aucune pièce jointe.</p>
+                        <div v-else class="flex gap-2 flex-wrap">
+                            <template v-for="doc in documents" :key="doc.id">
+                                <video v-if="isVideo(doc.link)" :src="doc.link" controls class="w-24 h-24 rounded-lg border border-gray-100 object-cover" />
+                                <a v-else :href="doc.link" target="_blank" class="block w-24 h-24 rounded-lg overflow-hidden border border-gray-100">
+                                    <img :src="doc.link" class="w-full h-full object-cover" />
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Étapes</p>
+                        <p v-if="steps.length === 0" class="text-xs text-gray-400">Aucune étape renseignée.</p>
+                        <div v-else class="space-y-1">
+                            <div v-for="s in steps" :key="s.id" class="flex items-center gap-2 py-1.5 px-2 rounded-lg">
+                                <span
+                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                    :class="{ 'border-gray-300 text-gray-300': s.status === 'todo', 'border-primary text-primary': s.status === 'in_progress', 'border-secondary bg-secondary text-white': s.status === 'done' }"
+                                >
+                                    <svg v-if="s.status === 'done'" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span v-else-if="s.status === 'in_progress'" class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-700 truncate" :class="{ 'line-through text-gray-400': s.status === 'done' }">{{ s.title }}</p>
+                                    <p v-if="s.description" class="text-xs text-gray-500 truncate">{{ s.description }}</p>
+                                </div>
+                                <span class="px-1.5 py-0.5 rounded text-xs flex-shrink-0" :class="{ 'bg-gray-100 text-gray-500': s.status === 'todo', 'bg-primary/10 text-primary': s.status === 'in_progress', 'bg-secondary/10 text-secondary': s.status === 'done' }">{{ stepStatusLabel(s.status) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div v-if="auth.user?.id === detailFormation?.id_creator || auth.isAdmin" class="border-t border-gray-100 pt-4">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Participants</p>
                         <div class="space-y-1">
@@ -208,7 +247,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <template v-if="detailFormation.is_registered">
                         <span v-if="detailFormation.price" class="px-3 py-1.5 text-sm text-gray-400 italic">
                             Désinscription non disponible pour les formations payantes
@@ -258,8 +297,31 @@ const detailFormation = ref(null)
 const confirmPaidFormation = ref(null)
 const participants = ref([])
 const participantsLoading = ref(false)
+const steps = ref([])
+const documents = ref([])
+const docsLoading = ref(false)
 
 const canRegister = computed(() => auth.hasPermission('register_formation'))
+
+function stepStatusLabel(s) {
+    return { todo: 'À faire', in_progress: 'En cours', done: 'Fait' }[s] ?? s
+}
+
+function isVideo(link) {
+    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(link)
+}
+
+async function loadDocuments(id) {
+    docsLoading.value = true
+    try {
+        const { data } = await api.get(`/formations/${id}/documents`)
+        documents.value = data ?? []
+    } catch {
+        documents.value = []
+    } finally {
+        docsLoading.value = false
+    }
+}
 
 let searchDebounce = null
 function onSearchInput() {
@@ -396,12 +458,20 @@ async function fetchAll(silent = false) {
     await Promise.all([fetchFormations(silent), fetchCategories()])
 }
 
-watch(detailFormation, (val) => {
-    if (!val) {
-        participants.value = []
-        participantsLoading.value = false
-    } else {
-        loadParticipants(`/formations/${val.id}/participants`)
+watch(detailFormation, async (val) => {
+    steps.value = []
+    documents.value = []
+    docsLoading.value = false
+    participants.value = []
+    participantsLoading.value = false
+    if (!val) return
+    loadParticipants(`/formations/${val.id}/participants`)
+    loadDocuments(val.id)
+    try {
+        const { data } = await api.get(`/formations/${val.id}/steps`)
+        steps.value = data ?? []
+    } catch (err) {
+        console.error('formation steps error:', err)
     }
 })
 

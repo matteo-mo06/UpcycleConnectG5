@@ -13,12 +13,16 @@ func IsPublicProject(status string) bool {
 	return status == "open" || status == "in_progress" || status == "completed"
 }
 
-func GetProjects(userID, search string, limit, offset int) ([]models.Project, int, error) {
-	where := "(" + publicStatuses + " OR p.id_creator = ?)"
+func GetProjects(userID, search, status string, limit, offset int) ([]models.Project, int, error) {
+	where := "p.deleted_at IS NULL AND (" + publicStatuses + " OR p.id_creator = ?)"
 	countArgs := []any{userID}
 	if search != "" {
 		where += " AND p.title_project LIKE ?"
 		countArgs = append(countArgs, "%"+search+"%")
+	}
+	if status != "" {
+		where += " AND p.status = ?"
+		countArgs = append(countArgs, status)
 	}
 
 	var total int
@@ -29,6 +33,9 @@ func GetProjects(userID, search string, limit, offset int) ([]models.Project, in
 	queryArgs := []any{userID, userID, userID}
 	if search != "" {
 		queryArgs = append(queryArgs, "%"+search+"%")
+	}
+	if status != "" {
+		queryArgs = append(queryArgs, status)
 	}
 	queryArgs = append(queryArgs, limit, offset)
 
@@ -76,7 +83,7 @@ func GetProjects(userID, search string, limit, offset int) ([]models.Project, in
 }
 
 func GetAllProjectsAdmin(search, status string, limit, offset int) ([]models.Project, int, error) {
-	where := "WHERE 1=1"
+	where := "WHERE p.deleted_at IS NULL"
 	var args []any
 
 	if search != "" {
@@ -153,7 +160,7 @@ func GetProjectById(id string) (models.Project, error) {
 		FROM PROJECT p
 		LEFT JOIN USER u ON u.id_user = p.id_creator
 		LEFT JOIN USER_PROJECT_INSCRIPTION ins ON ins.id_project = p.id_project
-		WHERE p.id_project = ?
+		WHERE p.id_project = ? AND p.deleted_at IS NULL
 		GROUP BY p.id_project`, id,
 	).Scan(
 		&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
@@ -170,7 +177,7 @@ func GetProjectById(id string) (models.Project, error) {
 func GetProjectOwnerID(projectID string) (string, error) {
 	var ownerID sql.NullString
 	err := config.Conn.QueryRow(
-		`SELECT id_creator FROM PROJECT WHERE id_project = ?`, projectID,
+		`SELECT id_creator FROM PROJECT WHERE id_project = ? AND deleted_at IS NULL`, projectID,
 	).Scan(&ownerID)
 	if err != nil {
 		return "", err
@@ -181,7 +188,7 @@ func GetProjectOwnerID(projectID string) (string, error) {
 func CountUserProjects(userID string) (int, error) {
 	var count int
 	err := config.Conn.QueryRow(
-		`SELECT COUNT(*) FROM PROJECT WHERE id_creator = ? AND status != 'Supprimé'`, userID).Scan(&count)
+		`SELECT COUNT(*) FROM PROJECT WHERE id_creator = ? AND status != 'Supprimé' AND deleted_at IS NULL`, userID).Scan(&count)
 	return count, err
 }
 
@@ -259,17 +266,75 @@ func RejectProject(id string, reason *string) error {
 }
 
 func DeleteProject(id string) error {
-	if _, err := config.Conn.Exec("DELETE FROM USER_PROJECT_INSCRIPTION WHERE id_project = ?", id); err != nil {
-		return err
-	}
-	if _, err := config.Conn.Exec("DELETE FROM USER_PROJECT_UPDOWN WHERE id_project = ?", id); err != nil {
-		return err
-	}
-	if _, err := config.Conn.Exec("DELETE FROM PAYEMENT_PROJECT WHERE id_project = ?", id); err != nil {
-		return err
-	}
-	_, err := config.Conn.Exec("DELETE FROM PROJECT WHERE id_project = ?", id)
+	_, err := config.Conn.Exec("UPDATE PROJECT SET deleted_at = NOW() WHERE id_project = ?", id)
 	return err
+}
+
+func GetDeletedProjects() ([]models.DeletedProject, error) {
+	rows, err := config.Conn.Query(`
+		SELECT p.id_project, p.title_project, p.description_project, p.start_date_project,
+		       p.end_date, p.location_project, p.capacity, p.status, p.rejection_reason,
+		       p.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
+		       COUNT(ins.id_user) AS members_count,
+		       p.created_at, p.deleted_at
+		FROM PROJECT p
+		LEFT JOIN USER u ON u.id_user = p.id_creator
+		LEFT JOIN USER_PROJECT_INSCRIPTION ins ON ins.id_project = p.id_project
+		WHERE p.deleted_at IS NOT NULL
+		GROUP BY p.id_project
+		ORDER BY p.deleted_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.DeletedProject
+	for rows.Next() {
+		var p models.DeletedProject
+		var rejReason sql.NullString
+		if err := rows.Scan(
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount,
+			&p.CreatedAt, &p.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		if rejReason.Valid {
+			p.RejectionReason = &rejReason.String
+		}
+		list = append(list, p)
+	}
+
+	for i := range list {
+		materials, err := GetProjectMaterials(list[i].IdProject)
+		if err != nil {
+			return nil, err
+		}
+		if materials == nil {
+			materials = []models.ProjectMaterial{}
+		}
+		list[i].Materials = materials
+
+		steps, err := GetProjectSteps(list[i].IdProject)
+		if err != nil {
+			return nil, err
+		}
+		if steps == nil {
+			steps = []models.ProjectStep{}
+		}
+		list[i].Steps = steps
+
+		docs, err := GetDocumentsByCategory(list[i].IdProject)
+		if err != nil {
+			return nil, err
+		}
+		if docs == nil {
+			docs = []models.Document{}
+		}
+		list[i].Documents = docs
+	}
+	return list, nil
 }
 
 func RegisterUserForProject(userID, projectID string) error {
@@ -316,7 +381,7 @@ func GetMyCreatedProjects(creatorID string) ([]models.Project, error) {
 		FROM PROJECT p
 		LEFT JOIN USER u ON u.id_user = p.id_creator
 		LEFT JOIN USER_PROJECT_INSCRIPTION ins ON ins.id_project = p.id_project
-		WHERE p.id_creator = ?
+		WHERE p.id_creator = ? AND p.deleted_at IS NULL
 		GROUP BY p.id_project
 		ORDER BY p.created_at DESC`, creatorID)
 	if err != nil {
@@ -345,6 +410,71 @@ func GetMyCreatedProjects(creatorID string) ([]models.Project, error) {
 	return list, nil
 }
 
+func GetMyCreatedProjectsPaginated(creatorID, search, status string, limit, offset int) ([]models.Project, int, error) {
+	where := `WHERE p.id_creator = ? AND p.deleted_at IS NULL`
+	args := []any{creatorID}
+
+	if search != "" {
+		where += " AND p.title_project LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+	if status != "" {
+		where += " AND p.status = ?"
+		args = append(args, status)
+	}
+
+	countArgs := make([]any, len(args))
+	copy(countArgs, args)
+	var total int
+	if err := config.Conn.QueryRow("SELECT COUNT(*) FROM PROJECT p "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]any, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+
+	rows, err := config.Conn.Query(`
+		SELECT p.id_project, p.title_project, p.description_project, p.start_date_project,
+		       p.end_date, p.location_project, p.capacity, p.status, p.rejection_reason,
+		       p.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
+		       COUNT(ins.id_user) AS members_count,
+		       p.created_at,
+		       (SELECT COUNT(*) FROM USER_PROJECT_UPDOWN WHERE id_project = p.id_project AND updown = 1) AS up_votes,
+		       (SELECT COUNT(*) FROM USER_PROJECT_UPDOWN WHERE id_project = p.id_project AND updown = -1) AS down_votes
+		FROM PROJECT p
+		LEFT JOIN USER u ON u.id_user = p.id_creator
+		LEFT JOIN USER_PROJECT_INSCRIPTION ins ON ins.id_project = p.id_project
+		`+where+`
+		GROUP BY p.id_project
+		ORDER BY p.created_at DESC
+		LIMIT ? OFFSET ?`, queryArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var list []models.Project
+	for rows.Next() {
+		var p models.Project
+		var rejReason sql.NullString
+		err := rows.Scan(
+			&p.IdProject, &p.TitleProject, &p.DescriptionProject, &p.StartDateProject,
+			&p.EndDate, &p.LocationProject, &p.Capacity, &p.Status, &rejReason,
+			&p.IdCreator, &p.CreatorName, &p.MembersCount,
+			&p.CreatedAt, &p.UpVotes, &p.DownVotes,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		if rejReason.Valid {
+			p.RejectionReason = &rejReason.String
+		}
+		list = append(list, p)
+	}
+	return list, total, nil
+}
+
 func GetProjectStatusCounts() (models.ProjectStats, error) {
 	var s models.ProjectStats
 	err := config.Conn.QueryRow(`
@@ -355,7 +485,7 @@ func GetProjectStatusCounts() (models.ProjectStats, error) {
 			COALESCE(SUM(status = 'in_progress'), 0),
 			COALESCE(SUM(status = 'completed'), 0),
 			COALESCE(SUM(status = 'rejected'), 0)
-		FROM PROJECT
+		FROM PROJECT WHERE deleted_at IS NULL
 	`).Scan(&s.Total, &s.Pending, &s.Open, &s.InProgress, &s.Completed, &s.Rejected)
 	return s, err
 }
@@ -395,7 +525,7 @@ func GetUserRegisteredProjects(userID string) ([]models.Project, error) {
 		FROM PROJECT p
 		LEFT JOIN USER u ON u.id_user = p.id_creator
 		LEFT JOIN USER_PROJECT_INSCRIPTION ins ON ins.id_project = p.id_project
-		WHERE EXISTS (
+		WHERE p.deleted_at IS NULL AND EXISTS (
 			SELECT 1 FROM USER_PROJECT_INSCRIPTION WHERE id_user = ? AND id_project = p.id_project
 		)
 		GROUP BY p.id_project

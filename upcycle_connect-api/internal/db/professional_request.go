@@ -92,6 +92,28 @@ func GetPendingRequestByUser(userID string) (models.ProfessionalRequest, error) 
 	return req, err
 }
 
+func GetRequestsByUser(userID string) ([]models.ProfessionalRequest, error) {
+	rows, err := config.Conn.Query(`
+		SELECT id_request, id_user, status, created_at, processed_at
+		FROM PROFESSIONAL_REQUEST
+		WHERE id_user = ?
+		ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []models.ProfessionalRequest
+	for rows.Next() {
+		var req models.ProfessionalRequest
+		if err := rows.Scan(&req.IdRequest, &req.IdUser, &req.Status, &req.CreatedAt, &req.ProcessedAt); err != nil {
+			return nil, err
+		}
+		requests = append(requests, req)
+	}
+	return requests, nil
+}
+
 func GetLatestRequestByUser(userID string) (models.ProfessionalRequest, error) {
 	var req models.ProfessionalRequest
 	row := config.Conn.QueryRow(`

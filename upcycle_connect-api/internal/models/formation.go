@@ -5,7 +5,9 @@ type Formation struct {
 	TitleFormation       string  `json:"title"`
 	DescriptionFormation *string `json:"description"`
 	DateFormation        *string `json:"date"`
-	LocationFormation    *string `json:"location"`
+	AddressFormation     *string `json:"address"`
+	CityFormation        *string `json:"city"`
+	PostalFormation      *string `json:"postal"`
 	Capacity             *int    `json:"capacity"`
 	Level                string  `json:"level"`
 	DurationHours        *int    `json:"duration_hours"`
@@ -24,13 +26,22 @@ type Formation struct {
 	InscriptionCount int      `json:"inscription_count"`
 	IsRegistered     bool     `json:"is_registered"`
 	CreatedAt        string   `json:"created_at"`
+	DeletedAt        string   `json:"deleted_at"`
+}
+
+type DeletedFormation struct {
+	Formation
+	Steps     []FormationStep `json:"steps"`
+	Documents []Document      `json:"documents"`
 }
 
 type CreateFormationRequest struct {
 	Title         string   `json:"title"`
 	Description   *string  `json:"description"`
 	Date          *string  `json:"date"`
-	Location      *string  `json:"location"`
+	Address       *string  `json:"address"`
+	City          *string  `json:"city"`
+	Postal        *string  `json:"postal"`
 	Capacity      *int     `json:"capacity"`
 	Level         string   `json:"level"`
 	DurationH     *int     `json:"duration_hours"`
@@ -39,13 +50,16 @@ type CreateFormationRequest struct {
 	Syllabus      *string  `json:"syllabus"`
 	Prerequisites *string  `json:"prerequisites"`
 	Objectives    *string  `json:"objectives"`
+	PhotoURLs     []string `json:"photo_urls"`
 }
 
 type UpdateFormationRequest struct {
 	Title         string   `json:"title"`
 	Description   *string  `json:"description"`
 	Date          *string  `json:"date"`
-	Location      *string  `json:"location"`
+	Address       *string  `json:"address"`
+	City          *string  `json:"city"`
+	Postal        *string  `json:"postal"`
 	Capacity      *int     `json:"capacity"`
 	Level         string   `json:"level"`
 	DurationH     *int     `json:"duration_hours"`
@@ -54,8 +68,34 @@ type UpdateFormationRequest struct {
 	Syllabus      *string  `json:"syllabus"`
 	Prerequisites *string  `json:"prerequisites"`
 	Objectives    *string  `json:"objectives"`
+	PhotoURLs     []string `json:"photo_urls"`
 }
 
 type RejectFormationRequest struct {
 	Reason *string `json:"reason"`
+}
+
+type FormationStep struct {
+	IdStep      string  `json:"id"`
+	IdFormation string  `json:"id_formation"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	Status      string  `json:"status"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type CreateFormationStepRequest struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type UpdateFormationStepRequest struct {
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	StepOrder   int     `json:"step_order"`
+}
+
+type UpdateFormationStepStatusRequest struct {
+	Status string `json:"status"`
 }

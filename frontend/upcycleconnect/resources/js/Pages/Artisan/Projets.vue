@@ -17,8 +17,20 @@
         <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">Chargement…</div>
 
         <template v-else>
-            <div class="flex items-center gap-3 mb-4">
-                <select v-model="filterStatus" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600 bg-white">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                <div class="relative flex-1">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="onSearchInput"
+                        type="text"
+                        placeholder="Rechercher un projet…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"/>
+                </div>
+                <select v-model="filterStatus" @change="resetAndFetch" class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30">
                     <option value="">Tous les statuts</option>
                     <option value="pending">En attente</option>
                     <option value="rejected">Rejeté</option>
@@ -26,16 +38,16 @@
                     <option value="in_progress">En cours</option>
                     <option value="completed">Terminé</option>
                 </select>
-                <span class="text-xs text-gray-400">{{ filteredProjects.length }} projet(s)</span>
+                <span class="text-xs text-gray-400 whitespace-nowrap">{{ total }} projet(s)</span>
             </div>
 
-            <div v-if="filteredProjects.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-                {{ filterStatus ? 'Aucun projet pour ce statut.' : 'Vous n\'avez créé aucun projet.' }}
+            <div v-if="projects.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                {{ filterStatus || search ? 'Aucun projet pour ce filtre.' : 'Vous n\'avez créé aucun projet.' }}
             </div>
 
-            <div v-else class="grid grid-cols-3 gap-5">
+            <div v-else class="grid grid-cols-3 gap-5 p-6">
                 <div
-                    v-for="p in filteredProjects"
+                    v-for="p in projects"
                     :key="p.id"
                     @click="selectedProject = p"
                     class="bg-white rounded-2xl shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer border border-gray-100"
@@ -86,11 +98,14 @@
                     </div>
                 </div>
             </div>
+
+            <Pagination v-if="total > 15" :page="page" :total="total" :limit="15" @update:page="changePage" />
+        </div>
         </template>
 
         <div v-if="selectedProject" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="selectedProject = null"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selectedProject.title }}</h3>
                     <button @click="selectedProject = null" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
@@ -119,6 +134,29 @@
                         <div v-if="selectedProject.location"><span class="font-medium text-gray-700">Lieu :</span> {{ selectedProject.location }}</div>
                         <div v-if="selectedProject.capacity"><span class="font-medium text-gray-700">Capacité :</span> {{ selectedProject.capacity }} membres</div>
                         <div><span class="font-medium text-gray-700">Membres :</span> {{ selectedProject.members_count }}</div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4">
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pièces jointes</p>
+                        <p v-if="docsLoading" class="text-xs text-gray-400">Chargement…</p>
+                        <p v-else-if="documents.length === 0" class="text-xs text-gray-400">Aucune pièce jointe.</p>
+                        <div v-else class="flex gap-2 flex-wrap">
+                            <div v-for="doc in documents" :key="doc.id" class="relative w-24 h-24">
+                                <video v-if="isVideo(doc.link)" :src="doc.link" controls class="w-full h-full rounded-lg border border-gray-100 object-cover" />
+                                <a v-else :href="doc.link" target="_blank" class="block w-full h-full rounded-lg overflow-hidden border border-gray-100">
+                                    <img :src="doc.link" class="w-full h-full object-cover" />
+                                </a>
+                                <button
+                                    @click="deleteDocument(doc)"
+                                    class="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors"
+                                    title="Supprimer"
+                                >
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="border-t border-gray-100 pt-4">
@@ -265,8 +303,8 @@
 
         <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal = false"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ editTarget ? 'Modifier le projet' : 'Créer un projet' }}
                     </h3>
@@ -276,41 +314,71 @@
                         </svg>
                     </button>
                 </div>
-                <div class="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input v-model="form.title" type="text"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                             placeholder="Titre du projet"/>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea v-model="form.description" rows="3"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                             placeholder="Décrivez votre projet…"/>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date de début</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date de début</label>
                             <input v-model="form.start_date" type="date"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date de fin</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date de fin</label>
                             <input v-model="form.end_date" type="date"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
                             <input v-model="form.location" type="text"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="Adresse ou lieu"/>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacité</label>
                             <input v-model.number="form.capacity" type="number" min="1"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="0 = illimitée"/>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Photos et vidéos <span class="text-gray-300 font-normal">(5 max)</span></label>
+                        <div
+                            class="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                            @dragover.prevent
+                            @drop.prevent="handleDrop"
+                            @click="$refs.fileInput.click()"
+                        >
+                            <svg class="w-7 h-7 text-gray-300 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                            </svg>
+                            <p class="text-xs text-gray-400">Glissez vos fichiers ici</p>
+                            <span class="mt-1 inline-block text-xs text-primary underline">Parcourir</span>
+                            <input ref="fileInput" type="file" accept="image/*,video/*" multiple class="hidden" @change="handleFileSelect" />
+                        </div>
+                        <div v-if="photos.length" class="flex gap-2 mt-3 flex-wrap">
+                            <div v-for="(photo, i) in photos" :key="i" class="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200">
+                                <video v-if="photo.file.type.startsWith('video/')" :src="photo.preview" class="w-full h-full object-cover" />
+                                <img v-else :src="photo.preview" class="w-full h-full object-cover" />
+                                <button
+                                    @click="removePhoto(i)"
+                                    class="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center text-white"
+                                >
+                                    <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <p v-if="formError && !premiumError" class="text-xs text-red-500">{{ formError }}</p>
@@ -319,7 +387,7 @@
                         <router-link to="/artisan/abonnement" class="block mt-1 font-semibold underline text-primary">Voir les offres premium →</router-link>
                     </div>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 space-y-2">
+                <div class="px-6 py-4 border-t border-gray-100 space-y-2 flex-shrink-0">
                     <p v-if="limits?.projects && !editTarget" class="text-xs text-gray-400 text-center">
                         {{ limits.projects.used }}/{{ limits.projects.max }} projets {{ limits.is_premium ? 'créés ce mois-ci' : 'créés' }}
                     </p>
@@ -329,7 +397,7 @@
                         </button>
                         <button @click="submitForm" :disabled="submitting"
                             class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-                            {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Soumettre') }}
+                            {{ submitting ? 'Enregistrement…' : (editTarget ? 'Enregistrer' : 'Créer') }}
                         </button>
                     </div>
                 </div>
@@ -340,16 +408,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { usePolling } from '@/composables/usePolling.js'
 import { useRoute } from 'vue-router'
 import ArtisanLayout from '@/Layouts/ArtisanLayout.vue'
+import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
 
 const route = useRoute()
 
 const projects = ref([])
+const page = ref(1)
+const total = ref(0)
 const loading = ref(true)
+const search = ref('')
 const toDelete = ref(null)
 const deleting = ref(false)
 const selectedProject = ref(null)
@@ -361,9 +433,6 @@ const premiumError = ref(false)
 const limits = ref(null)
 const form = ref({ title: '', description: '', start_date: '', end_date: '', location: '', capacity: null })
 const filterStatus = ref('')
-const filteredProjects = computed(() =>
-    filterStatus.value ? projects.value.filter(p => p.status === filterStatus.value) : projects.value
-)
 const materials = ref([])
 const steps = ref([])
 const showAddMaterial = ref(false)
@@ -376,6 +445,66 @@ const editingStepId = ref(null)
 const editStep = ref({ title: '', description: '' })
 const participants = ref([])
 const participantsLoading = ref(false)
+const photos = ref([])
+const documents = ref([])
+const docsLoading = ref(false)
+
+function isVideo(link) {
+    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(link)
+}
+
+async function loadDocuments(id) {
+    docsLoading.value = true
+    try {
+        const { data } = await api.get(`/projects/${id}/documents`)
+        documents.value = data ?? []
+    } catch {
+        documents.value = []
+    } finally {
+        docsLoading.value = false
+    }
+}
+
+async function deleteDocument(doc) {
+    try {
+        await api.delete(`/documents/${doc.id}`)
+        documents.value = documents.value.filter(d => d.id !== doc.id)
+    } catch (e) {
+        alert(e.response?.data?.error ?? 'Erreur')
+    }
+}
+
+function handleFileSelect(e) {
+    addFiles(Array.from(e.target.files))
+    e.target.value = ''
+}
+
+function handleDrop(e) {
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/')))
+}
+
+function addFiles(files) {
+    for (const file of files) {
+        if (photos.value.length >= 5) break
+        photos.value.push({ file, preview: URL.createObjectURL(file) })
+    }
+}
+
+function removePhoto(i) {
+    URL.revokeObjectURL(photos.value[i].preview)
+    photos.value.splice(i, 1)
+}
+
+async function uploadPhotos() {
+    const urls = []
+    for (const photo of photos.value) {
+        const fd = new FormData()
+        fd.append('file', photo.file)
+        const { data } = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+        urls.push(data.url)
+    }
+    return urls
+}
 
 async function loadParticipants(url) {
     participantsLoading.value = true
@@ -406,6 +535,7 @@ function statusClass(status) {
 function openCreate() {
     editTarget.value = null
     form.value = { title: '', description: '', start_date: '', end_date: '', location: '', capacity: null }
+    photos.value = []
     formError.value = ''
     formModal.value = true
 }
@@ -413,6 +543,8 @@ function openCreate() {
 watch(selectedProject, async (p) => {
     materials.value = []
     steps.value = []
+    documents.value = []
+    docsLoading.value = false
     showAddMaterial.value = false
     showAddStep.value = false
     editingMaterialId.value = null
@@ -421,6 +553,7 @@ watch(selectedProject, async (p) => {
     participantsLoading.value = false
     if (!p) return
     loadParticipants(`/projects/${p.id}/members`)
+    loadDocuments(p.id)
     try {
         const [mRes, sRes] = await Promise.all([
             api.get(`/projects/${p.id}/materials`),
@@ -565,6 +698,7 @@ function openEditFromDetail(p) {
         location: p.location ?? '',
         capacity: p.capacity ?? null,
     }
+    photos.value = []
     formError.value = ''
     formModal.value = true
 }
@@ -580,13 +714,35 @@ async function vote(p, value) {
     } catch {}
 }
 
+let searchDebounce = null
+function onSearchInput() {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(resetAndFetch, 300)
+}
+
+function resetAndFetch() {
+    page.value = 1
+    fetchProjects()
+}
+
+function changePage(p) {
+    page.value = p
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    fetchProjects()
+}
+
 async function fetchProjects(silent = false) {
     if (!silent) loading.value = true
     try {
-        const { data } = await api.get('/user/my-projects')
-        projects.value = data ?? []
+        const params = { page: page.value, limit: 15 }
+        if (search.value) params.search = search.value
+        if (filterStatus.value) params.status = filterStatus.value
+        const { data } = await api.get('/user/my-projects', { params })
+        projects.value = data.data ?? []
+        total.value = data.total ?? 0
     } catch {
         projects.value = []
+        total.value = 0
     } finally {
         if (!silent) loading.value = false
     }
@@ -597,8 +753,8 @@ async function deleteProject() {
     deleting.value = true
     try {
         await api.delete(`/projects/${toDelete.value.id}`)
-        projects.value = projects.value.filter(p => p.id !== toDelete.value.id)
         toDelete.value = null
+        await fetchProjects()
     } catch (e) {
         alert(e.response?.data?.error ?? 'Erreur lors de la suppression.')
     } finally {
@@ -612,6 +768,7 @@ async function submitForm() {
     formError.value = ''
     premiumError.value = false
     try {
+        const photoURLs = photos.value.length ? await uploadPhotos() : []
         const payload = {
             title: form.value.title,
             description: form.value.description || null,
@@ -619,6 +776,7 @@ async function submitForm() {
             end_date: form.value.end_date || null,
             location: form.value.location || null,
             capacity: form.value.capacity || null,
+            photo_urls: photoURLs,
         }
         if (editTarget.value) {
             await api.patch(`/projects/${editTarget.value.id}`, payload)
@@ -626,6 +784,7 @@ async function submitForm() {
             await api.post('/projects', payload)
         }
         formModal.value = false
+        photos.value = []
         await fetchProjects()
     } catch (e) {
         premiumError.value = e.response?.status === 403

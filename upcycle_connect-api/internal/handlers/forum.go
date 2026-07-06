@@ -33,6 +33,25 @@ func GetForumTopics(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(pageResponse(topics, total, page, limit))
 }
 
+func GetDeletedForumTopics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	topics, err := db.GetDeletedTopics()
+	if err != nil {
+		fmt.Println("GetDeletedForumTopics error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch topics"})
+		return
+	}
+
+	if topics == nil {
+		topics = []models.DeletedTopic{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(topics)
+}
+
 func GetForumTopic(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -356,11 +375,25 @@ func DeleteForumPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.SoftDeleteContent("post", postID); err != nil {
-		fmt.Println("DeleteForumPost error:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la suppression"})
-		return
+	if isAdmin {
+		var req models.ModerateContentRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Message == "" {
+			req.Message = "Ce message a été supprimé par la modération."
+		}
+		if err := db.ModerateContent("post", postID, userID, req.Message); err != nil {
+			fmt.Println("DeleteForumPost error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la suppression"})
+			return
+		}
+	} else {
+		if err := db.SoftDeleteContent("post", postID); err != nil {
+			fmt.Println("DeleteForumPost error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "erreur lors de la suppression"})
+			return
+		}
 	}
 
 	topic, err := db.GetTopicByID(topicID)

@@ -61,7 +61,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 
 	rows, err := config.Conn.Query(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -89,7 +89,7 @@ func GetFormations(userID, search, level, idCategory string, limit, offset int) 
 		var f models.Formation
 		err := rows.Scan(
 			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
@@ -136,7 +136,7 @@ func GetAllFormations(search, status, level string, limit, offset int) ([]models
 
 	rows, err := config.Conn.Query(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -163,7 +163,7 @@ func GetAllFormations(search, status, level string, limit, offset int) ([]models
 		var f models.Formation
 		err := rows.Scan(
 			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
@@ -183,7 +183,7 @@ func GetFormationById(id string) (models.Formation, error) {
 	var f models.Formation
 	err := config.Conn.QueryRow(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -197,7 +197,7 @@ func GetFormationById(id string) (models.Formation, error) {
 		WHERE f.id_formation = ? AND f.deleted_at IS NULL`, id,
 	).Scan(
 		&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-		&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+		&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 		&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 		&f.IdCreator, &f.CreatorName,
 		&f.IdFormateur, &f.FormateurName,
@@ -205,6 +205,17 @@ func GetFormationById(id string) (models.Formation, error) {
 		&f.CreatedAt, &f.Price,
 	)
 	return f, err
+}
+
+func GetFormationOwnerID(formationID string) (string, error) {
+	var ownerID sql.NullString
+	err := config.Conn.QueryRow(
+		`SELECT id_creator FROM formation WHERE id_formation = ? AND deleted_at IS NULL`, formationID,
+	).Scan(&ownerID)
+	if err != nil {
+		return "", err
+	}
+	return ownerID.String, nil
 }
 
 func CreateFormation(f models.Formation) error {
@@ -215,11 +226,11 @@ func CreateFormation(f models.Formation) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO formation (
 			id_formation, title_formation, description_formation, date_formation,
-			location_formation, capacity, level, duration_hours, status,
+			address_formation, city_formation, postal_formation, capacity, level, duration_hours, status,
 			id_category, id_creator, id_formateur, price, syllabus, prerequisites, objectives, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
 		f.IdFormation, f.TitleFormation, f.DescriptionFormation, f.DateFormation,
-		f.LocationFormation, f.Capacity, f.Level, f.DurationHours, status,
+		f.AddressFormation, f.CityFormation, f.PostalFormation, f.Capacity, f.Level, f.DurationHours, status,
 		f.IdCategory, f.IdCreator, f.IdFormateur, f.Price, f.Syllabus, f.Prerequisites, f.Objectives,
 	)
 	return err
@@ -231,7 +242,9 @@ func UpdateFormation(f models.Formation) error {
 			title_formation = ?,
 			description_formation = ?,
 			date_formation = ?,
-			location_formation = ?,
+			address_formation = ?,
+			city_formation = ?,
+			postal_formation = ?,
 			capacity = ?,
 			level = ?,
 			duration_hours = ?,
@@ -244,7 +257,7 @@ func UpdateFormation(f models.Formation) error {
 			rejection_reason = NULL
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
-		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
+		f.AddressFormation, f.CityFormation, f.PostalFormation, f.Capacity, f.Level, f.DurationHours,
 		f.IdCategory, f.Price, f.Syllabus, f.Prerequisites, f.Objectives, f.IdFormation,
 	)
 	return err
@@ -256,7 +269,9 @@ func UpdateFormationAdmin(f models.Formation) error {
 			title_formation = ?,
 			description_formation = ?,
 			date_formation = ?,
-			location_formation = ?,
+			address_formation = ?,
+			city_formation = ?,
+			postal_formation = ?,
 			capacity = ?,
 			level = ?,
 			duration_hours = ?,
@@ -268,7 +283,7 @@ func UpdateFormationAdmin(f models.Formation) error {
 			status = ?
 		WHERE id_formation = ?`,
 		f.TitleFormation, f.DescriptionFormation, f.DateFormation,
-		f.LocationFormation, f.Capacity, f.Level, f.DurationHours,
+		f.AddressFormation, f.CityFormation, f.PostalFormation, f.Capacity, f.Level, f.DurationHours,
 		f.IdCategory, f.Price, f.Syllabus, f.Prerequisites, f.Objectives, f.Status, f.IdFormation,
 	)
 	return err
@@ -293,6 +308,65 @@ func DeleteFormation(id string) error {
 	return err
 }
 
+func GetDeletedFormations() ([]models.DeletedFormation, error) {
+	rows, err := config.Conn.Query(`
+		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.rejection_reason, f.id_category, c.name_category,
+		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
+		       f.id_formateur, CONCAT(fmt.first_name, ' ', fmt.last_name) AS formateur_name,
+		       f.syllabus, f.prerequisites, f.objectives,
+		       f.created_at, f.price, f.deleted_at
+		FROM formation f
+		LEFT JOIN category c ON c.id_category = f.id_category
+		LEFT JOIN user u ON u.id_user = f.id_creator
+		LEFT JOIN user fmt ON fmt.id_user = f.id_formateur
+		WHERE f.deleted_at IS NOT NULL
+		ORDER BY f.deleted_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.DeletedFormation
+	for rows.Next() {
+		var f models.DeletedFormation
+		if err := rows.Scan(
+			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
+			&f.IdCreator, &f.CreatorName,
+			&f.IdFormateur, &f.FormateurName,
+			&f.Syllabus, &f.Prerequisites, &f.Objectives,
+			&f.CreatedAt, &f.Price, &f.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		list = append(list, f)
+	}
+
+	for i := range list {
+		steps, err := GetFormationSteps(list[i].IdFormation)
+		if err != nil {
+			return nil, err
+		}
+		if steps == nil {
+			steps = []models.FormationStep{}
+		}
+		list[i].Steps = steps
+
+		docs, err := GetDocumentsByCategory(list[i].IdFormation)
+		if err != nil {
+			return nil, err
+		}
+		if docs == nil {
+			docs = []models.Document{}
+		}
+		list[i].Documents = docs
+	}
+	return list, nil
+}
+
 func RegisterUserForFormation(userID, formationID string) error {
 	_, err := config.Conn.Exec(
 		"INSERT IGNORE INTO user_formation_inscription (id_user, id_formation) VALUES (?, ?)",
@@ -312,7 +386,7 @@ func UnregisterUserFromFormation(userID, formationID string) error {
 func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 	rows, err := config.Conn.Query(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -340,7 +414,7 @@ func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 		f.IsRegistered = true
 		err := rows.Scan(
 			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
@@ -358,7 +432,7 @@ func GetUserRegisteredFormations(userID string) ([]models.Formation, error) {
 func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 	rows, err := config.Conn.Query(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -383,7 +457,7 @@ func GetMyCreatedFormations(creatorID string) ([]models.Formation, error) {
 		var f models.Formation
 		err := rows.Scan(
 			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,
@@ -432,7 +506,7 @@ func GetMyCreatedFormationsPaginated(creatorID, search, status, level, idCategor
 
 	rows, err := config.Conn.Query(`
 		SELECT f.id_formation, f.title_formation, f.description_formation, f.date_formation,
-		       f.location_formation, f.capacity, f.level, f.duration_hours, f.status,
+		       f.address_formation, f.city_formation, f.postal_formation, f.capacity, f.level, f.duration_hours, f.status,
 		       f.rejection_reason, f.id_category,
 		       c.name_category,
 		       f.id_creator, CONCAT(u.first_name, ' ', u.last_name) AS creator_name,
@@ -459,7 +533,7 @@ func GetMyCreatedFormationsPaginated(creatorID, search, status, level, idCategor
 		var f models.Formation
 		err := rows.Scan(
 			&f.IdFormation, &f.TitleFormation, &f.DescriptionFormation, &f.DateFormation,
-			&f.LocationFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
+			&f.AddressFormation, &f.CityFormation, &f.PostalFormation, &f.Capacity, &f.Level, &f.DurationHours, &f.Status,
 			&f.RejectionReason, &f.IdCategory, &f.CategoryName,
 			&f.IdCreator, &f.CreatorName,
 			&f.IdFormateur, &f.FormateurName,

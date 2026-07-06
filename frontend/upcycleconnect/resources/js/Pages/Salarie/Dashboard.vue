@@ -43,8 +43,10 @@
                         >
                             <div class="flex-1 min-w-0">
                                 <p class="font-medium text-gray-800 text-sm truncate">{{ conseil.title }}</p>
-                                <p v-if="conseil.tag" class="text-xs text-primary mt-0.5">{{ conseil.tag }}</p>
+                                <p v-if="conseil.category_name" class="text-xs text-primary mt-0.5">{{ conseil.category_name }}</p>
                             </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" :class="priorityBadge(conseil.priority).class">{{ priorityBadge(conseil.priority).label }}</span>
+                            <span v-if="conseil.is_expired" class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 flex-shrink-0">Expiré</span>
                             <span class="text-xs text-gray-400 flex-shrink-0">{{ conseil.created_at?.slice(0, 10) ?? '-' }}</span>
                         </div>
                         <div v-if="recentConseils.length === 0" class="px-5 py-8 text-center text-gray-400 text-sm">
@@ -120,6 +122,16 @@ const topics = ref([])
 
 const recentConseils = computed(() => conseils.value.slice(0, 5))
 
+const priorityBadges = {
+    1: { label: 'Haute', class: 'bg-primary/10 text-primary' },
+    2: { label: 'Moyenne', class: 'bg-amber-100 text-amber-700' },
+    3: { label: 'Basse', class: 'bg-gray-100 text-gray-500' },
+}
+
+function priorityBadge(p) {
+    return priorityBadges[p] ?? priorityBadges[2]
+}
+
 const stats = computed(() => [
     {
         label: 'Formations créées',
@@ -160,7 +172,7 @@ onMounted(async () => {
             api.get('/conseils'),
             api.get('/forum/topics', { params: { page: 1, limit: 100 } }),
         ])
-        formations.value = foRes.status === 'fulfilled' ? (foRes.value.data ?? []) : []
+        formations.value = foRes.status === 'fulfilled' ? (foRes.value.data?.data ?? foRes.value.data ?? []) : []
         events.value     = evRes.status === 'fulfilled' ? (evRes.value.data ?? []) : []
 
         const allConseils = coRes.status === 'fulfilled' ? (coRes.value.data?.data ?? coRes.value.data ?? []) : []

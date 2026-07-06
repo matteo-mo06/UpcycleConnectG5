@@ -202,6 +202,25 @@ func UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"message": "event updated successfully", "event": e})
 }
 
+func GetDeletedEvents(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	events, err := db.GetDeletedEvents()
+	if err != nil {
+		fmt.Println("GetDeletedEvents error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch events"})
+		return
+	}
+
+	if events == nil {
+		events = []models.Event{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(events)
+}
+
 func DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -313,7 +332,9 @@ func UpdateMyEvent(w http.ResponseWriter, r *http.Request) {
 	event.TitleEvent = body.TitleEvent
 	event.DescriptionEvent = body.DescriptionEvent
 	event.DateEvent = body.DateEvent
-	event.LocationEvent = body.LocationEvent
+	event.AddressEvent = body.AddressEvent
+	event.CityEvent = body.CityEvent
+	event.PostalEvent = body.PostalEvent
 	event.Capacity = body.Capacity
 	event.PriceCents = body.PriceCents
 

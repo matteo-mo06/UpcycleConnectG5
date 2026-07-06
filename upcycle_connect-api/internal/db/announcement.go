@@ -161,12 +161,19 @@ func GetPublicAnnouncements(search, idCategory, filterType string, limit, offset
 	return list, total, nil
 }
 
-func GetUserAnnouncements(userID string) ([]models.Announcement, error) {
+func GetUserAnnouncements(userID, search string) ([]models.Announcement, error) {
+	where := `WHERE ua.id_user = ? AND a.deleted_at IS NULL`
+	args := []any{userID}
+	if search != "" {
+		where += " AND a.title_announcement LIKE ?"
+		args = append(args, "%"+search+"%")
+	}
+
 	rows, err := config.Conn.Query(announcementSelect+`FROM ANNOUNCEMENT a
 		JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
 		JOIN USER u ON u.id_user = ua.id_user
-		WHERE ua.id_user = ? AND a.deleted_at IS NULL
-		ORDER BY a.created_at DESC`, userID)
+		`+where+`
+		ORDER BY a.created_at DESC`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -426,6 +433,30 @@ func MarkAnnouncementSold(announcementID, buyerID string) error {
 	return tx.Commit()
 }
 
+
+func GetDeletedAnnouncements() ([]models.Announcement, error) {
+	query := announcementSelect + `FROM ANNOUNCEMENT a
+	          LEFT JOIN USER_ANNOUNCEMENT ua ON ua.id_announcement = a.id_announcement
+	          LEFT JOIN USER u ON u.id_user = ua.id_user
+	          WHERE a.deleted_at IS NOT NULL
+	          ORDER BY a.deleted_at DESC`
+
+	rows, err := config.Conn.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Announcement
+	for rows.Next() {
+		a, err := scanAnnouncement(rows)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, a)
+	}
+	return list, nil
+}
 
 func DeleteAnnouncement(id string) error {
 	_, err := config.Conn.Exec(

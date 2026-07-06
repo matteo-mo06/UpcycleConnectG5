@@ -65,7 +65,7 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := config.Conn.Query(`
-		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count,
@@ -74,7 +74,7 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		`+where+`
-		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
 		ORDER BY event.date_event DESC
 		LIMIT ? OFFSET ?`, queryArgs...)
@@ -88,7 +88,7 @@ func GetAllEvents(search, status string, limit, offset int) ([]models.Event, int
 		var e models.Event
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.Status, &rejReason,
 		)
@@ -107,11 +107,11 @@ func GetEventById(id string) (models.Event, error) {
 	var e models.Event
 	var rejReason sql.NullString
 	err := config.Conn.QueryRow(`
-		SELECT id_event, title_event, description_event, date_event, location_event,
+		SELECT id_event, title_event, description_event, date_event, address_event, city_event, postal_event,
 		       capacity, price_cents, id_creator, status, rejection_reason
 		FROM EVENT WHERE id_event = ? AND deleted_at IS NULL`, id,
 	).Scan(
-		&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+		&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 		&e.Capacity, &e.PriceCents, &e.IdCreator, &e.Status, &rejReason,
 	)
 	if rejReason.Valid && rejReason.String != "" {
@@ -128,12 +128,12 @@ func CreateEvent(e models.Event) error {
 	_, err := config.Conn.Exec(`
 		INSERT INTO EVENT (
 			id_event, title_event, description_event, date_event,
-			location_event, capacity, price_cents, id_creator, status
+			address_event, city_event, postal_event, capacity, price_cents, id_creator, status
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		e.IdEvent, e.TitleEvent, e.DescriptionEvent, e.DateEvent,
-		e.LocationEvent, e.Capacity, e.PriceCents, e.IdCreator, status,
+		e.AddressEvent, e.CityEvent, e.PostalEvent, e.Capacity, e.PriceCents, e.IdCreator, status,
 	)
 	return err
 }
@@ -144,13 +144,15 @@ func UpdateEvent(e models.Event) error {
 			title_event = ?,
 			description_event = ?,
 			date_event = ?,
-			location_event = ?,
+			address_event = ?,
+			city_event = ?,
+			postal_event = ?,
 			capacity = ?,
 			price_cents = ?,
 			id_creator = ?
 		WHERE id_event = ?
 	`,
-		e.TitleEvent, e.DescriptionEvent, e.DateEvent, e.LocationEvent,
+		e.TitleEvent, e.DescriptionEvent, e.DateEvent, e.AddressEvent, e.CityEvent, e.PostalEvent,
 		e.Capacity, e.PriceCents, e.IdCreator, e.IdEvent,
 	)
 	return err
@@ -200,7 +202,7 @@ func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([
 	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := config.Conn.Query(`
-		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count,
@@ -210,7 +212,7 @@ func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		`+where+`
-		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status
 		ORDER BY event.date_event ASC
 		LIMIT ? OFFSET ?`, queryArgs...)
@@ -223,7 +225,7 @@ func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([
 	for rows.Next() {
 		var e models.Event
 		err := rows.Scan(
-			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.IsRegistered, &e.Status,
 		)
@@ -237,7 +239,7 @@ func GetPublicEventsForUser(userID, search, status string, limit, offset int) ([
 
 func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 	rows, err := config.Conn.Query(`
-		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count,
@@ -246,7 +248,7 @@ func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		WHERE event.id_creator = ? AND event.deleted_at IS NULL
-		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
 		ORDER BY event.date_event DESC`, userID)
 	if err != nil {
@@ -259,7 +261,7 @@ func GetMyCreatedEvents(userID string) ([]models.Event, error) {
 		var e models.Event
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.Status, &rejReason,
 		)
@@ -299,7 +301,7 @@ func GetMyCreatedEventsPaginated(userID, search, status string, limit, offset in
 	queryArgs = append(queryArgs, limit, offset)
 
 	rows, err := config.Conn.Query(`
-		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count,
@@ -308,7 +310,7 @@ func GetMyCreatedEventsPaginated(userID, search, status string, limit, offset in
 		LEFT JOIN USER user ON user.id_user = event.id_creator
 		LEFT JOIN USER_EVENT_INSCRIPTION inscription ON inscription.id_event = event.id_event
 		`+where+`
-		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		         event.capacity, event.price_cents, event.id_creator, event.status, event.rejection_reason
 		ORDER BY event.date_event DESC
 		LIMIT ? OFFSET ?`, queryArgs...)
@@ -322,7 +324,7 @@ func GetMyCreatedEventsPaginated(userID, search, status string, limit, offset in
 		var e models.Event
 		var rejReason sql.NullString
 		err := rows.Scan(
-			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 			&e.Status, &rejReason,
 		)
@@ -339,7 +341,7 @@ func GetMyCreatedEventsPaginated(userID, search, status string, limit, offset in
 
 func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 	rows, err := config.Conn.Query(`
-		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		       event.capacity, event.price_cents, event.id_creator,
 		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
 		       COUNT(inscription.id_user) AS inscription_count
@@ -349,7 +351,7 @@ func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 		WHERE EXISTS (
 			SELECT 1 FROM USER_EVENT_INSCRIPTION WHERE id_user = ? AND id_event = event.id_event
 		) AND event.deleted_at IS NULL
-		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.location_event,
+		GROUP BY event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
 		         event.capacity, event.price_cents, event.id_creator
 		ORDER BY event.date_event ASC`, userID)
 	if err != nil {
@@ -363,7 +365,7 @@ func GetUserRegisteredEvents(userID string) ([]models.Event, error) {
 		e.IsRegistered = true
 		e.Status = "approved"
 		err := rows.Scan(
-			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.LocationEvent,
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
 			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName, &e.InscriptionCount,
 		)
 		if err != nil {
@@ -388,6 +390,41 @@ func UnregisterUserFromEvent(userID, eventID string) error {
 		userID, eventID,
 	)
 	return err
+}
+
+func GetDeletedEvents() ([]models.Event, error) {
+	rows, err := config.Conn.Query(`
+		SELECT event.id_event, event.title_event, event.description_event, event.date_event, event.address_event, event.city_event, event.postal_event,
+		       event.capacity, event.price_cents, event.id_creator,
+		       CONCAT(user.first_name, ' ', user.last_name) AS creator_name,
+		       event.status, event.rejection_reason, event.deleted_at
+		FROM EVENT event
+		LEFT JOIN USER user ON user.id_user = event.id_creator
+		WHERE event.deleted_at IS NOT NULL
+		ORDER BY event.deleted_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Event
+	for rows.Next() {
+		var e models.Event
+		var rejReason, deletedAt sql.NullString
+		if err := rows.Scan(
+			&e.IdEvent, &e.TitleEvent, &e.DescriptionEvent, &e.DateEvent, &e.AddressEvent, &e.CityEvent, &e.PostalEvent,
+			&e.Capacity, &e.PriceCents, &e.IdCreator, &e.CreatorName,
+			&e.Status, &rejReason, &deletedAt,
+		); err != nil {
+			return nil, err
+		}
+		if rejReason.Valid && rejReason.String != "" {
+			e.RejectionReason = &rejReason.String
+		}
+		e.DeletedAt = deletedAt.String
+		list = append(list, e)
+	}
+	return list, nil
 }
 
 func DeleteEvent(id string) error {

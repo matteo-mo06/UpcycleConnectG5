@@ -284,6 +284,34 @@
             </div>
             <Pagination v-if="total > 20" :page="page" :total="total" :limit="20" @update:page="changePage" />
 
+            <div class="mt-10">
+                <h2 class="text-xl font-bold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Annonces supprimées</h2>
+                <p class="text-sm text-gray-400 mb-4">Historique des annonces supprimées</p>
+                <div v-if="deletedListings.length === 0" class="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <p class="text-gray-400 text-sm">Aucune annonce supprimée.</p>
+                </div>
+                <div v-else class="space-y-3">
+                    <div
+                        v-for="listing in deletedListings"
+                        :key="listing.id"
+                        @click="openDeletedListing(listing)"
+                        class="bg-white rounded-xl shadow-sm px-5 py-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-semibold text-gray-500 text-sm truncate">{{ listing.title }}</h3>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="typeBadge(listing.type)">{{ listing.type }}</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-0.5">Par {{ listing.author }} · Supprimée le {{ listing.deletedAt?.slice(0, 10) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </template>
 
         <div
@@ -291,8 +319,8 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="detailListing = null">
             <div class="absolute inset-0 bg-black/40" @click="detailListing = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
                             <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
@@ -315,7 +343,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Auteur</p>
@@ -365,7 +393,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center flex-shrink-0">
                     <button
                         @click="openEdit(detailListing)"
                         class="px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors">
@@ -421,7 +449,7 @@
                 <h3 class="font-semibold text-gray-800 mb-1">Refuser l'annonce</h3>
                 <p class="text-sm text-gray-500 mb-4">« {{ rejectModal.listing?.title }} »</p>
                 <div class="mb-4">
-                    <label class="block text-xs text-gray-400 mb-1">Motif de refus (optionnel)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Motif de refus (optionnel)</label>
                     <textarea
                         v-model="rejectModal.reason"
                         rows="3"
@@ -439,8 +467,8 @@
 
         <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ formModal.mode === 'create' ? 'Créer une annonce' : 'Modifier l\'annonce' }}
                     </h3>
@@ -453,9 +481,9 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input
                             v-model="listingForm.title"
                             type="text"
@@ -464,7 +492,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Type</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                             <select
                                 v-model="listingForm.type"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
@@ -473,7 +501,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Catégorie</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
                             <select
                                 v-model="listingForm.idCategory"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
@@ -483,7 +511,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea
                             v-model="listingForm.description"
                             rows="3"
@@ -492,7 +520,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2">
-                            <label class="block text-xs text-gray-400 mb-1">Adresse</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
                             <input
                                 v-model="listingForm.address"
                                 type="text"
@@ -500,7 +528,7 @@
                                 placeholder="Adresse" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Ville</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
                             <input
                                 v-model="listingForm.city"
                                 type="text"
@@ -508,7 +536,7 @@
                                 placeholder="Ville" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Code postal</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
                             <input
                                 v-model="listingForm.postal"
                                 type="text"
@@ -516,14 +544,14 @@
                                 placeholder="75000" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date de disponibilité <span class="text-red-400">*</span></label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date de disponibilité <span class="text-red-400">*</span></label>
                             <input
                                 v-model="listingForm.availDate"
                                 type="date"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
                         </div>
                         <div v-if="listingForm.type === 'vente'">
-                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
                             <input
                                 v-model.number="listingForm.price"
                                 type="number"
@@ -535,7 +563,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Condition</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
                             <select
                                 v-model="listingForm.condition"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
@@ -547,7 +575,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Statut</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
                             <select
                                 v-model="listingForm.state"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700">
@@ -562,7 +590,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <button
                         @click="formModal.open = false"
                         class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -578,11 +606,55 @@
             </div>
         </div>
 
+        <div v-if="selectedDeleted" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="selectedDeleted = null">
+            <div class="absolute inset-0 bg-black/40" @click="selectedDeleted = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-semibold text-gray-600" style="font-family: var(--font-family-title)">{{ selectedDeleted.title }}</h3>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" :class="typeBadge(selectedDeleted.type)">{{ selectedDeleted.type }}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-0.5">Par {{ selectedDeleted.author }} · Supprimée le {{ selectedDeleted.deletedAt?.slice(0, 10) }}</p>
+                    </div>
+                    <button @click="selectedDeleted = null" class="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+                    <div v-if="selectedDeletedPhotos.length" class="flex gap-2 flex-wrap">
+                        <a v-for="(p, i) in selectedDeletedPhotos" :key="i" :href="p" target="_blank" class="block w-24 h-24 rounded-lg overflow-hidden border border-gray-100">
+                            <img :src="p" class="w-full h-full object-cover" />
+                        </a>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Catégorie</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeleted.category }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Prix</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeleted.price ? Number(selectedDeleted.price).toFixed(2) + ' €' : 'Gratuit' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Créée le</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeleted.createdAt }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1">Description</p>
+                        <p class="text-sm text-gray-700 leading-relaxed">{{ selectedDeleted.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </AdminLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { usePolling } from '@/composables/usePolling.js'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -599,6 +671,9 @@ const filterType = ref('')
 const filterCategory = ref('')
 const filterStatus = ref('')
 const detailListing = ref(null)
+const deletedListings = ref([])
+const selectedDeleted = ref(null)
+const selectedDeletedPhotos = ref([])
 const toDelete = ref(null)
 const rejectModal = ref({ open: false, listing: null, reason: '', loading: false })
 const deleting = ref(false)
@@ -726,7 +801,8 @@ async function fetchPendingListings() {
     } catch {}
 }
 
-onMounted(async () => {
+async function fetchAll(silent = false) {
+    if (!silent) loading.value = true
     try {
         const [{ data: catsData }, { data: announcementStats }] = await Promise.all([
             api.get('/admin/categories'),
@@ -734,13 +810,47 @@ onMounted(async () => {
         ])
         categories.value = catsData ?? []
         statsData.value = announcementStats
-        await Promise.all([fetchPendingListings(), fetchListings()])
+        await Promise.all([fetchPendingListings(), fetchListings(), fetchDeletedListings()])
     } catch {
         error.value = 'Impossible de charger les annonces.'
     } finally {
-        loading.value = false
+        if (!silent) loading.value = false
     }
-})
+}
+
+usePolling(fetchAll)
+
+async function fetchDeletedListings() {
+    try {
+        const { data } = await api.get('/admin/announcement/deleted')
+        const catMap = Object.fromEntries(categories.value.map(c => [c.id, c.name]))
+        deletedListings.value = (data ?? []).map(a => ({
+            id: a.id,
+            title: a.title,
+            author: a.author_name || '-',
+            type: a.type === 'vente' ? 'Vente' : 'Don',
+            category: catMap[a.id_category] ?? '-',
+            status: a.state ?? 'Supprimée',
+            createdAt: a.created_at?.slice(0, 10) ?? '-',
+            deletedAt: a.deleted_at ? a.deleted_at.slice(0, 16).replace('T', ' ') : null,
+            description: a.description ?? '-',
+            price: a.price ?? 0,
+        }))
+    } catch {
+        deletedListings.value = []
+    }
+}
+
+async function openDeletedListing(listing) {
+    selectedDeleted.value = listing
+    selectedDeletedPhotos.value = []
+    try {
+        const { data } = await api.get(`/announcements/${listing.id}/documents`)
+        selectedDeletedPhotos.value = (data ?? []).map(d => d.link).filter(Boolean)
+    } catch {
+        selectedDeletedPhotos.value = []
+    }
+}
 
 function openDetail(listing) {
     detailListing.value = listing
@@ -766,7 +876,7 @@ async function deleteListing() {
         await api.delete(`/admin/announcement/${toDelete.value.id}`)
         if (detailListing.value?.id === toDelete.value.id) detailListing.value = null
         toDelete.value = null
-        await Promise.all([fetchListings(), fetchPendingListings()])
+        await Promise.all([fetchListings(), fetchPendingListings(), fetchDeletedListings()])
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {

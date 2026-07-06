@@ -18,15 +18,24 @@ type Project struct {
 	UpVotes            int     `json:"up_votes"`
 	DownVotes          int     `json:"down_votes"`
 	UserVote           int     `json:"user_vote"`
+	DeletedAt          string  `json:"deleted_at"`
+}
+
+type DeletedProject struct {
+	Project
+	Materials []ProjectMaterial `json:"materials"`
+	Steps     []ProjectStep     `json:"steps"`
+	Documents []Document        `json:"documents"`
 }
 
 type CreateProjectRequest struct {
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-	StartDate   *string `json:"start_date"`
-	EndDate     *string `json:"end_date"`
-	Location    *string `json:"location"`
-	Capacity    *int    `json:"capacity"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description"`
+	StartDate   *string  `json:"start_date"`
+	EndDate     *string  `json:"end_date"`
+	Location    *string  `json:"location"`
+	Capacity    *int     `json:"capacity"`
+	PhotoURLs   []string `json:"photo_urls"`
 }
 
 type UpdateProjectAdminRequest struct {

@@ -14,25 +14,26 @@
             </button>
         </div>
 
-        <div class="mb-5 flex gap-3">
-            <select
-                v-model="filterCategory"
-                class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-                <option value="">Toutes les catégories</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-            </select>
-        </div>
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <select
+                    v-model="filterCategory"
+                    class="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                    <option value="">Toutes les catégories</option>
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+            </div>
 
-        <div v-if="loading" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">Chargement…</div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="filtered.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-            Vous n'avez publié aucun conseil.
-        </div>
+            <div v-else-if="filtered.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                Vous n'avez publié aucun conseil.
+            </div>
 
-        <div v-else class="grid grid-cols-3 gap-5">
-            <div
-                v-for="c in filtered"
+            <div v-else class="grid grid-cols-3 gap-5 p-6">
+                <div
+                    v-for="c in filtered"
                 :key="c.id"
                 class="bg-white rounded-2xl overflow-hidden border border-gray-100 flex flex-col hover:shadow-md transition-shadow cursor-pointer"
                 @click="openDetail(c)"
@@ -45,8 +46,11 @@
                 </div>
                 <div class="p-5 flex flex-col gap-2 flex-1">
                     <div class="flex items-center justify-between gap-2">
-                        <span v-if="c.category_name" class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary truncate">{{ c.category_name }}</span>
-                        <span v-else class="flex-1" />
+                        <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0" :class="priorityBadge(c.priority).class">{{ priorityBadge(c.priority).label }}</span>
+                            <span v-if="c.is_expired" class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 flex-shrink-0">Expiré</span>
+                            <span v-if="c.category_name" class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary truncate">{{ c.category_name }}</span>
+                        </div>
                         <span class="text-xs text-gray-400 flex-shrink-0">{{ c.created_at?.slice(0, 10) ?? '-' }}</span>
                     </div>
                     <h3 class="font-semibold text-gray-800 text-sm leading-snug">{{ c.title }}</h3>
@@ -73,6 +77,7 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
 
         <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" @click.self="selected = null">
@@ -97,8 +102,10 @@
                             <img :src="doc.link" class="w-full h-full object-cover" />
                         </a>
                     </div>
-                    <div class="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-50">
-                        <span>{{ selected.created_at?.slice(0, 10) }}</span>
+                    <div class="flex items-center gap-3 text-xs text-gray-400 pt-2 border-t border-gray-50">
+                        <span v-if="selected.is_expired" class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Expiré</span>
+                        <span v-else-if="selected.date_advice">Valable jusqu'au {{ selected.date_advice.slice(0, 10) }}</span>
+                        <span class="ml-auto">{{ selected.created_at?.slice(0, 10) }}</span>
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex gap-2 justify-end">
@@ -124,7 +131,7 @@
 
         <div v-if="formModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal = false"/>
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ editTarget ? 'Modifier le conseil' : 'Nouveau conseil' }}
@@ -137,13 +144,13 @@
                 </div>
                 <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input v-model="form.title" type="text"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                             placeholder="Titre du conseil"/>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Catégorie</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
                         <select v-model="form.id_category"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
                             <option value="">Aucune catégorie</option>
@@ -151,13 +158,27 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                        <select v-model.number="form.priority"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                            <option :value="1">Haute</option>
+                            <option :value="2">Moyenne</option>
+                            <option :value="3">Basse</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Valable jusqu'au (optionnel)</label>
+                        <input v-model="form.date_advice" type="date"
+                            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea v-model="form.description" rows="5"
                             class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
                             placeholder="Contenu du conseil…"/>
                     </div>
                     <div v-if="!editTarget">
-                        <label class="block text-xs text-gray-400 mb-2">Photos <span class="text-gray-300 font-normal">(3 max)</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Photos <span class="text-gray-300 font-normal">(3 max)</span></label>
                         <div
                             class="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-primary/50 transition-colors"
                             @dragover.prevent
@@ -193,7 +214,7 @@
                     </button>
                     <button @click="submitForm" :disabled="submitting"
                         class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
-                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Mettre à jour' : 'Publier') }}
+                        {{ submitting ? 'Enregistrement…' : (editTarget ? 'Enregistrer' : 'Créer') }}
                     </button>
                 </div>
             </div>
@@ -221,7 +242,7 @@ const submitting = ref(false)
 const formError = ref('')
 const filterCategory = ref('')
 const photos = ref([])
-const form = ref({ title: '', description: '', id_category: '' })
+const form = ref({ title: '', description: '', id_category: '', priority: 2, date_advice: '' })
 const selected = ref(null)
 const selectedDocs = ref([])
 const docsLoading = ref(false)
@@ -231,6 +252,16 @@ const filtered = computed(() => {
     if (!filterCategory.value) return conseils.value
     return conseils.value.filter(c => c.id_category === filterCategory.value)
 })
+
+const priorityBadges = {
+    1: { label: 'Haute', class: 'bg-primary/10 text-primary' },
+    2: { label: 'Moyenne', class: 'bg-amber-100 text-amber-700' },
+    3: { label: 'Basse', class: 'bg-gray-100 text-gray-500' },
+}
+
+function priorityBadge(p) {
+    return priorityBadges[p] ?? priorityBadges[2]
+}
 
 async function loadCovers() {
     const results = await Promise.allSettled(
@@ -263,7 +294,7 @@ async function openDetail(c) {
 
 function openCreate() {
     editTarget.value = null
-    form.value = { title: '', description: '', id_category: '' }
+    form.value = { title: '', description: '', id_category: '', priority: 2, date_advice: '' }
     photos.value = []
     formError.value = ''
     formModal.value = true
@@ -271,7 +302,13 @@ function openCreate() {
 
 function openEdit(c) {
     editTarget.value = c
-    form.value = { title: c.title, description: c.description ?? '', id_category: c.id_category ?? '' }
+    form.value = {
+        title: c.title,
+        description: c.description ?? '',
+        id_category: c.id_category ?? '',
+        priority: c.priority ?? 2,
+        date_advice: c.date_advice ? c.date_advice.slice(0, 10) : '',
+    }
     formError.value = ''
     formModal.value = true
 }
@@ -347,6 +384,8 @@ async function submitForm() {
                 title: form.value.title,
                 description: form.value.description || null,
                 id_category: form.value.id_category || null,
+                priority: form.value.priority,
+                date_advice: form.value.date_advice || null,
             })
         } else {
             const photoURLs = photos.value.length ? await uploadPhotos() : []
@@ -354,6 +393,8 @@ async function submitForm() {
                 title: form.value.title,
                 description: form.value.description || null,
                 id_category: form.value.id_category || null,
+                priority: form.value.priority,
+                date_advice: form.value.date_advice || null,
                 photo_urls: photoURLs,
             })
         }

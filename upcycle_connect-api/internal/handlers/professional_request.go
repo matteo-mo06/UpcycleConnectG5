@@ -20,7 +20,22 @@ func SubmitProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 
-	_, err := db.GetPendingRequestByUser(userID)
+	roleNames, err := db.GetUserRoleNames(userID)
+	if err != nil {
+		fmt.Println("SubmitProfessionalRequest error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to check user roles"})
+		return
+	}
+	for _, name := range roleNames {
+		if name == config.RoleArtisan || name == config.RoleSalarie || name == config.RoleAdmin {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous avez déjà un rôle professionnel ou administrateur"})
+			return
+		}
+	}
+
+	_, err = db.GetPendingRequestByUser(userID)
 	if err == nil {
 		w.WriteHeader(http.StatusConflict)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "une demande est déjà en attente"})

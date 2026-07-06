@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
@@ -75,6 +76,26 @@ func GetFormationById(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(formation)
 }
 
+func GetFormationDocuments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := r.PathValue("id")
+
+	docs, err := db.GetDocumentsByCategory(id)
+	if err != nil {
+		fmt.Println("GetFormationDocuments error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to get documents"})
+		return
+	}
+	if docs == nil {
+		docs = []models.Document{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(docs)
+}
+
 func createFormation(w http.ResponseWriter, r *http.Request, defaultStatus string) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -99,9 +120,9 @@ func createFormation(w http.ResponseWriter, r *http.Request, defaultStatus strin
 		return
 	}
 
-	if req.Location == nil || *req.Location == "" {
+	if req.Address == nil || *req.Address == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "l'adresse est requise"})
 		return
 	}
 
@@ -132,7 +153,9 @@ func createFormation(w http.ResponseWriter, r *http.Request, defaultStatus strin
 		TitleFormation:       req.Title,
 		DescriptionFormation: req.Description,
 		DateFormation:        req.Date,
-		LocationFormation:    req.Location,
+		AddressFormation:     req.Address,
+		CityFormation:        req.City,
+		PostalFormation:      req.Postal,
 		Capacity:             req.Capacity,
 		Level:                req.Level,
 		DurationHours:        req.DurationH,
@@ -151,6 +174,17 @@ func createFormation(w http.ResponseWriter, r *http.Request, defaultStatus strin
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create formation"})
 		return
+	}
+
+	for _, url := range req.PhotoURLs {
+		if err := db.CreateDocument(models.Document{
+			IdDocument: uuid.New().String(),
+			IdUser:     userID,
+			Category:   f.IdFormation,
+			Link:       url,
+		}); err != nil {
+			fmt.Println("CreateFormation document error:", err)
+		}
 	}
 
 	msg := "formation créée, en attente de validation"
@@ -219,9 +253,9 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Location == nil || *req.Location == "" {
+	if req.Address == nil || *req.Address == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "le lieu est requis"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "l'adresse est requise"})
 		return
 	}
 
@@ -240,7 +274,9 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 	formation.TitleFormation = req.Title
 	formation.DescriptionFormation = req.Description
 	formation.DateFormation = req.Date
-	formation.LocationFormation = req.Location
+	formation.AddressFormation = req.Address
+	formation.CityFormation = req.City
+	formation.PostalFormation = req.Postal
 	formation.Capacity = req.Capacity
 	formation.Level = req.Level
 	formation.DurationHours = req.DurationH
@@ -255,6 +291,17 @@ func UpdateMyFormation(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update formation"})
 		return
+	}
+
+	for _, url := range req.PhotoURLs {
+		if err := db.CreateDocument(models.Document{
+			IdDocument: uuid.New().String(),
+			IdUser:     userID,
+			Category:   id,
+			Link:       url,
+		}); err != nil {
+			fmt.Println("UpdateMyFormation document error:", err)
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -630,6 +677,25 @@ func UpdateFormationAdmin(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "formation mise à jour"})
 }
 
+func GetDeletedFormations(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	formations, err := db.GetDeletedFormations()
+	if err != nil {
+		fmt.Println("GetDeletedFormations error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch formations"})
+		return
+	}
+
+	if formations == nil {
+		formations = []models.DeletedFormation{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(formations)
+}
+
 func DeleteFormationAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -759,8 +825,25 @@ func buildSyllabusPDF(f models.Formation) ([]byte, error) {
 	}
 
 	location := "-"
-	if f.LocationFormation != nil && *f.LocationFormation != "" {
-		location = *f.LocationFormation
+	var parts []string
+	if f.AddressFormation != nil && *f.AddressFormation != "" {
+		parts = append(parts, *f.AddressFormation)
+	}
+	cityLine := ""
+	if f.PostalFormation != nil && *f.PostalFormation != "" {
+		cityLine = *f.PostalFormation
+	}
+	if f.CityFormation != nil && *f.CityFormation != "" {
+		if cityLine != "" {
+			cityLine += " "
+		}
+		cityLine += *f.CityFormation
+	}
+	if cityLine != "" {
+		parts = append(parts, cityLine)
+	}
+	if len(parts) > 0 {
+		location = strings.Join(parts, ", ")
 	}
 
 	duration := "-"
@@ -807,6 +890,24 @@ func buildSyllabusPDF(f models.Formation) ([]byte, error) {
 	section("Objectifs pédagogiques", f.Objectives)
 	section("Prérequis", f.Prerequisites)
 	section("Programme détaillé", f.Syllabus)
+
+	if steps, err := db.GetFormationSteps(f.IdFormation); err == nil && len(steps) > 0 {
+		pdf.SetFont("Helvetica", "B", 11)
+		pdf.SetTextColor(45, 106, 79)
+		pdf.Cell(0, 8, tr("Programme / Étapes"))
+		pdf.Ln(7)
+		for i, s := range steps {
+			pdf.SetFont("Helvetica", "B", 9.5)
+			pdf.SetTextColor(60, 60, 60)
+			pdf.MultiCell(170, 5.5, tr(fmt.Sprintf("%d. %s", i+1, s.Title)), "", "L", false)
+			if s.Description != nil && *s.Description != "" {
+				pdf.SetFont("Helvetica", "", 9.5)
+				pdf.SetTextColor(60, 60, 60)
+				pdf.MultiCell(170, 5.5, tr(*s.Description), "", "L", false)
+			}
+		}
+		pdf.Ln(4)
+	}
 
 	pdf.SetY(-25)
 	pdf.SetTextColor(120, 120, 120)

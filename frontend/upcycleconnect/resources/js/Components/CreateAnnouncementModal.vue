@@ -207,13 +207,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api.js'
 
-const auth = useAuthStore()
-const abonnementHref = computed(() => auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
+const abonnementHref = '/artisan/abonnement'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'created'])

@@ -34,39 +34,40 @@
             </button>
         </div>
 
-        <div class="flex gap-3 mb-6">
-            <div class="flex-1 relative">
-                <svg
-                    class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="relative flex-1">
+                    <svg
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 21l-4.35-4.35M17 11A6 6 0 1 0 5 11a6 6 0 0 0 12 0z"
+                        />
+                    </svg>
+                    <input
+                        v-model="search"
+                        @input="debouncedFetch"
+                        type="text"
+                        placeholder="Rechercher un sujet…"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                </svg>
-                <input
-                    v-model="search"
-                    @input="debouncedFetch"
-                    type="text"
-                    placeholder="Rechercher un sujet…"
-                    class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                </div>
             </div>
-        </div>
 
-        <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">
-            Chargement…
-        </div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">
+                Chargement…
+            </div>
 
-        <div
-            v-else-if="topics.length === 0"
-            class="bg-white rounded-2xl shadow-sm p-12 text-center"
-        >
+            <div
+                v-else-if="topics.length === 0"
+                class="py-12 text-center"
+            >
             <svg
                 class="w-12 h-12 text-gray-200 mx-auto mb-3"
                 fill="none"
@@ -86,7 +87,7 @@
             </p>
         </div>
 
-        <div v-else class="space-y-3">
+        <div v-else class="space-y-3 p-6">
             <div
                 v-for="topic in topics"
                 :key="topic.id"
@@ -140,15 +141,16 @@
                     </span>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <Pagination
-            v-if="total > LIMIT"
-            :page="page"
-            :total="total"
-            :limit="LIMIT"
-            @update:page="changePage"
-        />
+            <Pagination
+                v-if="total > LIMIT"
+                :page="page"
+                :total="total"
+                :limit="LIMIT"
+                @update:page="changePage"
+            />
+        </div>
 
         <div
             v-if="showNewTopic"
@@ -156,10 +158,10 @@
             @click.self="showNewTopic = false"
         >
             <div
-                class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+                class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col"
             >
                 <div
-                    class="flex items-center justify-between px-6 py-4 border-b border-gray-100"
+                    class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0"
                 >
                     <h2
                         class="font-semibold text-gray-800"
@@ -186,10 +188,10 @@
                         </svg>
                     </button>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
                         <label
-                            class="block text-xs font-medium text-gray-600 mb-1.5"
+                            class="block text-sm font-medium text-gray-700 mb-1"
                             >Titre</label
                         >
                         <input
@@ -201,7 +203,7 @@
                     </div>
                     <div>
                         <label
-                            class="block text-xs font-medium text-gray-600 mb-1.5"
+                            class="block text-sm font-medium text-gray-700 mb-1"
                             >Message</label
                         >
                         <textarea
@@ -215,7 +217,7 @@
                         {{ topicError }}
                     </p>
                 </div>
-                <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+                <div class="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
                     <button
                         @click="showNewTopic = false"
                         class="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"

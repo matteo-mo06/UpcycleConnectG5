@@ -235,8 +235,8 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="detailAd = null">
             <div class="absolute inset-0 bg-black/40" @click="detailAd = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                             {{ detailAd.title }}
@@ -252,7 +252,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <img :src="detailAd.image_url" :alt="detailAd.title" class="w-full h-48 object-cover rounded-xl" />
 
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -296,7 +296,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2 flex-shrink-0">
                     <div class="flex gap-2">
                         <button
                             v-if="detailAd.state === 'pending'"

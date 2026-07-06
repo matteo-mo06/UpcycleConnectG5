@@ -18,6 +18,18 @@ export const useAuthStore = defineStore("auth", () => {
         () => user.value?.roles?.includes("salarie") ?? false,
     );
 
+    // Accès aux espaces : piloté par les permissions access_admin / access_artisan
+    // / access_salarie (voir Admin > Rôles), pas par le rôle brut.
+    const canAccessAdmin = computed(
+        () => user.value?.permissions?.includes("access_admin") ?? false,
+    );
+    const canAccessArtisan = computed(
+        () => user.value?.permissions?.includes("access_artisan") ?? false,
+    );
+    const canAccessSalarie = computed(
+        () => user.value?.permissions?.includes("access_salarie") ?? false,
+    );
+
     async function login(email, password) {
         const { data } = await api.post("/auth/login", {
             email,
@@ -87,6 +99,9 @@ export const useAuthStore = defineStore("auth", () => {
         isAdmin,
         isArtisan,
         isSalarie,
+        canAccessAdmin,
+        canAccessArtisan,
+        canAccessSalarie,
         hasPermission,
         login,
         logout,

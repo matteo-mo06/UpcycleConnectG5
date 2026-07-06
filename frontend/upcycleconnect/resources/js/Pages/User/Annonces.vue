@@ -15,20 +15,20 @@
             </button>
         </div>
 
-        <div class="flex items-center gap-4 mb-6">
-            <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.value"
-                    @click="switchTab(tab.value)"
-                    :class="[
-                        'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
-                        activeTab === tab.value ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                    ]"
-                >{{ tab.label }}</button>
-            </div>
+        <div class="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6 w-fit">
+            <button
+                v-for="tab in tabs"
+                :key="tab.value"
+                @click="switchTab(tab.value)"
+                :class="[
+                    'px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
+                    activeTab === tab.value ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                ]"
+            >{{ tab.label }}</button>
+        </div>
 
-            <template v-if="activeTab === 'all'">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div v-if="activeTab === 'all'" class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                 <div class="relative flex-1">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
@@ -38,28 +38,27 @@
                         @input="debouncedFetch"
                         type="text"
                         placeholder="Rechercher une annonce…"
-                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                 </div>
-                <select v-model="filterType" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
+                <select v-model="filterType" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
                     <option value="">Tous les types</option>
                     <option value="vente">Vente</option>
                     <option value="don">Don</option>
                 </select>
-                <select v-model="filterCategory" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
+                <select v-model="filterCategory" @change="resetAndFetch" class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
                     <option value="">Toutes les catégories</option>
                     <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
                 </select>
-            </template>
-        </div>
+            </div>
 
-        <div v-if="loading" class="text-center py-12 text-gray-400 text-sm">Chargement…</div>
+            <div v-if="loading" class="py-12 text-center text-gray-400 text-sm">Chargement…</div>
 
-        <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400 text-sm">
-            {{ activeTab === 'mine' ? 'Vous n\'avez aucune annonce.' : 'Aucune annonce disponible.' }}
-        </div>
+            <div v-else-if="announcements.length === 0" class="py-12 text-center text-gray-400 text-sm">
+                {{ activeTab === 'mine' ? 'Vous n\'avez aucune annonce.' : 'Aucune annonce disponible.' }}
+            </div>
 
-        <div v-else class="grid grid-cols-3 gap-5">
+            <div v-else class="grid grid-cols-3 gap-5 p-6">
             <div
                 v-for="a in announcements"
                 :key="a.id"
@@ -172,16 +171,17 @@
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
 
-        <Pagination v-if="activeTab === 'all' && total > 12" :page="page" :total="total" :limit="12" @update:page="changePage" />
+            <Pagination v-if="activeTab === 'all' && total > 12" :page="page" :total="total" :limit="12" @update:page="changePage" />
+        </div>
 
         <CreateAnnouncementModal v-model="showDepot" @created="onCreated" />
         <ReportModal v-model="showReport" contentType="announcement" :contentId="reportTarget?.id" :contentTitle="reportTarget?.title ?? ''" />
 
         <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeDetail">
             <div class="absolute inset-0 bg-black/40" @click="closeDetail" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ selected.title }}</h3>
                     <button @click="closeDetail" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
@@ -513,7 +513,7 @@ async function claimAnnouncement(a) {
         announcements.value = announcements.value.filter(x => x.id !== a.id)
     } catch (e) {
         if (e.response?.status === 403) {
-            router.push(auth.isSalarie ? '/salarie/abonnement' : '/artisan/abonnement')
+            router.push('/artisan/abonnement')
             return
         }
         alert(e.response?.data?.error ?? 'Erreur lors de l\'acquisition.')

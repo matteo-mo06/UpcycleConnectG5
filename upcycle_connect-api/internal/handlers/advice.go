@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"slices"
 
+	"upcycle_connect-api/internal/config"
 	"upcycle_connect-api/internal/db"
 	"upcycle_connect-api/internal/middleware"
 	"upcycle_connect-api/internal/models"
@@ -97,7 +98,14 @@ func CreateAdvice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.CreateAdvice(userID, req.Title, req.Description, req.IdCategory, req.DateAdvice, req.PhotoURLs); err != nil {
+	if req.Priority < 1 || req.Priority > 3 {
+		req.Priority = 2
+	}
+	if req.DateAdvice != nil && *req.DateAdvice == "" {
+		req.DateAdvice = nil
+	}
+
+	if err := db.CreateAdvice(userID, req.Title, req.Description, req.IdCategory, req.DateAdvice, req.Priority, req.PhotoURLs); err != nil {
 		fmt.Println("CreateAdvice error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create advice"})
@@ -112,6 +120,7 @@ func UpdateMyAdvice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
 	id := r.PathValue("id")
 
 	creatorID, err := db.GetAdviceCreatorID(id)
@@ -127,7 +136,9 @@ func UpdateMyAdvice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if creatorID != userID {
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
+
+	if creatorID != userID && !isAdmin {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "vous n'êtes pas créateur de ce conseil"})
 		return
@@ -146,7 +157,14 @@ func UpdateMyAdvice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.UpdateAdvice(id, req.Title, req.Description, req.IdCategory, req.DateAdvice); err != nil {
+	if req.Priority < 1 || req.Priority > 3 {
+		req.Priority = 2
+	}
+	if req.DateAdvice != nil && *req.DateAdvice == "" {
+		req.DateAdvice = nil
+	}
+
+	if err := db.UpdateAdvice(id, req.Title, req.Description, req.IdCategory, req.DateAdvice, req.Priority); err != nil {
 		fmt.Println("UpdateMyAdvice error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to update advice"})
@@ -162,6 +180,7 @@ func DeleteMyAdvice(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
 	perms, _ := r.Context().Value(middleware.ContextPermissions).([]string)
+	roles, _ := r.Context().Value(middleware.ContextRoles).([]string)
 	id := r.PathValue("id")
 
 	creatorID, err := db.GetAdviceCreatorID(id)
@@ -179,8 +198,9 @@ func DeleteMyAdvice(w http.ResponseWriter, r *http.Request) {
 
 	isOwner := creatorID == userID
 	canManage := slices.Contains(perms, "manage_advice")
+	isAdmin := slices.Contains(roles, config.RoleAdmin)
 
-	if !isOwner && !canManage {
+	if !isOwner && !canManage && !isAdmin {
 		w.WriteHeader(http.StatusForbidden)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "accès non autorisé"})
 		return
@@ -195,4 +215,23 @@ func DeleteMyAdvice(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "conseil supprimé"})
+}
+
+func GetDeletedAdvices(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	advices, err := db.GetDeletedAdvices()
+	if err != nil {
+		fmt.Println("GetDeletedAdvices error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch advices"})
+		return
+	}
+
+	if advices == nil {
+		advices = []models.DeletedAdvice{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(advices)
 }

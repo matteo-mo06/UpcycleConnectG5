@@ -49,6 +49,7 @@ func InitRoutes() {
 	http.HandleFunc("GET /announcements/{id}", handlers.GetPublicAnnouncementById)
 	http.Handle("POST /announcements", perm("create_announcement", handlers.CreateUserAnnouncement))
 	http.Handle("GET /announcements/{id}/documents", auth(handlers.GetAnnouncementDocuments))
+	http.Handle("DELETE /documents/{id}", auth(handlers.DeleteDocument))
 	http.Handle("POST /announcements/{id}/claim", perm("buy_announcement", handlers.ClaimAnnouncement))
 	http.Handle("DELETE /announcements/{id}", perm("manage_announcements", handlers.DeleteAnnouncementWithPermission))
 
@@ -97,6 +98,7 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/announcements/stats", admin(handlers.GetAnnouncementStats))
 	http.Handle("GET /admin/announcements", admin(handlers.GetAnnouncements))
+	http.Handle("GET /admin/announcement/deleted", admin(handlers.GetDeletedAnnouncements))
 	http.Handle("GET /admin/announcement/{id}", admin(handlers.GetAnnouncementById))
 	http.Handle("POST /admin/announcements", admin(handlers.CreateAnnouncement))
 	http.Handle("PUT /admin/announcement/{id}", admin(handlers.UpdateAnnouncement))
@@ -117,6 +119,7 @@ func InitRoutes() {
 	http.Handle("POST /user/event/{id}/register", perm("register_event", handlers.RegisterForEvent))
 	http.Handle("DELETE /user/event/{id}/unregister", perm("register_event", handlers.UnregisterFromEvent))
 
+	http.Handle("GET /admin/forum/topics/deleted", admin(handlers.GetDeletedForumTopics))
 	http.Handle("GET /forum/topics", auth(handlers.GetForumTopics))
 	http.Handle("GET /forum/topics/{id}", auth(handlers.GetForumTopic))
 	http.Handle("POST /forum/topics", perm("create_topic", handlers.CreateForumTopic))
@@ -177,6 +180,7 @@ func InitRoutes() {
 	http.Handle("GET /user/my-events", perm("create_event", handlers.GetMyCreatedEvents))
 
 	http.Handle("GET /admin/events", admin(handlers.GetEvents))
+	http.Handle("GET /admin/event/deleted", admin(handlers.GetDeletedEvents))
 	http.Handle("GET /admin/event/{id}", admin(handlers.GetEventById))
 	http.Handle("POST /admin/events", admin(handlers.CreateEventAdmin))
 	http.Handle("PUT /admin/event/{id}", admin(handlers.UpdateEvent))
@@ -200,6 +204,7 @@ func InitRoutes() {
 
 	http.Handle("GET /admin/formations", admin(handlers.GetAllFormationsAdmin))
 	http.Handle("POST /admin/formations", admin(handlers.CreateFormationAdmin))
+	http.Handle("GET /admin/formation/deleted", admin(handlers.GetDeletedFormations))
 	http.Handle("GET /admin/formation/{id}", admin(handlers.GetFormationByIdAdmin))
 	http.Handle("PUT /admin/formation/{id}", admin(handlers.UpdateFormationAdmin))
 	http.Handle("DELETE /admin/formation/{id}", admin(handlers.DeleteFormationAdmin))
@@ -224,6 +229,7 @@ func InitRoutes() {
 	http.Handle("GET /admin/projects/stats", admin(handlers.GetProjectStats))
 	http.Handle("POST /admin/projects", admin(handlers.CreateProjectAdmin))
 	http.Handle("GET /admin/projects", admin(handlers.GetAllProjectsAdmin))
+	http.Handle("GET /admin/project/deleted", admin(handlers.GetDeletedProjects))
 	http.Handle("GET /admin/project/{id}", admin(handlers.GetProjectByIdAdmin))
 	http.Handle("PUT /admin/project/{id}", admin(handlers.UpdateProjectAdmin))
 	http.Handle("DELETE /admin/project/{id}", admin(handlers.DeleteProjectAdmin))
@@ -231,6 +237,8 @@ func InitRoutes() {
 	http.Handle("PATCH /admin/project/{id}/reject", admin(handlers.RejectProject))
 
 	http.Handle("GET /projects/{id}/members", auth(handlers.GetProjectMembers))
+	http.Handle("GET /projects/{id}/documents", auth(handlers.GetProjectDocuments))
+	http.Handle("GET /formations/{id}/documents", auth(handlers.GetFormationDocuments))
 	http.Handle("GET /events/{id}/participants", auth(handlers.GetEventParticipants))
 	http.Handle("GET /formations/{id}/participants", auth(handlers.GetFormationParticipants))
 
@@ -244,6 +252,12 @@ func InitRoutes() {
 	http.Handle("PATCH /projects/{id}/steps/{step_id}", auth(handlers.UpdateProjectStep))
 	http.Handle("PATCH /projects/{id}/steps/{step_id}/status", auth(handlers.UpdateProjectStepStatus))
 	http.Handle("DELETE /projects/{id}/steps/{step_id}", auth(handlers.DeleteProjectStep))
+
+	http.Handle("GET /formations/{id}/steps", auth(handlers.GetFormationSteps))
+	http.Handle("POST /formations/{id}/steps", auth(handlers.CreateFormationStep))
+	http.Handle("PATCH /formations/{id}/steps/{step_id}", auth(handlers.UpdateFormationStep))
+	http.Handle("PATCH /formations/{id}/steps/{step_id}/status", auth(handlers.UpdateFormationStepStatus))
+	http.Handle("DELETE /formations/{id}/steps/{step_id}", auth(handlers.DeleteFormationStep))
 
 	http.Handle("GET /subscription/plans", auth(handlers.GetSubscriptionPlans))
 	http.Handle("GET /user/subscription", auth(handlers.GetMySubscription))
@@ -259,6 +273,7 @@ func InitRoutes() {
 	http.Handle("GET /admin/subscriptions", admin(handlers.GetAdminSubscriptions))
 
 	http.Handle("GET /conseils", auth(handlers.GetAdvices))
+	http.Handle("GET /admin/advice/deleted", admin(handlers.GetDeletedAdvices))
 	http.Handle("GET /conseils/{id}", auth(handlers.GetAdvice))
 	http.Handle("GET /conseils/{id}/documents", auth(handlers.GetAdviceDocuments))
 	http.Handle("POST /conseils", perm("create_advice", handlers.CreateAdvice))

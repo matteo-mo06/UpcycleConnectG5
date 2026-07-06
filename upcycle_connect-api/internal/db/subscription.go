@@ -229,7 +229,7 @@ func CountUserProjectsThisMonth(userID string) (int, error) {
 	var count int
 	err := config.Conn.QueryRow(`
 		SELECT COUNT(*) FROM PROJECT
-		WHERE id_creator = ? AND status != 'Supprimé'
+		WHERE id_creator = ? AND status != 'Supprimé' AND deleted_at IS NULL
 		AND YEAR(created_at) = YEAR(NOW()) AND MONTH(created_at) = MONTH(NOW())`, userID).Scan(&count)
 	return count, err
 }

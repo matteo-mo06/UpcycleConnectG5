@@ -21,11 +21,13 @@ import AdminScore from './Pages/Admin/Score.vue'
 import Reports from './Pages/Admin/Reports.vue'
 import Lockers from './Pages/Admin/Lockers.vue'
 import AdminProjets from './Pages/Admin/Projets.vue'
+import AdminConseils from './Pages/Admin/Conseils.vue'
 import Categories from './Pages/Admin/Categories.vue'
 import DemandesPro from './Pages/Admin/DemandesPro.vue'
 import Revenus from './Pages/Admin/Revenus.vue'
 import AdminPublicite from './Pages/Admin/Publicite.vue'
 import AdminSubscriptions from './Pages/Admin/Subscriptions.vue'
+import AdminForum from './Pages/Admin/Forum.vue'
 import CGU from './Pages/CGU.vue'
 import PolitiqueConfidentialite from './Pages/PolitiqueConfidentialite.vue'
 import Error from './Pages/Error.vue'
@@ -49,7 +51,6 @@ const SalarieEvenements = () => import('./Pages/Salarie/Evenements.vue')
 const SalarieConseils   = () => import('./Pages/Salarie/Conseils.vue')
 const SalarieForum      = () => import('./Pages/Salarie/Forum.vue')
 const SalarieCalendrier = () => import('./Pages/Salarie/Calendrier.vue')
-const SalarieAbonnement = () => import('./Pages/Salarie/Abonnement.vue')
 
 const router = createRouter({
     history: createWebHistory(),
@@ -62,7 +63,6 @@ const router = createRouter({
             redirect: to => {
                 const auth = useAuthStore()
                 if (auth.isArtisan) return { path: '/artisan/abonnement', query: to.query }
-                if (auth.isSalarie) return { path: '/salarie/abonnement', query: to.query }
                 return '/accueil'
             },
         },
@@ -88,9 +88,11 @@ const router = createRouter({
         { path: '/admin/events', component: Events, meta: { requiresAdmin: true } },
         { path: '/admin/formations', component: AdminFormations, meta: { requiresAdmin: true } },
         { path: '/admin/reports', component: Reports, meta: { requiresAdmin: true } },
+        { path: '/admin/forum', component: AdminForum, meta: { requiresAdmin: true } },
         { path: '/admin/lockers', component: Lockers, meta: { requiresAdmin: true } },
         { path: '/admin/score', component: AdminScore, meta: { requiresAdmin: true } },
         { path: '/admin/projets', component: AdminProjets, meta: { requiresAdmin: true } },
+        { path: '/admin/conseils', component: AdminConseils, meta: { requiresAdmin: true } },
         { path: '/admin/categories', component: Categories, meta: { requiresAdmin: true } },
         { path: '/admin/demandes-pro', component: DemandesPro, meta: { requiresAdmin: true } },
         { path: '/admin/revenus', component: Revenus, meta: { requiresAdmin: true } },
@@ -114,7 +116,6 @@ const router = createRouter({
         { path: '/salarie/conseils',   component: SalarieConseils,   meta: { requiresSalarie: true } },
         { path: '/salarie/forum',      component: SalarieForum,      meta: { requiresSalarie: true } },
         { path: '/salarie/calendrier', component: SalarieCalendrier, meta: { requiresSalarie: true } },
-        { path: '/salarie/abonnement', component: SalarieAbonnement, meta: { requiresSalarie: true } },
 
         { path: '/stripe/return',  component: StripeReturn,  meta: { requiresAuth: true } },
         { path: '/stripe/refresh', component: StripeRefresh, meta: { requiresAuth: true } },
@@ -126,9 +127,9 @@ const router = createRouter({
 router.beforeEach((to) => {
     const auth = useAuthStore()
 
-    if (to.meta.requiresAdmin && !auth.isAdmin) return auth.isLoggedIn ? '/accueil' : '/login'
-    if (to.meta.requiresArtisan && !auth.isArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
-    if (to.meta.requiresSalarie && !auth.isSalarie) return auth.isLoggedIn ? '/accueil' : '/login'
+    if (to.meta.requiresAdmin && !auth.canAccessAdmin) return auth.isLoggedIn ? '/accueil' : '/login'
+    if (to.meta.requiresArtisan && !auth.canAccessArtisan) return auth.isLoggedIn ? '/accueil' : '/login'
+    if (to.meta.requiresSalarie && !auth.canAccessSalarie) return auth.isLoggedIn ? '/accueil' : '/login'
     if (to.meta.requiresAuth && !auth.isLoggedIn) return '/login'
 
     if (auth.isLoggedIn && !auth.user?.tutorial_done && to.path.startsWith('/artisan/')) {

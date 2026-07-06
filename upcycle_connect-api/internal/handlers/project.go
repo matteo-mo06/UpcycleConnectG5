@@ -22,7 +22,8 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := parsePage(r, 15)
 
 	search := r.URL.Query().Get("search")
-	projects, total, err := db.GetProjects(userID, search, limit, offset)
+	status := r.URL.Query().Get("status")
+	projects, total, err := db.GetProjects(userID, search, status, limit, offset)
 	if err != nil {
 		fmt.Println("GetProjects error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -67,6 +68,26 @@ func GetProjectById(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(project)
+}
+
+func GetProjectDocuments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := r.PathValue("id")
+
+	docs, err := db.GetDocumentsByCategory(id)
+	if err != nil {
+		fmt.Println("GetProjectDocuments error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to get documents"})
+		return
+	}
+	if docs == nil {
+		docs = []models.Document{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(docs)
 }
 
 func CreateProject(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +144,17 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create project"})
 		return
+	}
+
+	for _, url := range req.PhotoURLs {
+		if err := db.CreateDocument(models.Document{
+			IdDocument: uuid.New().String(),
+			IdUser:     userID,
+			Category:   p.IdProject,
+			Link:       url,
+		}); err != nil {
+			fmt.Println("CreateProject document error:", err)
+		}
 	}
 
 	if err := db.AwardScore(userID, "project_created", p.IdProject); err != nil {
@@ -191,6 +223,17 @@ func UpdateMyProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, url := range req.PhotoURLs {
+		if err := db.CreateDocument(models.Document{
+			IdDocument: uuid.New().String(),
+			IdUser:     userID,
+			Category:   id,
+			Link:       url,
+		}); err != nil {
+			fmt.Println("UpdateMyProject document error:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "projet mis à jour, resoumis pour validation"})
 }
@@ -229,6 +272,25 @@ func DeleteMyProject(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "projet supprimé"})
+}
+
+func GetDeletedProjects(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	projects, err := db.GetDeletedProjects()
+	if err != nil {
+		fmt.Println("GetDeletedProjects error:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to fetch projects"})
+		return
+	}
+
+	if projects == nil {
+		projects = []models.DeletedProject{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(projects)
 }
 
 func GetPendingProjects(w http.ResponseWriter, r *http.Request) {
@@ -406,8 +468,15 @@ func GetMyCreatedProjects(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+	page, limit, offset := parsePage(r, 15)
 
-	projects, err := db.GetMyCreatedProjects(userID)
+	projects, total, err := db.GetMyCreatedProjectsPaginated(
+		userID,
+		r.URL.Query().Get("search"),
+		r.URL.Query().Get("status"),
+		limit,
+		offset,
+	)
 	if err != nil {
 		fmt.Println("GetMyCreatedProjects error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -420,7 +489,7 @@ func GetMyCreatedProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(projects)
+	_ = json.NewEncoder(w).Encode(pageResponse(projects, total, page, limit))
 }
 
 func VoteProject(w http.ResponseWriter, r *http.Request) {
@@ -586,6 +655,8 @@ func GetProjectStats(w http.ResponseWriter, r *http.Request) {
 func CreateProjectAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	userID, _ := r.Context().Value(middleware.ContextUserID).(string)
+
 	var req models.CreateProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -614,6 +685,17 @@ func CreateProjectAdmin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create project"})
 		return
+	}
+
+	for _, url := range req.PhotoURLs {
+		if err := db.CreateDocument(models.Document{
+			IdDocument: uuid.New().String(),
+			IdUser:     userID,
+			Category:   p.IdProject,
+			Link:       url,
+		}); err != nil {
+			fmt.Println("CreateProjectAdmin document error:", err)
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)

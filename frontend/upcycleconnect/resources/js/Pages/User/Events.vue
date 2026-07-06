@@ -10,13 +10,6 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <h2 class="font-semibold text-gray-800 mb-4" style="font-family: var(--font-family-title)">
-                Mes événements
-            </h2>
-            <FullCalendar :options="calendarOptions" />
-        </div>
-
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                 <div class="relative flex-1">
@@ -28,13 +21,13 @@
                         @input="onSearchInput"
                         type="text"
                         placeholder="Rechercher un événement…"
-                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                 </div>
                 <select
                     v-model="filterStatus"
                     @change="resetAndFetch"
-                    class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
+                    class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
                     <option value="">Tous les événements</option>
                     <option value="upcoming">À venir</option>
                     <option value="registered">Mes inscriptions</option>
@@ -68,7 +61,7 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-3 text-xs text-gray-500">
-                            <span v-if="event.location !== '-'">{{ event.location }}</span>
+                            <span v-if="event.city || event.address">{{ event.city || event.address }}</span>
                             <span v-if="event.time !== '-'">{{ event.time }}</span>
                             <span v-if="event.capacity">{{ event.registered }}/{{ event.capacity }} places</span>
                         </div>
@@ -112,9 +105,9 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="detailEvent = null">
             <div class="absolute inset-0 bg-black/40" @click="detailEvent = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
 
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                             {{ detailEvent.title }}
@@ -130,7 +123,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Date & heure</p>
@@ -138,8 +131,12 @@
                             <p class="text-xs text-gray-500">{{ detailEvent.time }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
-                            <p class="font-medium text-gray-800">{{ detailEvent.location }}</p>
+                            <p class="text-xs text-gray-400 mb-0.5">Adresse</p>
+                            <p class="font-medium text-gray-800">{{ detailEvent.address || '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Ville</p>
+                            <p class="font-medium text-gray-800">{{ detailEvent.postal ? detailEvent.postal + ' ' : '' }}{{ detailEvent.city || '-' }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Inscriptions</p>
@@ -179,7 +176,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <button
                         v-if="!detailEvent.isPast && detailEvent.isRegistered"
                         @click="toggleRegistration(detailEvent); detailEvent = null"
@@ -200,12 +197,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { usePolling } from '@/composables/usePolling.js'
-import FullCalendar from '@fullcalendar/vue3'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import frLocale from '@fullcalendar/core/locales/fr'
 import UserLayout from '@/Layouts/UserLayout.vue'
 import Pagination from '@/Components/Pagination.vue'
 import api from '@/api.js'
@@ -213,7 +206,6 @@ import { useAuthStore } from '@/stores/auth.js'
 
 const auth = useAuthStore()
 const events = ref([])
-const calendarEvents = ref([])
 const page = ref(1)
 const total = ref(0)
 const search = ref('')
@@ -231,7 +223,9 @@ function mapEvent(e) {
         id: e.id,
         title: e.title,
         organizer: e.creator_name ?? '-',
-        location: e.location ?? '-',
+        address: e.address ?? null,
+        city: e.city ?? null,
+        postal: e.postal ?? null,
         date: e.date?.slice(0, 10) ?? '-',
         time: e.date?.slice(11, 16) ?? '-',
         dateStr: e.date?.slice(0, 10) ?? null,
@@ -247,32 +241,6 @@ function mapEvent(e) {
         id_creator: e.id_creator ?? null,
     }
 }
-
-const calendarOptions = computed(() => ({
-    plugins: [dayGridPlugin, interactionPlugin],
-    initialView: 'dayGridMonth',
-    locale: frLocale,
-    headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: '',
-    },
-    events: calendarEvents.value
-        .filter(e => e.dateStr)
-        .map(e => ({
-            id: e.id,
-            title: e.title,
-            date: e.dateStr,
-            backgroundColor: '#8dc734',
-            borderColor: '#6fa028',
-        })),
-    eventClick: (info) => {
-        const event = calendarEvents.value.find(e => e.id === info.event.id)
-            || events.value.find(e => e.id === info.event.id)
-        if (event) openDetail(event)
-    },
-    height: 'auto',
-}))
 
 let searchDebounce = null
 function onSearchInput() {
@@ -300,14 +268,10 @@ async function toggleRegistration(event) {
             await api.delete(`/user/event/${event.id}/unregister`)
             event.isRegistered = false
             event.registered = Math.max(0, event.registered - 1)
-            calendarEvents.value = calendarEvents.value.filter(e => e.id !== event.id)
         } else {
             await api.post(`/user/event/${event.id}/register`)
             event.isRegistered = true
             event.registered++
-            if (!calendarEvents.value.find(e => e.id === event.id)) {
-                calendarEvents.value.push({ ...event, isRegistered: true })
-            }
         }
     } catch (err) {
         alert(err?.response?.data?.error ?? 'Erreur lors de l\'inscription / désinscription.')
@@ -357,14 +321,5 @@ async function loadParticipants(url) {
     }
 }
 
-async function fetchAll() {
-    await Promise.all([
-        fetchEvents(),
-        api.get('/user/events').then(({ data }) => {
-            calendarEvents.value = (data ?? []).map(mapEvent)
-        }).catch(() => {}),
-    ])
-}
-
-usePolling(fetchAll)
+usePolling(fetchEvents)
 </script>

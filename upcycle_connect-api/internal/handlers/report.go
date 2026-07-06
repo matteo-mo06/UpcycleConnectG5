@@ -294,6 +294,9 @@ func GetUserHistory(w http.ResponseWriter, r *http.Request) {
 	if history.ReportsReceived == nil {
 		history.ReportsReceived = []models.Report{}
 	}
+	if history.ProfessionalRequests == nil {
+		history.ProfessionalRequests = []models.ProfessionalRequest{}
+	}
 	_ = json.NewEncoder(w).Encode(history)
 }
 

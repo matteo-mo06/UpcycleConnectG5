@@ -122,6 +122,11 @@ const selectedMeta = computed(() => {
     return parts
 })
 
+function composeAddr(o) {
+    const cityLine = [o.postal, o.city].filter(Boolean).join(' ')
+    return [o.address, cityLine].filter(Boolean).join(', ') || null
+}
+
 const calendarOptions = computed(() => {
     const eventEntries = events.value
         .filter(e => e.date)
@@ -132,7 +137,7 @@ const calendarOptions = computed(() => {
             backgroundColor: TYPE_COLORS.event,
             borderColor: '#a85a55',
             textColor: '#ffffff',
-            extendedProps: { type: 'event', date: e.date, location: e.location ?? null, description: e.description ?? null },
+            extendedProps: { type: 'event', date: e.date, location: composeAddr(e), description: e.description ?? null },
         }))
 
     const formationEntries = formations.value
@@ -144,7 +149,7 @@ const calendarOptions = computed(() => {
             backgroundColor: TYPE_COLORS.formation,
             borderColor: '#6fa028',
             textColor: '#ffffff',
-            extendedProps: { type: 'formation', date: f.date, level: f.level ?? null, location: f.location ?? null, description: f.description ?? null },
+            extendedProps: { type: 'formation', date: f.date, level: f.level ?? null, location: composeAddr(f), description: f.description ?? null },
         }))
 
     const projectEntries = projects.value

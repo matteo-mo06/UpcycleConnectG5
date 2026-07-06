@@ -214,9 +214,9 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="closeDetailModal">
             <div class="absolute inset-0 bg-black/40" @click="closeDetailModal" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
 
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                             Signalement #{{ detailReport.id.slice(0, 8) }}
@@ -232,7 +232,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
                     <div class="bg-gray-50 rounded-xl p-4 space-y-3">
                         <div class="flex items-start gap-3">
@@ -332,7 +332,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end flex-shrink-0">
                     <button
                         v-if="detailReport.status === 'À traiter'"
                         @click="resolveReport(detailReport); detailReport = null"
@@ -348,9 +348,9 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="histoUser = null">
             <div class="absolute inset-0 bg-black/40" @click="histoUser = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
 
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">{{ histoUser.name }}</h3>
@@ -367,7 +367,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
+                <div class="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sanctions ({{ histoUser.sanctions.length }})</p>

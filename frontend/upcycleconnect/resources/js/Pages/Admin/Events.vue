@@ -25,9 +25,9 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
 
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                     <div class="relative flex-1">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
@@ -36,13 +36,13 @@
                             v-model="search"
                             type="text"
                             placeholder="Rechercher par titre ou organisateur…"
-                            class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30"
                         />
                     </div>
 
                     <select
                         v-model="filterStatus"
-                        class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-600">
+                        class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 text-gray-600">
                         <option value="">Tous les statuts</option>
                         <option value="pending">En attente</option>
                         <option value="approved-upcoming">À venir</option>
@@ -52,7 +52,7 @@
 
                     <button
                         @click="openCreate"
-                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors whitespace-nowrap">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                         </svg>
@@ -87,7 +87,7 @@
 
                                 <td class="px-5 py-3">
                                     <p class="text-gray-800 text-xs font-medium">{{ event.date }} · {{ event.time }}</p>
-                                    <p class="text-gray-500 text-xs truncate">{{ event.location }}</p>
+                                    <p class="text-gray-500 text-xs truncate">{{ event.city || event.address || '-' }}</p>
                                 </td>
 
                                 <td class="px-5 py-3 text-xs text-gray-700 font-medium">
@@ -163,11 +163,36 @@
                     </table>
                 </div>
 
-                <div class="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
+                <div class="px-6 py-3 border-t border-gray-100 text-xs text-gray-400">
                     {{ total }} événement(s) au total
                 </div>
             </div>
             <Pagination v-if="total > 20" :page="page" :total="total" :limit="20" @update:page="changePage" />
+
+            <div class="mt-10">
+                <h2 class="text-xl font-bold text-gray-800 mb-1" style="font-family: var(--font-family-title)">Événements supprimés</h2>
+                <p class="text-sm text-gray-400 mb-4">Historique des événements supprimés</p>
+                <div v-if="deletedEvents.length === 0" class="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <p class="text-gray-400 text-sm">Aucun événement supprimé.</p>
+                </div>
+                <div v-else class="space-y-3">
+                    <div
+                        v-for="event in deletedEvents"
+                        :key="event.id"
+                        @click="selectedDeletedEvent = event"
+                        class="bg-white rounded-xl shadow-sm px-5 py-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold text-gray-500 text-sm truncate">{{ event.title }}</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">Par {{ event.organizer }} · Supprimé le {{ event.deletedAt?.slice(0, 10) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </template>
 
@@ -176,8 +201,8 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="detailEvent = null">
             <div class="absolute inset-0 bg-black/40" @click="detailEvent = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
                     <div class="min-w-0">
                         <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                             {{ detailEvent.title }}
@@ -193,7 +218,7 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Date & heure</p>
@@ -201,8 +226,12 @@
                             <p class="text-xs text-gray-500">{{ detailEvent.time }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-0.5">Lieu</p>
-                            <p class="font-medium text-gray-800">{{ detailEvent.location }}</p>
+                            <p class="text-xs text-gray-400 mb-0.5">Adresse</p>
+                            <p class="font-medium text-gray-800">{{ detailEvent.address || '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Ville</p>
+                            <p class="font-medium text-gray-800">{{ detailEvent.postal ? detailEvent.postal + ' ' : '' }}{{ detailEvent.city || '-' }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-400 mb-0.5">Inscriptions</p>
@@ -244,7 +273,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-between gap-2 flex-shrink-0">
                     <div class="flex gap-2">
                         <button
                             v-if="detailEvent.dbStatus === 'pending'"
@@ -319,8 +348,8 @@
 
         <div v-if="formModal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/40" @click="formModal.open = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                     <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
                         {{ formModal.mode === 'create' ? 'Créer un événement' : 'Modifier l\'événement' }}
                     </h3>
@@ -333,9 +362,9 @@
                     </button>
                 </div>
 
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Titre <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Titre <span class="text-red-400">*</span></label>
                         <input
                             v-model="eventForm.title"
                             type="text"
@@ -343,7 +372,7 @@
                             placeholder="Titre de l'événement" />
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-400 mb-1">Description</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                         <textarea
                             v-model="eventForm.description"
                             rows="3"
@@ -351,23 +380,40 @@
                             placeholder="Description de l'événement…" />
                     </div>
                     <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse <span class="text-red-400">*</span></label>
+                            <input
+                                v-model="eventForm.address"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Adresse de l'événement" />
+                        </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Date & heure</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                            <input
+                                v-model="eventForm.city"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="Paris" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
+                            <input
+                                v-model="eventForm.postal"
+                                type="text"
+                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                                placeholder="75001" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date & heure <span class="text-red-400">*</span></label>
                             <input
                                 v-model="eventForm.date"
                                 type="datetime-local"
+                                :min="minDateTime"
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary" />
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Lieu</label>
-                            <input
-                                v-model="eventForm.location"
-                                type="text"
-                                class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                                placeholder="Adresse ou ville" />
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Capacité</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacité</label>
                             <input
                                 v-model.number="eventForm.capacity"
                                 type="number"
@@ -375,8 +421,8 @@
                                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                                 placeholder="0 = illimitée" />
                         </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Prix (€)</label>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
                             <input
                                 v-model.number="eventForm.priceEuros"
                                 type="number"
@@ -386,9 +432,10 @@
                                 placeholder="0 = gratuit" />
                         </div>
                     </div>
+                    <p v-if="formError" class="text-xs text-red-500">{{ formError }}</p>
                 </div>
 
-                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-shrink-0">
                     <button
                         @click="formModal.open = false"
                         class="px-4 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -400,6 +447,55 @@
                         class="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-60">
                         {{ saving ? 'Enregistrement…' : (formModal.mode === 'create' ? 'Créer' : 'Enregistrer') }}
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="selectedDeletedEvent"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            @click.self="selectedDeletedEvent = null">
+            <div class="absolute inset-0 bg-black/40" @click="selectedDeletedEvent = null" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-shrink-0">
+                    <div class="min-w-0">
+                        <h3 class="font-semibold text-gray-600" style="font-family: var(--font-family-title)">{{ selectedDeletedEvent.title }}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Par {{ selectedDeletedEvent.organizer }} · Supprimé le {{ selectedDeletedEvent.deletedAt?.slice(0, 10) }}</p>
+                    </div>
+                    <button @click="selectedDeletedEvent = null" class="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Date & heure</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeletedEvent.date }}</p>
+                            <p class="text-xs text-gray-500">{{ selectedDeletedEvent.time }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Adresse</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeletedEvent.address || '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Ville</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeletedEvent.postal ? selectedDeletedEvent.postal + ' ' : '' }}{{ selectedDeletedEvent.city || '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Capacité</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeletedEvent.capacity }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-0.5">Tarif</p>
+                            <p class="font-medium text-gray-800">{{ selectedDeletedEvent.priceCents === 0 ? 'Gratuit' : (selectedDeletedEvent.priceCents / 100).toFixed(2) + ' €' }}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1">Description</p>
+                        <p class="text-sm text-gray-700 leading-relaxed">{{ selectedDeletedEvent.description }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -425,11 +521,19 @@ const toDelete = ref(null)
 const deleting = ref(false)
 const formModal = ref({ open: false, mode: 'create', id: null })
 const rejectModal = ref({ open: false, event: null, reason: '', loading: false })
-const eventForm = ref({ title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 })
+const eventForm = ref({ title: '', description: '', date: '', address: '', city: '', postal: '', capacity: null, priceEuros: 0 })
+const formError = ref('')
+const minDateTime = computed(() => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() + 1)
+    return now.toISOString().slice(0, 16)
+})
 const saving = ref(false)
 const statCounts = ref({ total: 0, pending: 0, upcoming: 0, rejected: 0 })
 const participants = ref([])
 const participantsLoading = ref(false)
+const deletedEvents = ref([])
+const selectedDeletedEvent = ref(null)
 
 async function loadParticipants(url) {
     participantsLoading.value = true
@@ -512,7 +616,9 @@ function mapEvent(e) {
         id: e.id,
         title: e.title,
         organizer: e.creator_name ?? '-',
-        location: e.location ?? '-',
+        address: e.address ?? null,
+        city: e.city ?? null,
+        postal: e.postal ?? null,
         date: e.date?.slice(0, 10) ?? '-',
         time: e.date?.slice(11, 16) ?? '-',
         capacity: e.capacity ?? 0,
@@ -524,6 +630,7 @@ function mapEvent(e) {
         priceCents: e.price_cents ?? 0,
         rawDate: e.date ?? null,
         idCreator: e.id_creator ?? null,
+        deletedAt: e.deleted_at ?? null,
     }
 }
 
@@ -544,7 +651,16 @@ async function fetchStats() {
     } catch {}
 }
 
-onMounted(() => Promise.all([fetchEvents(), fetchStats()]))
+async function fetchDeletedEvents() {
+    try {
+        const { data } = await api.get('/admin/event/deleted')
+        deletedEvents.value = (data ?? []).map(mapEvent)
+    } catch {
+        deletedEvents.value = []
+    }
+}
+
+onMounted(() => Promise.all([fetchEvents(), fetchStats(), fetchDeletedEvents()]))
 
 function openDetail(event) {
     participants.value = []
@@ -564,7 +680,7 @@ async function deleteEvent() {
         await api.delete(`/admin/event/${toDelete.value.id}`)
         if (detailEvent.value?.id === toDelete.value.id) detailEvent.value = null
         toDelete.value = null
-        await Promise.all([fetchEvents(), fetchStats()])
+        await Promise.all([fetchEvents(), fetchStats(), fetchDeletedEvents()])
     } catch {
         alert('Erreur lors de la suppression.')
     } finally {
@@ -575,7 +691,8 @@ async function deleteEvent() {
 function changePage(p) { page.value = p }
 
 function openCreate() {
-    eventForm.value = { title: '', description: '', date: '', location: '', capacity: null, priceEuros: 0 }
+    eventForm.value = { title: '', description: '', date: '', address: '', city: '', postal: '', capacity: null, priceEuros: 0 }
+    formError.value = ''
     formModal.value = { open: true, mode: 'create', id: null }
 }
 
@@ -584,24 +701,32 @@ function openEdit(event) {
         title: event.title,
         description: event.description === '-' ? '' : event.description,
         date: event.rawDate ? event.rawDate.slice(0, 16) : '',
-        location: event.location === '-' ? '' : event.location,
+        address: event.address ?? '',
+        city: event.city ?? '',
+        postal: event.postal ?? '',
         capacity: event.capacity || null,
         priceEuros: parseFloat((event.priceCents / 100).toFixed(2)),
         idCreator: event.idCreator ?? null,
     }
+    formError.value = ''
     formModal.value = { open: true, mode: 'edit', id: event.id }
     detailEvent.value = null
 }
 
 async function saveEvent() {
-    if (!eventForm.value.title.trim()) return
+    formError.value = ''
+    if (!eventForm.value.title.trim()) { formError.value = 'Le titre est requis.'; return }
+    if (!eventForm.value.date) { formError.value = 'La date est requise.'; return }
+    if (formModal.value.mode === 'create' && new Date(eventForm.value.date) <= new Date()) { formError.value = 'La date doit être dans le futur.'; return }
     saving.value = true
     try {
         const payload = {
             title: eventForm.value.title,
             description: eventForm.value.description || null,
             date: eventForm.value.date || null,
-            location: eventForm.value.location || null,
+            address: eventForm.value.address || null,
+            city: eventForm.value.city || null,
+            postal: eventForm.value.postal || null,
             capacity: eventForm.value.capacity || null,
             price_cents: Math.round((eventForm.value.priceEuros || 0) * 100),
             id_creator: eventForm.value.idCreator ?? null,

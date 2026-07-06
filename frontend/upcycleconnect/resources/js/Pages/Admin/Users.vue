@@ -173,13 +173,9 @@
                                     </button>
 
                                     <button
-                                        @click="toggleBlacklist(user)"
-                                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors duration-150"
-                                        :title="
-                                            user.status === 'Blacklisté'
-                                                ? 'Retirer de la blacklist'
-                                                : 'Blacklister'
-                                        "
+                                        @click="openHistory(user)"
+                                        class="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors duration-150"
+                                        title="Voir l'historique"
                                     >
                                         <svg
                                             class="w-4 h-4"
@@ -191,7 +187,7 @@
                                             <path
                                                 stroke-linecap="round"
                                                 stroke-linejoin="round"
-                                                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                                             />
                                         </svg>
                                     </button>
@@ -343,6 +339,76 @@
                 </div>
             </div>
         </div>
+
+        <div
+            v-if="historyModal.open"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            @click.self="historyModal.open = false"
+        >
+            <div class="absolute inset-0 bg-black/40" @click="historyModal.open = false" />
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+                        Historique : {{ historyModal.user?.name }}
+                    </h3>
+                    <button
+                        @click="historyModal.open = false"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="px-6 py-5 overflow-y-auto space-y-5 flex-1">
+                    <div v-if="historyModal.loading" class="text-sm text-gray-400 text-center py-6">Chargement…</div>
+
+                    <template v-else>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sanctions reçues</p>
+                            <p v-if="historyModal.data.sanctions.length === 0" class="text-xs text-gray-400">Aucune sanction.</p>
+                            <div v-else class="space-y-2">
+                                <div v-for="s in historyModal.data.sanctions" :key="s.id_sanction" class="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-gray-800 capitalize">{{ s.type }}</span>
+                                        <span class="text-xs text-gray-400">{{ s.created_at?.slice(0, 10) }}</span>
+                                    </div>
+                                    <p v-if="s.reason" class="text-xs text-gray-500 mt-1">{{ s.reason }}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Par {{ s.admin_name || '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Demandes de compte pro</p>
+                            <p v-if="historyModal.data.professional_requests.length === 0" class="text-xs text-gray-400">Aucune demande.</p>
+                            <div v-else class="space-y-2">
+                                <div v-for="req in historyModal.data.professional_requests" :key="req.id" class="p-3 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-between">
+                                    <span class="text-sm text-gray-700 capitalize">{{ req.status }}</span>
+                                    <span class="text-xs text-gray-400">{{ req.created_at?.slice(0, 10) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Signalements reçus</p>
+                            <p v-if="historyModal.data.reports_received.length === 0" class="text-xs text-gray-400">Aucun signalement.</p>
+                            <div v-else class="space-y-2">
+                                <div v-for="r in historyModal.data.reports_received" :key="r.id_report" class="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-gray-800">{{ r.content_title || r.content_type }}</span>
+                                        <span class="text-xs text-gray-400">{{ r.created_at?.slice(0, 10) }}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">{{ r.reason }}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Statut : {{ r.status }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
     </AdminLayout>
 </template>
 
@@ -371,6 +437,12 @@ const rightsModal = ref({ open: false, user: null, selectedRole: "" });
 const roles = ref([]);
 const auth = useAuthStore()
 const adminConfirm = ref({ open: false })
+const historyModal = ref({
+    open: false,
+    user: null,
+    loading: false,
+    data: { sanctions: [], reports_received: [], professional_requests: [] },
+});
 
 function changePage(p) { page.value = p }
 
@@ -485,13 +557,20 @@ async function doSaveRights() {
     }
 }
 
-async function toggleBlacklist(user) {
-    const newStatus = user.status === "Blacklisté" ? "active" : "blacklisted";
+async function openHistory(user) {
+    historyModal.value = {
+        open: true,
+        user,
+        loading: true,
+        data: { sanctions: [], reports_received: [], professional_requests: [] },
+    };
     try {
-        await api.patch(`/admin/user/${user.id}/status`, { status: newStatus });
-        user.status = statusToLabel(newStatus);
+        const { data } = await api.get(`/admin/user/${user.id}/history`);
+        historyModal.value.data = data;
     } catch (e) {
-        alert("Erreur lors de la mise à jour du statut");
+        console.error("openHistory error:", e);
+    } finally {
+        historyModal.value.loading = false;
     }
 }
 
