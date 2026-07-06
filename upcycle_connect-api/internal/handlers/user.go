@@ -551,11 +551,82 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if verifToken, err := utils.GenerateEmailVerificationToken(user.IdUser); err != nil {
+		fmt.Println("CreateUser GenerateEmailVerificationToken error:", err)
+	} else {
+		link := config.PlatformURL() + "/api/auth/verify-email?token=" + verifToken
+		if err := utils.SendVerificationEmail(user.Email, link); err != nil {
+			fmt.Println("CreateUser SendVerificationEmail error:", err)
+		}
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"message": "user created successfully",
+		"message": "user created successfully, un email de vérification a été envoyé",
 		"user":    user.ToResponse(),
 	})
+}
+
+func VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(verifyEmailPage("Lien invalide", "Le lien de vérification est invalide ou incomplet.")))
+		return
+	}
+
+	userID, err := utils.ParseEmailVerificationToken(token)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(verifyEmailPage("Lien invalide ou expiré", "Ce lien de vérification n'est plus valide. Demandez-en un nouveau depuis la page de connexion.")))
+		return
+	}
+
+	if err := db.SetEmailVerified(userID); err != nil {
+		fmt.Println("VerifyEmail error:", err)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(verifyEmailPage("Erreur", "Une erreur est survenue, réessayez plus tard.")))
+		return
+	}
+
+	http.Redirect(w, r, config.FrontendURL()+"/login?email_verified=1", http.StatusFound)
+}
+
+func verifyEmailPage(title, message string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>%s</title>
+<style>body{font-family:sans-serif;max-width:480px;margin:80px auto;text-align:center;color:#222}h1{color:#2e7d32}</style>
+</head><body><h1>%s</h1><p>%s</p></body></html>`, title, title, message)
+}
+
+func ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var payload struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	email := strings.TrimSpace(payload.Email)
+	if user, err := db.GetUserByEmail(email); err == nil && !user.EmailVerified {
+		if verifToken, err := utils.GenerateEmailVerificationToken(user.IdUser); err == nil {
+			link := config.PlatformURL() + "/api/auth/verify-email?token=" + verifToken
+			if err := utils.SendVerificationEmail(user.Email, link); err != nil {
+				fmt.Println("ResendVerificationEmail SendVerificationEmail error:", err)
+			}
+		}
+	}
+
+	// Reponse identique dans tous les cas (email inconnu ou deja verifie) pour eviter l'enumeration de comptes
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "si un compte existe avec cet email, un lien de vérification a été envoyé"})
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -594,6 +665,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid credentials"})
+		return
+	}
+
+	if !user.EmailVerified {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "email non vérifié, merci de consulter votre boîte mail"})
 		return
 	}
 

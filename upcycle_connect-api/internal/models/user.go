@@ -14,6 +14,7 @@ type User struct {
 	AvatarUrl         *string `json:"avatar_url"`
 	TutorialDone      bool    `json:"tutorial_done"`
 	AnnouncementCount int     `json:"announcement_count"`
+	EmailVerified     bool    `json:"email_verified"`
 }
 
 type UserResponse struct {
@@ -28,6 +29,7 @@ type UserResponse struct {
 	AvatarUrl         *string `json:"avatar_url"`
 	TutorialDone      bool    `json:"tutorial_done"`
 	AnnouncementCount int     `json:"announcement_count"`
+	EmailVerified     bool    `json:"email_verified"`
 }
 
 type UserListItem struct {
@@ -70,6 +72,7 @@ func (u User) ToResponse() UserResponse {
 		AvatarUrl:         u.AvatarUrl,
 		TutorialDone:      u.TutorialDone,
 		AnnouncementCount: u.AnnouncementCount,
+		EmailVerified:     u.EmailVerified,
 	}
 }
 

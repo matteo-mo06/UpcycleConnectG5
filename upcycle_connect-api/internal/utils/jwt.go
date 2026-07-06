@@ -49,3 +49,44 @@ func ParseToken(tokenString string) (*Claims, error) {
 
 	return claims, nil
 }
+
+const emailVerifyPurpose = "email_verify"
+
+type EmailVerificationClaims struct {
+	UserID  string `json:"user_id"`
+	Purpose string `json:"purpose"`
+	jwt.RegisteredClaims
+}
+
+func GenerateEmailVerificationToken(userID string) (string, error) {
+	claims := EmailVerificationClaims{
+		UserID:  userID,
+		Purpose: emailVerifyPurpose,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(48 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(config.JWTSecret())
+}
+
+func ParseEmailVerificationToken(tokenString string) (string, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &EmailVerificationClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("algorithme de signature inattendu: %v", token.Header["alg"])
+		}
+		return config.JWTSecret(), nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	claims, ok := token.Claims.(*EmailVerificationClaims)
+	if !ok || !token.Valid || claims.Purpose != emailVerifyPurpose {
+		return "", fmt.Errorf("token invalide")
+	}
+
+	return claims.UserID, nil
+}

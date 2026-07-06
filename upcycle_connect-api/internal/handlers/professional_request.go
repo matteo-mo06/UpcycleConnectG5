@@ -145,6 +145,9 @@ func ValidateProfessionalRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go utils.SendPushNotification(db.GetOnesignalPlayerID(req.IdUser), "Demande pro approuvée", "Votre demande de compte professionnel a été approuvée. Vous avez maintenant accès à l'espace artisan.")
+	if user, err := db.GetUserById(req.IdUser); err == nil {
+		go utils.SendProfessionalApprovedEmail(user.Email)
+	}
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "demande approuvée, rôle artisan attribué"})
 }
