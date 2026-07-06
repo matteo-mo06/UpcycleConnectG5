@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 )
@@ -41,4 +42,11 @@ func SendPushNotification(playerID, title, message string) {
 		return
 	}
 	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("OneSignal error response:", resp.StatusCode, string(respBody))
+		return
+	}
+	fmt.Println("OneSignal notification sent:", string(respBody))
 }
