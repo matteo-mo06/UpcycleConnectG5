@@ -197,7 +197,8 @@ func SendProfessionalApprovedEmail(to string) error {
 	subject := "Votre compte professionnel a été validé - UpcycleConnect"
 	body := "Bonjour,\r\n\r\n" +
 		"Votre demande de compte professionnel vient d'être approuvée par un administrateur.\r\n" +
-		"Vous avez maintenant accès à l'espace artisan sur UpcycleConnect.\r\n"
+		"Vous avez maintenant accès à l'espace artisan sur UpcycleConnect.\r\n\r\n" +
+		config.FrontendURL() + "/artisan/dashboard\r\n"
 
 	return sendPlainTextEmail(to, subject, body, "SendProfessionalApprovedEmail")
 }
