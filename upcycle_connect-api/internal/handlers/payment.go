@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -69,8 +70,8 @@ func CreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commissionRate, _ := db.GetCommissionRate()
-	priceCents := int64(ann.Price * 100)
-	commissionCents := int64(float64(priceCents) * commissionRate / 100.0)
+	priceCents := int64(math.Round(ann.Price * 100))
+	commissionCents := int64(math.Round(float64(priceCents) * commissionRate / 100.0))
 	totalCents := priceCents + commissionCents
 
 	client := stripe.NewClient(config.StripeSecretKey())
@@ -143,7 +144,7 @@ func CreateFormationPaymentIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	priceCents := int64(*formation.Price * 100)
+	priceCents := int64(math.Round(*formation.Price * 100))
 
 	client := stripe.NewClient(config.StripeSecretKey())
 
@@ -264,7 +265,10 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				commissionCents, _ := strconv.Atoi(session.Metadata["commission_cents"])
+				commissionCents, err := strconv.Atoi(session.Metadata["commission_cents"])
+				if err != nil {
+					fmt.Println("commission_cents metadata parse error:", err)
+				}
 				piID := ""
 				if session.PaymentIntent != nil {
 					piID = session.PaymentIntent.ID
@@ -302,27 +306,32 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "invoice.payment_succeeded":
-		var inv struct {
-			ID           string `json:"id"`
-			AmountPaid   int64  `json:"amount_paid"`
-			Currency     string `json:"currency"`
-			Subscription string `json:"subscription"`
-			Customer     string `json:"customer"`
-		}
+		var inv stripe.Invoice
 		if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+			fmt.Println("invoice.payment_succeeded unmarshal error:", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if inv.Subscription == "" || inv.AmountPaid == 0 {
+		subscriptionID := ""
+		if inv.Parent != nil && inv.Parent.SubscriptionDetails != nil && inv.Parent.SubscriptionDetails.Subscription != nil {
+			subscriptionID = inv.Parent.SubscriptionDetails.Subscription.ID
+		}
+		if subscriptionID == "" || inv.AmountPaid == 0 {
+			fmt.Println("invoice.payment_succeeded skipped: subscriptionID or amount empty")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		userID := db.GetUserIDByStripeCustomerID(inv.Customer)
+		customerID := ""
+		if inv.Customer != nil {
+			customerID = inv.Customer.ID
+		}
+		userID := db.GetUserIDByStripeCustomerID(customerID)
 		if userID == "" {
+			fmt.Println("invoice.payment_succeeded: no local user found for Stripe customer", customerID)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if err := db.StoreSubscriptionPayment(inv.ID, inv.Subscription, userID, inv.Currency, int(inv.AmountPaid)); err != nil {
+		if err := db.StoreSubscriptionPayment(inv.ID, subscriptionID, userID, string(inv.Currency), int(inv.AmountPaid)); err != nil {
 			fmt.Println("StoreSubscriptionPayment error:", err)
 		}
 		w.WriteHeader(http.StatusOK)

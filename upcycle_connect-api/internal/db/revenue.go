@@ -76,7 +76,7 @@ func GetRevenueSummary() (models.RevenueSummary, error) {
 	}
 	var adCount, subCount int
 	config.Conn.QueryRow(`SELECT COUNT(*) FROM advertisement WHERE state IN ('active', 'expired')`).Scan(&adCount)
-	config.Conn.QueryRow(`SELECT COUNT(*) FROM user_subscription`).Scan(&subCount)
+	config.Conn.QueryRow(`SELECT COUNT(*) FROM payement WHERE subscription_id IS NOT NULL AND status_payement = 'paid'`).Scan(&subCount)
 	s.TotalTransactions += adCount + subCount
 	config.Conn.QueryRow(`
 		SELECT COALESCE(SUM(amount_cents), 0)
