@@ -275,6 +275,11 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 				go generateAndStoreInvoice(session.ID, announcementID, buyerID, session.AmountTotal, int64(commissionCents), session.Created)
 				if sellerID, err := db.GetAnnouncementOwnerID(announcementID); err == nil {
 					go utils.SendPushNotification(db.GetOnesignalPlayerID(sellerID), "Annonce vendue", "Votre annonce a été achetée !")
+					if seller, err := db.GetUserById(sellerID); err == nil {
+						if ann, err := db.GetAnnouncementById(announcementID); err == nil {
+							go utils.SendAnnouncementSoldEmail(seller.Email, ann.TitleAnnouncement)
+						}
+					}
 				}
 			}
 

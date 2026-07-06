@@ -118,3 +118,95 @@ func SendVerificationEmail(to, link string) error {
 
 	return c.Quit()
 }
+
+func sendPlainTextEmail(to, subject, body, logPrefix string) error {
+	host := config.SMTPHost()
+	port := config.SMTPPort()
+	username := config.SMTPUsername()
+	password := config.SMTPPassword()
+	from := config.MailFrom()
+	certPEM := config.SMTPTLSCert()
+
+	if host == "" || port == "" || username == "" || password == "" || from == "" {
+		err := fmt.Errorf("configuration SMTP incomplète (SMTP_HOST/SMTP_PORT/SMTP_USERNAME/SMTP_PASSWORD/MAIL_FROM)")
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+
+	msg := fmt.Sprintf(
+		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=\"utf-8\"\r\n\r\n%s",
+		from, to, subject, body,
+	)
+
+	addr := host + ":" + port
+
+	c, err := smtp.Dial(addr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+	defer c.Close()
+
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		tlsConfig := &tls.Config{ServerName: host}
+		if certPEM != "" {
+			pool := x509.NewCertPool()
+			if pool.AppendCertsFromPEM([]byte(certPEM)) {
+				tlsConfig.RootCAs = pool
+			}
+		}
+		if err := c.StartTLS(tlsConfig); err != nil {
+			fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+			return err
+		}
+	}
+
+	auth := loginAuth(username, password)
+	if err := c.Auth(auth); err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+
+	if err := c.Mail(from); err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+	if err := c.Rcpt(to); err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+
+	w, err := c.Data()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+	if _, err := w.Write([]byte(msg)); err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+	if err := w.Close(); err != nil {
+		fmt.Fprintln(os.Stderr, logPrefix+" error:", err)
+		return err
+	}
+
+	return c.Quit()
+}
+
+func SendProfessionalApprovedEmail(to string) error {
+	subject := "Votre compte professionnel a été validé - UpcycleConnect"
+	body := "Bonjour,\r\n\r\n" +
+		"Votre demande de compte professionnel vient d'être approuvée par un administrateur.\r\n" +
+		"Vous avez maintenant accès à l'espace artisan sur UpcycleConnect.\r\n"
+
+	return sendPlainTextEmail(to, subject, body, "SendProfessionalApprovedEmail")
+}
+
+func SendAnnouncementSoldEmail(to, announcementTitle string) error {
+	subject := "Votre annonce a été achetée - UpcycleConnect"
+	body := "Bonjour,\r\n\r\n" +
+		"Votre annonce \"" + announcementTitle + "\" vient d'être achetée.\r\n" +
+		"Connectez-vous à votre espace UpcycleConnect pour voir les détails.\r\n"
+
+	return sendPlainTextEmail(to, subject, body, "SendAnnouncementSoldEmail")
+}
