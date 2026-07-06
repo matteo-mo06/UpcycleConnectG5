@@ -6,9 +6,36 @@ import (
 	"fmt"
 	"net/smtp"
 	"os"
+	"strings"
 
 	"upcycle_connect-api/internal/config"
 )
+
+func loginAuth(username, password string) smtp.Auth {
+	return &loginAuthMethod{username: username, password: password}
+}
+
+type loginAuthMethod struct {
+	username, password string
+}
+
+func (a *loginAuthMethod) Start(_ *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", nil, nil
+}
+
+func (a *loginAuthMethod) Next(fromServer []byte, more bool) ([]byte, error) {
+	if !more {
+		return nil, nil
+	}
+	switch {
+	case strings.Contains(strings.ToLower(string(fromServer)), "username"):
+		return []byte(a.username), nil
+	case strings.Contains(strings.ToLower(string(fromServer)), "password"):
+		return []byte(a.password), nil
+	default:
+		return nil, fmt.Errorf("smtp: prompt LOGIN inattendu: %s", fromServer)
+	}
+}
 
 func SendVerificationEmail(to, link string) error {
 	host := config.SMTPHost()
@@ -60,7 +87,7 @@ func SendVerificationEmail(to, link string) error {
 		}
 	}
 
-	auth := smtp.PlainAuth("", username, password, host)
+	auth := loginAuth(username, password)
 	if err := c.Auth(auth); err != nil {
 		fmt.Fprintln(os.Stderr, "SendVerificationEmail error:", err)
 		return err
