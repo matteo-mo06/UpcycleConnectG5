@@ -18,8 +18,6 @@ export const useAuthStore = defineStore("auth", () => {
         () => user.value?.roles?.includes("salarie") ?? false,
     );
 
-    // Accès aux espaces : piloté par les permissions access_admin / access_artisan
-    // / access_salarie (voir Admin > Rôles), pas par le rôle brut.
     const canAccessAdmin = computed(
         () => user.value?.permissions?.includes("access_admin") ?? false,
     );
@@ -70,19 +68,25 @@ export const useAuthStore = defineStore("auth", () => {
     async function registerOnesignalPlayer() {
         try {
             const oneSignal = useOneSignal();
-            oneSignal.User.PushSubscription.addEventListener("change", async (event) => {
-                const id = event?.current?.id;
-                if (id) {
-                    await api.post("/user/onesignal-player-id", { player_id: id });
-                }
-            });
+            oneSignal.User.PushSubscription.addEventListener(
+                "change",
+                async (event) => {
+                    const id = event?.current?.id;
+                    if (id) {
+                        await api.post("/user/onesignal-player-id", {
+                            player_id: id,
+                        });
+                    }
+                },
+            );
             await oneSignal.User.PushSubscription.optIn();
             const playerId = oneSignal.User.PushSubscription.id;
             if (playerId) {
-                await api.post("/user/onesignal-player-id", { player_id: playerId });
+                await api.post("/user/onesignal-player-id", {
+                    player_id: playerId,
+                });
             }
-        } catch {
-        }
+        } catch {}
     }
 
     function setTutorialDone() {

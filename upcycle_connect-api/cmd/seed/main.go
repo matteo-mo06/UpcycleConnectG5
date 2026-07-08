@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,7 +31,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Récupère l'id du rôle admin en base (pas d'UUID hardcodé)
 	var adminRoleID string
 	err = db.QueryRow("SELECT id_role FROM role WHERE name_role = 'admin'").Scan(&adminRoleID)
 	if err != nil {
@@ -43,7 +42,6 @@ func main() {
 	err = db.QueryRow("SELECT id_user FROM user WHERE email = ?", email).Scan(&userID)
 
 	if err == sql.ErrNoRows {
-		// L'utilisateur n'existe pas → on le crée
 		userID = uuid.New().String()
 		_, err = db.Exec(
 			`INSERT INTO user (id_user, email, password_user, first_name, last_name, upcycling_score, premium, created_at, status, email_verified)
@@ -62,13 +60,12 @@ func main() {
 		fmt.Printf("Admin créé avec succès : %s\n", email)
 
 	} else if err == nil {
-		// L'utilisateur existe déjà (ex: admin hardcodé en migration) → on met à jour le mot de passe
 		_, err = db.Exec("UPDATE user SET password_user = ?, email_verified = 1 WHERE id_user = ?", string(hash), userID)
 		if err != nil {
 			fmt.Println("Erreur lors de la mise à jour du mot de passe :", err)
 			os.Exit(1)
 		}
-		// S'assure qu'il a bien le rôle admin
+
 		var roleCount int
 		db.QueryRow("SELECT COUNT(*) FROM user_role WHERE id_user = ? AND id_role = ?", userID, adminRoleID).Scan(&roleCount)
 		if roleCount == 0 {

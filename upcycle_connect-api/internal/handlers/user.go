@@ -640,7 +640,6 @@ func ResendVerificationEmail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Reponse identique dans tous les cas (email inconnu ou deja verifie) pour eviter l'enumeration de comptes
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "si un compte existe avec cet email, un lien de vérification a été envoyé"})
 }

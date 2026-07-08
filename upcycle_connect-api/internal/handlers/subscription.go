@@ -223,14 +223,9 @@ func ChangeSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// La bascule effective du plan en base est appliquée par le webhook customer.subscription.updated
-	// une fois le changement confirmé par l'utilisateur sur la page Stripe.
 	_ = json.NewEncoder(w).Encode(map[string]string{"url": session.URL})
 }
 
-// syncPortalSubscriptionUpdateFeature s'assure que la configuration par défaut du Customer Portal
-// Stripe connaît tous nos plans actifs, condition requise pour utiliser un lien profond
-// subscription_update_confirm vers l'un de leurs prix.
 func syncPortalSubscriptionUpdateFeature(client *stripe.Client) (string, error) {
 	configs := client.V1BillingPortalConfigurations.List(context.Background(), &stripe.BillingPortalConfigurationListParams{
 		IsDefault: stripe.Bool(true),
@@ -267,11 +262,8 @@ func syncPortalSubscriptionUpdateFeature(client *stripe.Client) (string, error) 
 				Enabled:               stripe.Bool(true),
 				Products:              products,
 				DefaultAllowedUpdates: []*string{stripe.String("price")},
-				// Upgrade (prix qui augmente) : facturé et débité immédiatement, au prorata.
 				ProrationBehavior: stripe.String("always_invoice"),
-				// Downgrade (prix qui diminue) : pas de facturation immédiate ni de prorata — le
-				// changement est planifié pour la fin de la période en cours, comme sur la plupart
-				// des plateformes SaaS (Netflix, Spotify...). Le client garde son plan actuel jusque-là.
+
 				ScheduleAtPeriodEnd: &stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateScheduleAtPeriodEndParams{
 					Conditions: []*stripe.BillingPortalConfigurationUpdateFeaturesSubscriptionUpdateScheduleAtPeriodEndConditionParams{
 						{Type: stripe.String("decreasing_item_amount")},

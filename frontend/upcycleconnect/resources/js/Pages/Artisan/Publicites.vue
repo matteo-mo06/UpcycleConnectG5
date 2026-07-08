@@ -264,7 +264,9 @@ onMounted(async () => {
     try {
         const { data } = await api.get('/user/subscription')
         isPremium.value = data.active === true
-    } catch { /* silencieux */ }
+    } catch (err) {
+        console.error('fetchSubscription error:', err)
+    }
     try {
         const { data } = await api.get('/advertisement/plans')
         plans.value = data ?? []
