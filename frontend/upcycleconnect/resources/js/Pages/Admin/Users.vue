@@ -1,8 +1,33 @@
 <template>
     <AdminLayout>
         <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800" style="font-family: var(--font-family-title)">Gestion des utilisateurs</h1>
+            <h1
+                class="text-3xl font-bold text-gray-800"
+                style="font-family: var(--font-family-title)"
+            >
+                Gestion des utilisateurs
+            </h1>
         </div>
+
+        <button
+            @click="notifyRecent"
+            class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+        >
+            <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 4v16m8-8H4"
+                />
+            </svg>
+            Envoie de mail au 10 derniers users valides
+        </button>
 
         <div
             class="bg-white rounded-xl shadow-sm p-4 mb-4 flex gap-3 items-center"
@@ -18,7 +43,13 @@
                 class="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
                 <option value="">Tous les types</option>
-                <option v-for="role in roles" :key="role.value" :value="role.value">{{ role.label }}</option>
+                <option
+                    v-for="role in roles"
+                    :key="role.value"
+                    :value="role.value"
+                >
+                    {{ role.label }}
+                </option>
             </select>
             <select
                 v-model="filterStatus"
@@ -234,24 +265,48 @@
                 {{ total }} utilisateur(s) au total
             </div>
         </div>
-        <Pagination v-if="total > 50" :page="page" :total="total" :limit="50" @update:page="changePage" />
+        <Pagination
+            v-if="total > 50"
+            :page="page"
+            :total="total"
+            :limit="50"
+            @update:page="changePage"
+        />
 
-        <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" @click="toDelete = null" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                <h3 class="font-semibold text-gray-800 mb-2">Supprimer le compte ?</h3>
-                <p class="text-sm text-gray-500 mb-5">Le compte de <span class="font-medium text-gray-700">{{ toDelete.name }}</span> sera définitivement supprimé.</p>
+        <div
+            v-if="toDelete"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+            <div
+                class="absolute inset-0 bg-black/40"
+                @click="toDelete = null"
+            />
+            <div
+                class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
+            >
+                <h3 class="font-semibold text-gray-800 mb-2">
+                    Supprimer le compte ?
+                </h3>
+                <p class="text-sm text-gray-500 mb-5">
+                    Le compte de
+                    <span class="font-medium text-gray-700">{{
+                        toDelete.name
+                    }}</span>
+                    sera définitivement supprimé.
+                </p>
                 <div class="flex gap-3">
                     <button
                         @click="toDelete = null"
-                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150">
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150"
+                    >
                         Annuler
                     </button>
                     <button
                         @click="confirmDeleteUser"
                         :disabled="deleting"
-                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150 disabled:opacity-60">
-                        {{ deleting ? 'Suppression…' : 'Supprimer' }}
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150 disabled:opacity-60"
+                    >
+                        {{ deleting ? "Suppression…" : "Supprimer" }}
                     </button>
                 </div>
             </div>
@@ -278,26 +333,49 @@
                         :key="role.value"
                         class="flex items-center gap-3 p-3 rounded-lg border transition-colors duration-150"
                         :class="[
-                            role.value === 'admin' && rightsModal.user?.id === auth.user?.id
+                            role.value === 'admin' &&
+                            rightsModal.user?.id === auth.user?.id
                                 ? 'opacity-50 cursor-not-allowed'
                                 : 'cursor-pointer',
                             role.value === 'admin'
-                                ? (rightsModal.selectedRole === 'admin' ? 'border-red-300 bg-red-50' : 'border-red-100 hover:border-red-200')
-                                : (rightsModal.selectedRole === role.value ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200')
+                                ? rightsModal.selectedRole === 'admin'
+                                    ? 'border-red-300 bg-red-50'
+                                    : 'border-red-100 hover:border-red-200'
+                                : rightsModal.selectedRole === role.value
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-gray-100 hover:border-gray-200',
                         ]"
                     >
                         <input
                             type="radio"
                             :value="role.value"
                             v-model="rightsModal.selectedRole"
-                            :disabled="role.value === 'admin' && rightsModal.user?.id === auth.user?.id"
+                            :disabled="
+                                role.value === 'admin' &&
+                                rightsModal.user?.id === auth.user?.id
+                            "
                             class="accent-primary"
                         />
                         <div class="flex items-center gap-2 flex-1">
-                            <p class="text-sm font-medium text-gray-800">{{ role.label }}</p>
-                            <span v-if="role.value === 'admin'" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            <p class="text-sm font-medium text-gray-800">
+                                {{ role.label }}
+                            </p>
+                            <span
+                                v-if="role.value === 'admin'"
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                            >
+                                <svg
+                                    class="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                                    />
                                 </svg>
                                 Admin
                             </span>
@@ -320,20 +398,36 @@
                 </div>
             </div>
         </div>
-        <div v-if="adminConfirm.open" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/40" @click="adminConfirm.open = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 z-10">
-                <h3 class="font-semibold text-gray-800 mb-2">Attribuer le rôle administrateur ?</h3>
-                <p class="text-sm text-gray-500 mb-5">Vous allez attribuer le rôle administrateur à cet utilisateur. Cette action lui donnera un accès complet à la plateforme.</p>
+        <div
+            v-if="adminConfirm.open"
+            class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        >
+            <div
+                class="absolute inset-0 bg-black/40"
+                @click="adminConfirm.open = false"
+            />
+            <div
+                class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 z-10"
+            >
+                <h3 class="font-semibold text-gray-800 mb-2">
+                    Attribuer le rôle administrateur ?
+                </h3>
+                <p class="text-sm text-gray-500 mb-5">
+                    Vous allez attribuer le rôle administrateur à cet
+                    utilisateur. Cette action lui donnera un accès complet à la
+                    plateforme.
+                </p>
                 <div class="flex gap-3">
                     <button
                         @click="adminConfirm.open = false"
-                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150">
+                        class="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors duration-150"
+                    >
                         Annuler
                     </button>
                     <button
                         @click="doSaveRights"
-                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150">
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-150"
+                    >
                         Confirmer
                     </button>
                 </div>
@@ -345,63 +439,168 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="historyModal.open = false"
         >
-            <div class="absolute inset-0 bg-black/40" @click="historyModal.open = false" />
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                    <h3 class="font-semibold text-gray-800" style="font-family: var(--font-family-title)">
+            <div
+                class="absolute inset-0 bg-black/40"
+                @click="historyModal.open = false"
+            />
+            <div
+                class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div
+                    class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0"
+                >
+                    <h3
+                        class="font-semibold text-gray-800"
+                        style="font-family: var(--font-family-title)"
+                    >
                         Historique : {{ historyModal.user?.name }}
                     </h3>
                     <button
                         @click="historyModal.open = false"
                         class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                     >
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
 
                 <div class="px-6 py-5 overflow-y-auto space-y-5 flex-1">
-                    <div v-if="historyModal.loading" class="text-sm text-gray-400 text-center py-6">Chargement…</div>
+                    <div
+                        v-if="historyModal.loading"
+                        class="text-sm text-gray-400 text-center py-6"
+                    >
+                        Chargement…
+                    </div>
 
                     <template v-else>
                         <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sanctions reçues</p>
-                            <p v-if="historyModal.data.sanctions.length === 0" class="text-xs text-gray-400">Aucune sanction.</p>
+                            <p
+                                class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"
+                            >
+                                Sanctions reçues
+                            </p>
+                            <p
+                                v-if="historyModal.data.sanctions.length === 0"
+                                class="text-xs text-gray-400"
+                            >
+                                Aucune sanction.
+                            </p>
                             <div v-else class="space-y-2">
-                                <div v-for="s in historyModal.data.sanctions" :key="s.id_sanction" class="p-3 rounded-lg bg-gray-50 border border-gray-100">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium text-gray-800 capitalize">{{ s.type }}</span>
-                                        <span class="text-xs text-gray-400">{{ s.created_at?.slice(0, 10) }}</span>
+                                <div
+                                    v-for="s in historyModal.data.sanctions"
+                                    :key="s.id_sanction"
+                                    class="p-3 rounded-lg bg-gray-50 border border-gray-100"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <span
+                                            class="text-sm font-medium text-gray-800 capitalize"
+                                            >{{ s.type }}</span
+                                        >
+                                        <span class="text-xs text-gray-400">{{
+                                            s.created_at?.slice(0, 10)
+                                        }}</span>
                                     </div>
-                                    <p v-if="s.reason" class="text-xs text-gray-500 mt-1">{{ s.reason }}</p>
-                                    <p class="text-xs text-gray-400 mt-1">Par {{ s.admin_name || '-' }}</p>
+                                    <p
+                                        v-if="s.reason"
+                                        class="text-xs text-gray-500 mt-1"
+                                    >
+                                        {{ s.reason }}
+                                    </p>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Par {{ s.admin_name || "-" }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Demandes de compte pro</p>
-                            <p v-if="historyModal.data.professional_requests.length === 0" class="text-xs text-gray-400">Aucune demande.</p>
+                            <p
+                                class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"
+                            >
+                                Demandes de compte pro
+                            </p>
+                            <p
+                                v-if="
+                                    historyModal.data.professional_requests
+                                        .length === 0
+                                "
+                                class="text-xs text-gray-400"
+                            >
+                                Aucune demande.
+                            </p>
                             <div v-else class="space-y-2">
-                                <div v-for="req in historyModal.data.professional_requests" :key="req.id" class="p-3 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-between">
-                                    <span class="text-sm text-gray-700 capitalize">{{ req.status }}</span>
-                                    <span class="text-xs text-gray-400">{{ req.created_at?.slice(0, 10) }}</span>
+                                <div
+                                    v-for="req in historyModal.data
+                                        .professional_requests"
+                                    :key="req.id"
+                                    class="p-3 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-between"
+                                >
+                                    <span
+                                        class="text-sm text-gray-700 capitalize"
+                                        >{{ req.status }}</span
+                                    >
+                                    <span class="text-xs text-gray-400">{{
+                                        req.created_at?.slice(0, 10)
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Signalements reçus</p>
-                            <p v-if="historyModal.data.reports_received.length === 0" class="text-xs text-gray-400">Aucun signalement.</p>
+                            <p
+                                class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"
+                            >
+                                Signalements reçus
+                            </p>
+                            <p
+                                v-if="
+                                    historyModal.data.reports_received
+                                        .length === 0
+                                "
+                                class="text-xs text-gray-400"
+                            >
+                                Aucun signalement.
+                            </p>
                             <div v-else class="space-y-2">
-                                <div v-for="r in historyModal.data.reports_received" :key="r.id_report" class="p-3 rounded-lg bg-gray-50 border border-gray-100">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium text-gray-800">{{ r.content_title || r.content_type }}</span>
-                                        <span class="text-xs text-gray-400">{{ r.created_at?.slice(0, 10) }}</span>
+                                <div
+                                    v-for="r in historyModal.data
+                                        .reports_received"
+                                    :key="r.id_report"
+                                    class="p-3 rounded-lg bg-gray-50 border border-gray-100"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <span
+                                            class="text-sm font-medium text-gray-800"
+                                            >{{
+                                                r.content_title ||
+                                                r.content_type
+                                            }}</span
+                                        >
+                                        <span class="text-xs text-gray-400">{{
+                                            r.created_at?.slice(0, 10)
+                                        }}</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-1">{{ r.reason }}</p>
-                                    <p class="text-xs text-gray-400 mt-1">Statut : {{ r.status }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        {{ r.reason }}
+                                    </p>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Statut : {{ r.status }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -435,8 +634,24 @@ const deleting = ref(false);
 
 const rightsModal = ref({ open: false, user: null, selectedRole: "" });
 const roles = ref([]);
-const auth = useAuthStore()
-const adminConfirm = ref({ open: false })
+
+async function notifyRecent() {
+    const subject = prompt("Sujet du mail ?");
+    if (!subject) return;
+    const message = prompt("Message ?");
+    if (!message) return;
+    try {
+        const { data } = await api.post("/admin/users/notify-recent", {
+            subject,
+            message,
+        });
+        alert(data.message);
+    } catch (e) {
+        alert(e.response?.data?.error ?? "Erreur lors de l'envoi.");
+    }
+}
+const auth = useAuthStore();
+const adminConfirm = ref({ open: false });
 const historyModal = ref({
     open: false,
     user: null,
@@ -444,7 +659,9 @@ const historyModal = ref({
     data: { sanctions: [], reports_received: [], professional_requests: [] },
 });
 
-function changePage(p) { page.value = p }
+function changePage(p) {
+    page.value = p;
+}
 
 async function fetchUsers() {
     loading.value = true;
@@ -474,9 +691,15 @@ async function fetchUsers() {
 let debounce = null;
 watch(search, () => {
     clearTimeout(debounce);
-    debounce = setTimeout(() => { page.value = 1; fetchUsers(); }, 300);
+    debounce = setTimeout(() => {
+        page.value = 1;
+        fetchUsers();
+    }, 300);
 });
-watch([filterType, filterStatus], () => { page.value = 1; fetchUsers(); });
+watch([filterType, filterStatus], () => {
+    page.value = 1;
+    fetchUsers();
+});
 watch(page, fetchUsers);
 
 onMounted(async () => {
@@ -499,7 +722,7 @@ onMounted(async () => {
 });
 
 function formatRoleName(name) {
-    return roleLabel(name)
+    return roleLabel(name);
 }
 
 function roleToType(userRoles) {
@@ -525,11 +748,11 @@ function openRights(user) {
 }
 
 async function saveRights() {
-    if (rightsModal.value.selectedRole === 'admin') {
-        adminConfirm.value.open = true
-        return
+    if (rightsModal.value.selectedRole === "admin") {
+        adminConfirm.value.open = true;
+        return;
     }
-    await doSaveRights()
+    await doSaveRights();
 }
 
 async function doSaveRights() {
@@ -562,7 +785,11 @@ async function openHistory(user) {
         open: true,
         user,
         loading: true,
-        data: { sanctions: [], reports_received: [], professional_requests: [] },
+        data: {
+            sanctions: [],
+            reports_received: [],
+            professional_requests: [],
+        },
     };
     try {
         const { data } = await api.get(`/admin/user/${user.id}/history`);
